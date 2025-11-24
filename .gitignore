@@ -1,0 +1,59 @@
+# macOS artifacts
+.DS_Store
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env
+.env.*
+.venv/
+venv/
+env/
+ENV/
+spotify.venv/
+finance.venv/
+
+# Packaging / build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.cache/
+.ipynb_checkpoints/
+
+# Credentials / secrets
+*.pem
+*.key
+*-service-account.json
+finance-sentiment-scraper-*.json
+
+# IDE / editor settings
+.idea/
+.vscode/
+*.swp
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Generated data / exports
+reddit_cache_v2/
+reddit_csv_v2/
+*.pkl
+
+# Node / JS artifacts (if any)
+node_modules/
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
