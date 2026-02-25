@@ -1,0 +1,86 @@
+.page {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.backWrap {
+  margin: 0 0 12px;
+}
+
+.backLink {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.title {
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 860px;
+  margin-bottom: 20px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.input {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.checkboxRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.button {
+  width: fit-content;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: #cb4343;
+}
+
+.results {
+  margin-top: 10px;
+}
+
+.meta {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.linkWrap {
+  margin: 12px 0 0;
+}
+
+.openLink {
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  border-radius: 8px;
+  display: inline-block;
+}

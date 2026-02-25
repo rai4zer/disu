@@ -1,0 +1,15 @@
+numpy
+pandas
+scikit-learn
+yfinance
+pydantic
+rich
+joblib
+ta
+matplotlib
+bs4
+lxml
+requests
+pyarrow
+python-dotenv
+reportlab

@@ -1,0 +1,107 @@
+.page {
+  width: 100%;
+}
+
+.card {
+  display: grid;
+  gap: 8px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.linkCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  text-decoration: none;
+  background: var(--surface-elevated);
+}
+
+.linkCard strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.linkCard span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.linkCard:hover {
+  border-color: var(--border-strong);
+}
+
+.feedbackMinimal {
+  margin-top: 6px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-elevated);
+  display: grid;
+  gap: 8px;
+}
+
+.feedbackMinimalLabel {
+  font-size: 0.84rem;
+  font-weight: 580;
+  color: var(--ink-soft);
+}
+
+.feedbackMinimalRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.feedbackMinimalInput {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.feedbackMinimalInput:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--navy) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.feedbackMinimalButton {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+  min-height: 36px;
+  border-radius: 999px;
+  padding: 0 14px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.feedbackMinimalButton:hover {
+  border-color: color-mix(in srgb, var(--navy) 34%, var(--border-strong));
+}
+
+@media (max-width: 700px) {
+  .feedbackMinimalRow {
+    grid-template-columns: 1fr;
+  }
+}

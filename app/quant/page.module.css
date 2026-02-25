@@ -1,0 +1,606 @@
+.page {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.backWrap {
+  margin: 0 0 12px;
+}
+
+.backLink {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.title {
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 860px;
+  margin-bottom: 20px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.input {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+  font-size: 1rem;
+  width: 100%;
+}
+
+.checkboxRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.button {
+  width: fit-content;
+}
+
+.resumeCard {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  border-style: dashed;
+}
+
+.resumeText {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.resumeActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: #cb4343;
+}
+
+.loaderWrap {
+  margin: 36px 0 42px;
+  min-height: 220px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+}
+
+.loaderOrbit {
+  width: 64px;
+  height: 64px;
+  position: relative;
+}
+
+.loaderOrbiter {
+  position: absolute;
+  inset: 0;
+  animation: orbitSpin 1s linear infinite;
+}
+
+.loaderDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 75%, #74a5ff 25%);
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  transform: translateX(-50%);
+}
+
+.loaderText {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.results {
+  margin-top: 10px;
+  animation: resultFadeIn 220ms ease-out;
+}
+
+.meta {
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+
+.artifactWrap {
+  margin: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+}
+
+.artifactTitle {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.artifactList {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.artifactItem {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  word-break: break-word;
+}
+
+.chartCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-elevated-strong);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.chartTopBar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.horizonTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolMenuWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.toolMenuButton {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--ink);
+  border-radius: 999px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.toolMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 170px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated-strong);
+  border-radius: 12px;
+  padding: 6px;
+  display: grid;
+  gap: 4px;
+  z-index: 20;
+  box-shadow: var(--shadow-soft);
+}
+
+.toolMenuItem {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  text-align: left;
+  border-radius: 8px;
+  padding: 7px 9px;
+  cursor: pointer;
+  font-size: 0.84rem;
+}
+
+.toolMenuItem:hover {
+  color: var(--ink);
+  background: var(--surface-elevated);
+}
+
+.toolMenuItemActive {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 30%, var(--border));
+  background: var(--surface-elevated);
+}
+
+.horizonTab {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.86rem;
+}
+
+.horizonTabActive {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 35%, var(--border));
+  background: var(--surface-elevated);
+}
+
+.chartSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+
+.gridLine {
+  stroke: color-mix(in srgb, var(--border) 80%, transparent);
+  stroke-width: 1;
+}
+
+.xGridLine {
+  stroke: color-mix(in srgb, var(--border) 65%, transparent);
+  stroke-width: 1;
+}
+
+.gridLabel {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.priceLine {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 74%, var(--muted) 26%);
+  stroke-width: 1.95;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: drawLine 0.9s ease forwards;
+}
+
+.mountainArea {
+  fill: url(#mountainGradient);
+}
+
+.projectionLine {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 2;
+  stroke-dasharray: 5 5;
+  animation: pulseProjection 1.4s ease-in-out infinite;
+}
+
+.ghostProjectionLine {
+  fill: none;
+  stroke: color-mix(in srgb, var(--muted) 75%, transparent);
+  stroke-width: 2;
+  stroke-dasharray: 4 6;
+  animation: fadeGhost 0.42s ease-out forwards;
+}
+
+.dotNow {
+  fill: var(--ink);
+}
+
+.dotProj {
+  fill: var(--surface-elevated-strong);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.hoverLine {
+  stroke: color-mix(in srgb, var(--ink) 28%, transparent);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+}
+
+.dotHover {
+  fill: var(--surface-elevated-strong);
+  stroke: var(--ink);
+  stroke-width: 2;
+}
+
+.candleWick {
+  stroke: color-mix(in srgb, var(--ink) 74%, #001b36 26%);
+  stroke-width: 1;
+}
+
+.candleBodyUp {
+  fill: #30c48d;
+  stroke: color-mix(in srgb, #30c48d 70%, #000 30%);
+  stroke-width: 0.8;
+}
+
+.candleBodyDown {
+  fill: #f08f8f;
+  stroke: color-mix(in srgb, #f08f8f 70%, #000 30%);
+  stroke-width: 0.8;
+}
+
+.ohlcMain {
+  stroke: color-mix(in srgb, var(--ink) 70%, transparent);
+  stroke-width: 1;
+}
+
+.ohlcOpen {
+  stroke: #f08f8f;
+  stroke-width: 1.3;
+}
+
+.ohlcClose {
+  stroke: #30c48d;
+  stroke-width: 1.3;
+}
+
+.highLowLine {
+  stroke: color-mix(in srgb, var(--muted) 68%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 4 5;
+}
+
+.highLowLabel {
+  fill: var(--muted);
+  font-size: 10px;
+}
+
+.dividendStem {
+  stroke: #0d8c95;
+  stroke-width: 1.1;
+}
+
+.dividendDot {
+  fill: #0d8c95;
+  stroke: color-mix(in srgb, #0d8c95 72%, #00162d 28%);
+  stroke-width: 1;
+}
+
+.reportStem {
+  stroke: #ea46b4;
+  stroke-width: 1.1;
+}
+
+.reportDot {
+  fill: #ea46b4;
+  stroke: color-mix(in srgb, #ea46b4 74%, #2b001f 26%);
+  stroke-width: 1;
+}
+
+.markerLabel {
+  fill: #ffffff;
+  text-anchor: middle;
+  font-size: 8px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.markerTipBg {
+  fill: color-mix(in srgb, #0a1323 85%, var(--surface-elevated-strong));
+  stroke: color-mix(in srgb, var(--border) 75%, transparent);
+  stroke-width: 1;
+}
+
+.markerTipTitle {
+  fill: #e7eef9;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.markerTipDetail {
+  fill: #b4c2d9;
+  font-size: 9px;
+}
+
+.rangeTabs {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rangeTab {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 0.82rem;
+}
+
+.rangeTabActive {
+  color: var(--ink);
+  border-color: color-mix(in srgb, var(--ink) 35%, var(--border));
+  background: var(--surface-elevated);
+}
+
+.chartLegend {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  flex-wrap: wrap;
+}
+
+.tableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 720px;
+  table-layout: fixed;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 8px;
+  width: calc(100% / 6);
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.tableRow td {
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+.tableRow:hover td {
+  background: var(--surface-elevated);
+}
+
+.metricPositive {
+  color: #78e0a4;
+  font-weight: 600;
+}
+
+.metricNegative {
+  color: #ff9a9a;
+  font-weight: 600;
+}
+
+.expectedWrap {
+  display: inline-grid;
+  grid-template-columns: auto 72px 38px;
+  align-items: center;
+  column-gap: 6px;
+  white-space: nowrap;
+}
+
+.expectedValue {
+  width: 72px;
+  text-align: left;
+  font-variant-numeric: tabular-nums;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.74rem;
+  line-height: 1;
+  padding: 3px 8px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--muted);
+  background: var(--surface-elevated);
+}
+
+.expectedMeter {
+  width: 38px;
+  height: 7px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  overflow: hidden;
+}
+
+.table th:nth-child(6),
+.table td:nth-child(6) {
+  padding-left: 4px;
+}
+
+.expectedFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 220ms ease;
+}
+
+.expectedFillPositive {
+  background: linear-gradient(90deg, #2ec08c 0%, #56d3ff 100%);
+}
+
+.expectedFillNegative {
+  background: linear-gradient(90deg, #ff8f8f 0%, #ffb388 100%);
+}
+
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseProjection {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeGhost {
+  from {
+    opacity: 0.75;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes resultFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .chartTopBar {
+    align-items: stretch;
+  }
+
+  .toolMenu {
+    right: auto;
+    left: 0;
+  }
+}

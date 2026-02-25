@@ -1,0 +1,29 @@
+{
+  "brand": "DISU",
+  "login": "Logga in",
+  "kicker": "Investeringsplattform",
+  "title": "Ett system för hela din investeringsprocess.",
+  "subtitle": "DISU samlar Portfölj, Sentiment, Quant och Primers i ett tydligt flöde så att du går från signal till beslut snabbare.",
+  "requestDemo": "Begär demo",
+  "workEmail": "E-post",
+  "emailPlaceholder": "namn@bolag.se",
+  "languageLabel": "Språk",
+  "features": [
+    {
+      "title": "Portfölj som utgångspunkt",
+      "description": "Koppla mäklare, synka innehav och få en uppdaterad helhetsbild av portföljen."
+    },
+    {
+      "title": "Sentiment med marknadskontext",
+      "description": "Följ marknadens ton runt en ticker och skilj signal från brus innan du agerar."
+    },
+    {
+      "title": "Primers från bolagsrapporter",
+      "description": "Generera korta bolagssammanfattningar från 10-K och 10-Q på några minuter."
+    },
+    {
+      "title": "Quant-scenarier för beslut",
+      "description": "Modellera korta och medellånga prisscenarier med sannolikheter som stöd för investeringsbeslut."
+    }
+  ]
+}

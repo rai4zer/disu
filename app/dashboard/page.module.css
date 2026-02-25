@@ -1,0 +1,124 @@
+.page {
+  margin: 0;
+  padding: 0;
+}
+
+.hero {
+  margin-top: 0;
+  display: grid;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  background: var(--surface-elevated);
+  border-color: color-mix(in srgb, var(--border-strong) 85%, transparent);
+}
+
+.summaryLabel {
+  margin: 0;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  font-weight: 620;
+}
+
+.summaryText {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-size: 0.93rem;
+  max-width: 72ch;
+}
+
+.flow {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.flow span {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: color-mix(in srgb, var(--surface-elevated) 72%, transparent);
+}
+
+.flow span[aria-hidden="true"] {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.grid {
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.card {
+  margin-top: 0;
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-height: 160px;
+  transition: border-color 170ms ease, background-color 170ms ease, transform 170ms ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-elevated);
+}
+
+.cardEyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  letter-spacing: -0.012em;
+  line-height: 1.2;
+}
+
+.card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+  font-size: 0.9rem;
+}
+
+.inlineLink {
+  margin-top: auto;
+  display: inline-block;
+  text-decoration: none;
+  font-weight: 620;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 12px;
+  width: fit-content;
+  background: var(--surface-elevated);
+}
+
+.inlineLink:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-elevated-strong);
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    min-height: 0;
+  }
+}

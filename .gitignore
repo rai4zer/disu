@@ -50,10 +50,15 @@ finance-sentiment-scraper-*.json
 reddit_cache_v2/
 reddit_csv_v2/
 *.pkl
+python/models/
+python/signals/
+python/logs/
+python/filings_cache/
+python/primers/
 
 # Node / JS artifacts (if any)
 node_modules/
-package-lock.json
 pnpm-lock.yaml
 yarn.lock
-
+.next/
+.next-build/

@@ -1,6 +1,7 @@
-import requests
 import csv
 from urllib.parse import quote_plus
+
+import requests
 
 COMPANIES = [
     "alibaba",
@@ -19,6 +20,7 @@ COMPANIES = [
     "visa",
 ]
 
+
 def fetch_ids(query: str):
     url = (
         "https://api.forum.placera.se/search"
@@ -27,12 +29,11 @@ def fetch_ids(query: str):
         "&kind=company&kind=profile&kind=group"
     )
 
-    r = requests.get(url, timeout=15)
-    r.raise_for_status()
-    data = r.json()
+    response = requests.get(url, timeout=15)
+    response.raise_for_status()
+    data = response.json()
 
     ids = []
-
     for item in data.get("results", []):
         company = item.get("company")
         if company and "id" in company:
@@ -54,9 +55,8 @@ def main():
             output_rows.append([name, "NOT FOUND"])
             print(f"{name}: NOT FOUND")
 
-    # Write CSV
-    with open("company_ids.csv", "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+    with open("company_ids.csv", "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.writer(csv_file)
         writer.writerow(["company", "id"])
         writer.writerows(output_rows)
 

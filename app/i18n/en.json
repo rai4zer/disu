@@ -1,0 +1,29 @@
+{
+  "brand": "DISU",
+  "login": "Login",
+  "kicker": "Investment Operations Platform",
+  "title": "One system for your entire investing workflow.",
+  "subtitle": "DISU brings Portfolio, Sentiment, Quant, and Primers into one flow so you can move from signal to decision faster.",
+  "requestDemo": "Request demo",
+  "workEmail": "Work email",
+  "emailPlaceholder": "name@company.com",
+  "languageLabel": "Language",
+  "features": [
+    {
+      "title": "Portfolio as your source of truth",
+      "description": "Connect brokers, sync positions, and keep a live overview of your holdings."
+    },
+    {
+      "title": "Sentiment with market context",
+      "description": "Track market tone around a ticker and separate signal from noise before you act."
+    },
+    {
+      "title": "Primers from filings",
+      "description": "Generate concise company briefs from 10-K and 10-Q filings in minutes."
+    },
+    {
+      "title": "Quant scenarios for decisions",
+      "description": "Model short- and medium-term price scenarios with probabilities to support investment decisions."
+    }
+  ]
+}

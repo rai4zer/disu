@@ -1,0 +1,221 @@
+.page {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.backWrap {
+  margin: 0 0 12px;
+}
+
+.backLink {
+  text-decoration: none;
+  color: var(--muted);
+}
+
+.title {
+  margin: 0 0 8px;
+  letter-spacing: -0.01em;
+}
+
+.description {
+  margin: 0 0 16px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 860px;
+  margin-bottom: 20px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.input {
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+  font-size: 1rem;
+  width: 100%;
+}
+
+.button {
+  width: fit-content;
+}
+
+.resumeCard {
+  display: grid;
+  gap: 10px;
+  margin: 0 0 16px;
+  border-style: dashed;
+}
+
+.resumeText {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.resumeActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.error {
+  margin: 0 0 14px;
+  color: #cb4343;
+}
+
+.loaderWrap {
+  margin: 36px 0 42px;
+  min-height: 220px;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 14px;
+}
+
+.loaderOrbit {
+  width: 64px;
+  height: 64px;
+  position: relative;
+}
+
+.loaderOrbiter {
+  position: absolute;
+  inset: 0;
+  animation: orbitSpin 1s linear infinite;
+}
+
+.loaderDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink) 75%, #74a5ff 25%);
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  transform: translateX(-50%);
+}
+
+.loaderText {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.results {
+  margin-top: 10px;
+  animation: resultFadeIn 220ms ease-out;
+}
+
+.meta {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.artifactWrap {
+  margin: 0 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--surface-elevated);
+}
+
+.artifactTitle {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.artifactList {
+  margin: 0;
+  padding-left: 16px;
+  display: grid;
+  gap: 4px;
+}
+
+.artifactItem {
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  word-break: break-word;
+}
+
+.linkWrap {
+  margin: 12px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.openLink {
+  text-decoration: none;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+  padding: 8px 10px;
+  border-radius: 999px;
+  display: inline-block;
+  background: var(--surface-elevated);
+}
+
+.chatWrap {
+  margin-top: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface-elevated-strong);
+  overflow: hidden;
+}
+
+.chatBubble {
+  padding: 18px 18px 20px;
+}
+
+.chatText {
+  margin: 0;
+  white-space: pre-wrap;
+  line-height: 1.72;
+  font-size: 16px;
+  letter-spacing: 0;
+  animation: fadeIn 280ms ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes orbitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes resultFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

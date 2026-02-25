@@ -1,0 +1,533 @@
+.page {
+  min-height: 100vh;
+  padding: 0;
+}
+
+.pageBody {
+  padding: clamp(16px, 2.8vw, 32px);
+}
+
+.shell {
+  max-width: 980px;
+  margin: 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  padding: clamp(18px, 2.8vw, 34px);
+  background: linear-gradient(160deg, var(--surface), var(--surface-soft));
+  box-shadow: var(--shadow-soft);
+  animation: rise 520ms ease-out;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.brandLogo {
+  display: block;
+  height: 40px;
+  width: auto;
+  color: var(--ink);
+}
+
+.topControls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.languageToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-elevated);
+}
+
+.langButton,
+.langActive {
+  border: 0;
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.72rem;
+  font-weight: 560;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.langActive {
+  color: #f8f4eb;
+  background: var(--navy);
+}
+
+.loginButton {
+  text-decoration: none;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 0.85rem;
+  font-weight: 560;
+  color: var(--ink);
+  background: var(--surface-elevated-strong);
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+.loginButton:hover {
+  transform: translateY(-1px);
+  border-color: var(--navy);
+  background: color-mix(in srgb, var(--navy) 10%, var(--surface-elevated-strong));
+}
+
+.hero {
+  margin: clamp(22px, 4vw, 44px) auto 0;
+  max-width: 740px;
+  text-align: center;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+.kicker {
+  margin: 0;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 0.69rem;
+  font-weight: 560;
+}
+
+.title {
+  margin: 4px 0 2px;
+  font-size: clamp(1.72rem, 5.2vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  max-width: 21ch;
+  font-weight: 610;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: clamp(0.94rem, 1.7vw, 1.02rem);
+  line-height: 1.58;
+  color: var(--muted);
+  max-width: 62ch;
+  font-weight: 390;
+}
+
+.heroSvg {
+  margin-top: 10px;
+  width: min(100%, 620px);
+  height: auto;
+}
+
+.ringOne,
+.ringTwo {
+  fill: color-mix(in srgb, var(--navy) 10%, transparent);
+  stroke: color-mix(in srgb, var(--navy) 45%, transparent);
+  stroke-width: 1;
+  animation: floatRing 4.8s ease-in-out infinite;
+}
+
+.ringTwo {
+  animation-delay: 620ms;
+}
+
+.trendPath {
+  fill: none;
+  stroke: url(#lineGradient);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 550;
+  stroke-dashoffset: 550;
+  animation: drawLine 2.8s ease forwards;
+}
+
+.pulseDot,
+.pulseDotDelayed {
+  fill: var(--navy);
+  opacity: 0.72;
+  transform-origin: center;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+.pulseDotDelayed {
+  animation-delay: 800ms;
+}
+
+.sections {
+  margin: clamp(26px, 3.6vw, 40px) auto 0;
+  max-width: 760px;
+  display: grid;
+  gap: 14px;
+}
+
+.featureStack {
+  display: grid;
+  gap: 14px;
+}
+
+.featureCard,
+.demoCard {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: clamp(14px, 2.2vw, 20px);
+  background: var(--surface-elevated);
+  text-align: center;
+}
+
+.featureHeading {
+  display: grid;
+  justify-items: center;
+}
+
+.conceptSvg {
+  width: min(100%, 560px);
+  height: auto;
+}
+
+.conceptPanel {
+  fill: color-mix(in srgb, var(--navy) 7%, var(--surface-elevated));
+  stroke: color-mix(in srgb, var(--navy) 28%, transparent);
+  stroke-width: 1.2;
+}
+
+.conceptChip,
+.conceptBarA,
+.conceptBarB,
+.conceptBarC,
+.primerTitle,
+.primerLineOne,
+.primerLineTwo,
+.primerLineThree,
+.primerLineFour {
+  fill: color-mix(in srgb, var(--navy) 17%, transparent);
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+.conceptBarB,
+.primerLineTwo {
+  animation-delay: 250ms;
+}
+
+.conceptBarC,
+.primerLineThree {
+  animation-delay: 420ms;
+}
+
+.primerLineFour {
+  animation-delay: 560ms;
+}
+
+.conceptGauge {
+  fill: color-mix(in srgb, var(--navy) 18%, transparent);
+  stroke: color-mix(in srgb, var(--navy) 44%, transparent);
+  stroke-width: 1.3;
+}
+
+.conceptCheck {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 52;
+  stroke-dashoffset: 52;
+  animation: drawMini 1.8s ease forwards;
+}
+
+.conceptTrend {
+  fill: none;
+  stroke: var(--navy);
+  stroke-width: 3.1;
+  stroke-linecap: round;
+  stroke-dasharray: 340;
+  stroke-dashoffset: 340;
+  animation: drawTrend 2.2s ease forwards;
+}
+
+.conceptDot,
+.conceptDotDelayed {
+  fill: var(--navy);
+  opacity: 0.78;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+.conceptDotDelayed {
+  animation-delay: 760ms;
+}
+
+.sentimentPositive {
+  fill: rgba(72, 163, 114, 0.9);
+}
+
+.sentimentNeutral {
+  fill: rgba(174, 146, 87, 0.9);
+}
+
+.sentimentNegative {
+  fill: rgba(169, 80, 90, 0.9);
+}
+
+.axisLine {
+  stroke: color-mix(in srgb, var(--navy) 35%, transparent);
+  stroke-width: 1.5;
+}
+
+.candleOne,
+.candleTwo,
+.candleThree,
+.candleFour,
+.candleFive,
+.candleSix {
+  fill: color-mix(in srgb, var(--navy) 24%, transparent);
+  animation: candleShift 2.6s ease-in-out infinite;
+}
+
+.candleTwo {
+  animation-delay: 120ms;
+}
+
+.candleThree {
+  animation-delay: 220ms;
+}
+
+.candleFour {
+  animation-delay: 320ms;
+}
+
+.candleFive {
+  animation-delay: 420ms;
+}
+
+.candleSix {
+  animation-delay: 520ms;
+}
+
+.featureCard h2 {
+  margin: 12px auto 0;
+  font-size: clamp(1.02rem, 2.5vw, 1.22rem);
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  font-weight: 580;
+  max-width: 36ch;
+}
+
+.featureCard p:last-child {
+  margin: 8px auto 0;
+  color: var(--muted);
+  line-height: 1.5;
+  font-size: 0.92rem;
+  font-weight: 390;
+  max-width: 52ch;
+}
+
+.demoCard {
+  display: grid;
+  gap: 10px;
+  background: color-mix(in srgb, var(--navy) 8%, var(--surface-elevated));
+}
+
+.demoRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(100%, 560px);
+  margin: 0 auto;
+}
+
+.demoButton {
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-size: 0.88rem;
+  font-weight: 570;
+  background: var(--navy);
+  color: #f8f4eb;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+  box-shadow: var(--shadow-cta);
+  white-space: nowrap;
+}
+
+.demoButton:hover {
+  transform: translateY(-1px);
+}
+
+.emailInput {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  padding: 9px 11px;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+
+.emailInput:focus {
+  outline: 2px solid color-mix(in srgb, var(--navy) 45%, transparent);
+  outline-offset: 1px;
+  border-color: var(--navy);
+}
+
+.emailInput::placeholder {
+  color: color-mix(in srgb, var(--muted) 75%, transparent);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 540ms ease, transform 540ms ease;
+}
+
+.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drawLine {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes drawTrend {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes drawMini {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pulseDot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.66;
+  }
+
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+
+@keyframes floatRing {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-7px);
+  }
+}
+
+@keyframes shimmer {
+  0%,
+  100% {
+    opacity: 0.64;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes candleShift {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@media (max-width: 780px) {
+  .shell {
+    border-radius: 20px;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .demoRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell,
+  .ringOne,
+  .ringTwo,
+  .trendPath,
+  .pulseDot,
+  .pulseDotDelayed,
+  .conceptChip,
+  .conceptBarA,
+  .conceptBarB,
+  .conceptBarC,
+  .conceptCheck,
+  .conceptTrend,
+  .conceptDot,
+  .conceptDotDelayed,
+  .primerTitle,
+  .primerLineOne,
+  .primerLineTwo,
+  .primerLineThree,
+  .primerLineFour,
+  .candleOne,
+  .candleTwo,
+  .candleThree,
+  .candleFour,
+  .candleFive,
+  .candleSix {
+    animation: none !important;
+  }
+
+  .reveal,
+  .revealed {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

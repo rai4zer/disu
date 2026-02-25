@@ -1,0 +1,275 @@
+.page {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.overview {
+  margin-top: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: 10px;
+}
+
+.kpiCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 12px 10px;
+  background: var(--surface-elevated);
+  display: grid;
+  gap: 4px;
+}
+
+.kpiLabel {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kpiValue {
+  margin: 0;
+  font-size: clamp(1rem, 1.7vw, 1.24rem);
+  letter-spacing: -0.015em;
+  font-weight: 620;
+}
+
+.kpiMeta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+  margin-bottom: 0;
+}
+
+.secondaryBtn {
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-weight: 580;
+  cursor: pointer;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+}
+
+.secondaryBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.connectors,
+.connections {
+  margin-bottom: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sectionHead h2 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 610;
+}
+
+.sectionHead p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.connectorGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.connectorCard,
+.connectionCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px;
+  background: var(--surface-elevated);
+}
+
+.connectorCard h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.connectorCard p {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.uploadWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 8px 10px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface-elevated);
+  font-size: 0.84rem;
+}
+
+.uploadWrap input {
+  display: none;
+}
+
+.connectionList {
+  display: grid;
+  gap: 10px;
+}
+
+.connectionCard {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.connectionBroker {
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  font-size: 0.82rem;
+}
+
+.connectionMeta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.connectionActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.statusBadge {
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  padding: 4px 9px;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.helper {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.holdings {
+  overflow-x: auto;
+}
+
+.tableHead,
+.tableRow {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr 2fr;
+  gap: 12px;
+  padding: 12px 14px;
+  align-items: center;
+}
+
+.tableHead {
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 620;
+}
+
+.tableRow {
+  border-top: 1px solid var(--border);
+  font-size: 0.92rem;
+}
+
+.ticker {
+  font-weight: 700;
+}
+
+.inlineActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.inlineActions a {
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-size: 0.84rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: var(--surface-elevated);
+}
+
+.emptyTable {
+  margin: 0;
+  padding: 12px 4px 4px;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.error {
+  margin: 12px 0 0;
+  color: #b63f2c;
+}
+
+@media (max-width: 900px) {
+  .overview {
+    grid-template-columns: 1fr;
+  }
+
+  .sectionHead {
+    display: grid;
+    gap: 5px;
+  }
+
+  .tableHead,
+  .tableRow {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .tableHead {
+    display: none;
+  }
+
+  .connectionCard {
+    flex-direction: column;
+  }
+
+  .connectionActions {
+    align-items: flex-start;
+  }
+
+  .actions {
+    justify-content: flex-start;
+  }
+}
