@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import PortfolioChart, { type PortfolioHistoryPoint } from "@/app/components/portfolio-chart";
+import StockChart from "@/app/components/stock-chart";
 import UiState from "@/app/components/ui-state";
 import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
@@ -18,55 +20,46 @@ type Position = {
   // off. A null must never reach arithmetic: `0 + null` is 0 in JavaScript, so
   // an unpriced holding would silently count as worth nothing (ROADMAP §2.7).
   marketValue: number | null;
+  positionValue?: number | null;
   currentPrice?: number | null;
+  unrealizedPnl?: number | null;
   currency: string;
+  accountType?: string | null;
+  broker?: string | null;
   // Observed previous-close-vs-last change. null/undefined means "not available"
   // and must render as such — never as zero, and never as a derived stand-in.
   dayChangePct?: number | null;
   dayChangeAmount?: number | null;
+  /** positionValue converted into the portfolio display currency, or null. */
+  valueInDisplayCurrency?: number | null;
   // True when the price behind this row is a placeholder, not market data.
   synthetic?: boolean;
 };
 
-// marketValue is narrowed too: the previous-value maths below subtracts the
-// day change from it, and a null there would silently read as zero.
-type CoveredPosition = Position & { dayChangePct: number; dayChangeAmount: number; marketValue: number };
-
-// A first-run dashboard has nothing to show. Rather than render zeroed panels —
-// which read as "your portfolio is worth 0 kr" — we show what the panels look
-// like once a holding exists. These are fixed illustrative figures, never
-// fetched, never mixed into a real total, and the panel says so on its face
-// (docs/synthetic-data-policy.md: invented numbers must be labelled and must
-// render differently from observed data).
-const EXAMPLE_CURRENCY = "SEK";
-const EXAMPLE_DAILY_MOVE = { amount: 1240, pct: 0.82 };
-const EXAMPLE_MARKET_VALUE = { total: 152400, returnPct: 11.4 };
-const EXAMPLE_MOVERS = [
-  { symbol: "VOLV-B.ST", pct: 2.1 },
-  { symbol: "ERIC-B.ST", pct: -1.3 }
-];
-
-function formatMoney(value: number, currency: string): string {
-  return new Intl.NumberFormat("sv-SE", {
-    style: "currency",
-    currency,
-    maximumFractionDigits: 2
-  }).format(value);
-}
-
-function percent(value: number): string {
-  const sign = value >= 0 ? "+" : "";
-  return `${sign}${Math.round(value * 100) / 100}%`;
-}
+type Totals = {
+  displayCurrency: string;
+  total: number;
+  positionCount: number;
+  convertedCount: number;
+  unconvertedCount: number;
+  unconvertedCurrencies: string[];
+  syntheticCount: number;
+  unavailableCount: number;
+};
 
 export default function DashboardPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
+  const locale = isSv ? "sv-SE" : "en-US";
   const router = useRouter();
 
   const [positions, setPositions] = useState<Position[]>([]);
+  const [totals, setTotals] = useState<Totals | null>(null);
+  const [history, setHistory] = useState<PortfolioHistoryPoint[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const loadDashboard = useCallback(async () => {
     const portfolioResponse = await fetch("/api/portfolio/positions", { cache: "no-store" });
@@ -78,9 +71,29 @@ export default function DashboardPage() {
       router.replace("/auth/login?next=/dashboard");
       return;
     }
-    const portfolioPayload = (await portfolioResponse.json().catch(() => ({}))) as { positions?: Position[] };
+    const portfolioPayload = (await portfolioResponse.json().catch(() => ({}))) as {
+      positions?: Position[];
+      totals?: Totals;
+    };
     setPositions(Array.isArray(portfolioPayload.positions) ? portfolioPayload.positions : []);
+    setTotals(portfolioPayload.totals ?? null);
   }, [router]);
+
+  const loadHistory = useCallback(async () => {
+    // The chart is the one panel allowed to be empty on its own: history only
+    // exists from the day the daily sweep first valued this portfolio, and a
+    // failure here must not take the rest of the page down with it.
+    try {
+      const response = await fetch("/api/portfolio/history", { cache: "no-store" });
+      if (!response.ok) {
+        return;
+      }
+      const payload = (await response.json().catch(() => ({}))) as { points?: PortfolioHistoryPoint[] };
+      setHistory(Array.isArray(payload.points) ? payload.points : []);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -96,283 +109,415 @@ export default function DashboardPage() {
         // before the other is worse than a moment of nothing.
         setLoading(false);
       });
+    void loadHistory();
     return () => {
       cancelled = true;
     };
-  }, [loadDashboard]);
+  }, [loadDashboard, loadHistory]);
+
+  const displayCurrency = totals?.displayCurrency ?? "SEK";
+
+  const money = useMemo(
+    () => new Intl.NumberFormat(locale, { style: "currency", currency: displayCurrency, maximumFractionDigits: 0 }),
+    [locale, displayCurrency]
+  );
+
+  const formatIn = useCallback(
+    (value: number, currency: string) =>
+      new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(value),
+    [locale]
+  );
+
+  const percentFormat = useMemo(
+    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [locale]
+  );
+
+  const shareFormat = useMemo(
+    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    [locale]
+  );
+
+  const percent = useCallback(
+    (value: number) => {
+      const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+      return `${sign}${percentFormat.format(Math.abs(value))}%`;
+    },
+    [percentFormat]
+  );
+
+  const signedMoney = useCallback(
+    (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${money.format(Math.abs(value))}`,
+    [money]
+  );
 
   /**
-   * Holdings that actually have a value.
+   * The FX rate a row was actually converted at, read back off the row.
    *
-   * Everything below aggregates over this rather than `positions`. A row whose
-   * price could not be fetched is not worth zero — it is unknown, and the two
-   * must not be added together.
+   * Re-deriving a rate here would be a second network call *and* a different
+   * rate from the one the value was converted with, so the day change and the
+   * value would disagree. The row already carries the answer — the same trick
+   * `snapshot-value.ts` uses for the history writer.
    */
-  const priced = useMemo(
-    () =>
-      positions.filter(
-        (position): position is Position & { marketValue: number } =>
-          typeof position.marketValue === "number" && Number.isFinite(position.marketValue)
-      ),
-    [positions]
-  );
+  const rateFor = useCallback((position: Position): number | null => {
+    const local = position.positionValue ?? position.marketValue;
+    if (position.valueInDisplayCurrency === null || position.valueInDisplayCurrency === undefined) return null;
+    if (local === null || local === undefined || !Number.isFinite(local) || local <= 0) return null;
+    return position.valueInDisplayCurrency / local;
+  }, []);
 
-  const unpricedCount = positions.length - priced.length;
-
-  // Totals are only meaningful inside a single currency, so we report on the
-  // currency holding the most value and count the rest as excluded rather than
-  // adding unconverted amounts together.
-  const displayCurrency = useMemo(() => {
-    const valueByCurrency = new Map<string, number>();
-    for (const position of priced) {
-      valueByCurrency.set(position.currency, (valueByCurrency.get(position.currency) ?? 0) + position.marketValue);
-    }
-    let chosen: string | null = null;
-    let chosenValue = Number.NEGATIVE_INFINITY;
-    for (const [currency, value] of valueByCurrency) {
-      if (value > chosenValue) {
-        chosen = currency;
-        chosenValue = value;
-      }
-    }
-    return chosen;
-  }, [priced]);
-
-  const inScope = useMemo(
-    () => (displayCurrency === null ? [] : priced.filter((position) => position.currency === displayCurrency)),
-    [priced, displayCurrency]
-  );
-
-  const syntheticCount = useMemo(() => positions.filter((position) => position.synthetic === true).length, [positions]);
-
+  /** Day change in the display currency, over the rows that actually have one. */
   const dailyMove = useMemo(() => {
-    const covered = inScope.filter(
-      (position): position is CoveredPosition =>
-        position.synthetic !== true &&
-        typeof position.dayChangeAmount === "number" &&
-        Number.isFinite(position.dayChangeAmount) &&
-        typeof position.dayChangePct === "number" &&
-        Number.isFinite(position.dayChangePct)
-    );
+    const covered = positions
+      .filter((position) => position.synthetic !== true)
+      .map((position) => {
+        const rate = rateFor(position);
+        if (rate === null) return null;
+        if (typeof position.dayChangeAmount !== "number" || !Number.isFinite(position.dayChangeAmount)) return null;
+        if (typeof position.dayChangePct !== "number" || !Number.isFinite(position.dayChangePct)) return null;
+        return {
+          position,
+          amount: position.dayChangeAmount * rate,
+          pct: position.dayChangePct,
+          valueNow: position.valueInDisplayCurrency as number
+        };
+      })
+      .filter((row): row is NonNullable<typeof row> => row !== null);
 
     if (covered.length === 0) {
-      return { available: false as const };
+      return { available: false as const, coveredCount: 0 };
     }
 
-    const totalAmount = covered.reduce((acc, row) => acc + row.dayChangeAmount, 0);
-    const previousValue = covered.reduce((acc, row) => acc + (row.marketValue - row.dayChangeAmount), 0);
-    const sorted = covered.slice().sort((a, b) => b.dayChangePct - a.dayChangePct);
+    const amount = covered.reduce((sum, row) => sum + row.amount, 0);
+    const previousValue = covered.reduce((sum, row) => sum + (row.valueNow - row.amount), 0);
+    const sorted = covered.slice().sort((a, b) => b.pct - a.pct);
 
     return {
       available: true as const,
-      totalAmount,
-      totalPct: previousValue > 0 ? (totalAmount / previousValue) * 100 : null,
-      best: sorted.slice(0, 2),
-      // Start after the "best" slice so a small portfolio never lists the same
-      // holding as both its best and its worst performer.
-      worst: sorted.slice(Math.max(2, sorted.length - 2)).reverse(),
-      coveredCount: covered.length,
-      excludedCount: positions.length - covered.length
+      amount,
+      pct: previousValue > 0 ? (amount / previousValue) * 100 : null,
+      best: sorted[0],
+      // Never the same row as `best`: a one-holding portfolio has a best and no
+      // worst, not the same name printed twice.
+      worst: sorted.length > 1 ? sorted[sorted.length - 1] : null,
+      coveredCount: covered.length
     };
-  }, [inScope, positions.length]);
+  }, [positions, rateFor]);
 
-  const marketValue = useMemo(() => {
-    const totalNow = inScope.reduce((acc, row) => acc + row.marketValue, 0);
-    // Return is computed only across holdings whose cost we actually know, so
-    // the percentage compares like with like instead of silently treating an
-    // unknown cost as break-even.
-    const withCost = inScope.filter((row) => row.avgCost !== null && row.avgCost > 0);
-    const costBasis = withCost.reduce((acc, row) => acc + row.quantity * (row.avgCost as number), 0);
-    const valueOfCosted = withCost.reduce((acc, row) => acc + row.marketValue, 0);
+  /** Return against cost basis, across exactly the rows whose cost we know. */
+  const totalReturn = useMemo(() => {
+    let costBasis = 0;
+    let costedValue = 0;
+    let coveredCount = 0;
+
+    for (const position of positions) {
+      const rate = rateFor(position);
+      if (rate === null) continue;
+      if (position.avgCost === null || !Number.isFinite(position.avgCost) || position.avgCost <= 0) continue;
+      costBasis += position.quantity * position.avgCost * rate;
+      costedValue += position.valueInDisplayCurrency as number;
+      coveredCount += 1;
+    }
+
+    if (costBasis <= 0) {
+      return { available: false as const, coveredCount: 0 };
+    }
 
     return {
-      totalNow,
-      returnPct: costBasis > 0 ? ((valueOfCosted - costBasis) / costBasis) * 100 : null,
-      costCoverage: withCost.length,
-      excludedCount: positions.length - inScope.length
+      available: true as const,
+      amount: costedValue - costBasis,
+      pct: ((costedValue - costBasis) / costBasis) * 100,
+      coveredCount
     };
-  }, [inScope, positions.length]);
+  }, [positions, rateFor]);
 
-  const currencyLabel = displayCurrency ?? "SEK";
+  const holdings = useMemo(
+    () =>
+      positions.slice().sort((a, b) => {
+        const aValue = a.valueInDisplayCurrency ?? -1;
+        const bValue = b.valueInDisplayCurrency ?? -1;
+        return bValue - aValue;
+      }),
+    [positions]
+  );
+
+  const selected = useMemo(
+    () => holdings.find((position) => position.id === selectedId) ?? null,
+    [holdings, selectedId]
+  );
+
   const hasPositions = positions.length > 0;
+  const totalValue = totals?.total ?? null;
+  const syntheticCount = totals?.syntheticCount ?? 0;
+
+  const directionClass = (value: number) => (value > 0 ? styles.up : value < 0 ? styles.down : styles.flat);
 
   return (
     <main className={`${styles.page} appPage`}>
       <Workspace title={isSv ? "Översikt" : "Dashboard"}>
-        {syntheticCount > 0 ? (
-          <p className={styles.syntheticNotice} role="status">
-            <strong>{isSv ? "Platshållarkurser" : "Placeholder prices"}</strong>{" "}
-            {isSv
-              ? `${syntheticCount} av ${positions.length} innehav prissätts just nu med platshållare, inte marknadsdata. Värden och avkastning som bygger på dem är inte verkliga kurser.`
-              : `${syntheticCount} of ${positions.length} holdings are currently priced with a placeholder, not market data. Values and returns based on them are not real prices.`}
-          </p>
-        ) : null}
-
-        {loading ? (
-          <UiState kind="loading" message={isSv ? "Läser in din översikt..." : "Loading your dashboard..."} />
-        ) : null}
+        {loading ? <UiState kind="loading" message={isSv ? "Läser in din översikt..." : "Loading your dashboard..."} /> : null}
 
         {!loading && !hasPositions ? (
-          <>
-            <section className={`${styles.firstRun} appSection`} aria-label={isSv ? "Kom igång" : "Get started"}>
-              <h2>{isSv ? "Lägg till ditt första innehav" : "Add your first holding"}</h2>
-              <p className={styles.firstRunLead}>
-                {isSv
-                  ? "Sök på bolaget och ange hur många aktier du har. Det tar tio sekunder — inköpspris är valfritt och kan fyllas i senare."
-                  : "Search for the company and enter how many shares you hold. It takes ten seconds — average cost is optional and can wait."}
-              </p>
-              <div className={styles.firstRunActions}>
-                <Link className="appButton" href="/portfolio#add-holding">
-                  {isSv ? "Lägg till innehav" : "Add a holding"}
-                </Link>
-                <Link className={styles.firstRunLink} href="/portfolio#import-holdings">
-                  {isSv ? "Importera en fil eller koppla din bank" : "Import a file or connect your bank"}
-                </Link>
-              </div>
-            </section>
-
-            <section className={styles.example} aria-label={isSv ? "Exempel på översikten" : "Example dashboard"}>
-              <p className={styles.exampleNotice}>
-                <span className={styles.exampleBadge}>{isSv ? "Exempel" : "Example"}</span>{" "}
-                {isSv
-                  ? "Påhittade siffror som visar hur översikten ser ut när du har innehav. Inte marknadsdata och inte dina siffror."
-                  : "Made-up figures showing what the dashboard looks like once you hold something. Not market data, and not your numbers."}
-              </p>
-              <div className={styles.topGrid} aria-hidden="true">
-                <article className={`${styles.panel} ${styles.examplePanel} appSection`}>
-                  <h3>{isSv ? "Daglig rörelse" : "Daily Move"}</h3>
-                  <p className={styles.kpi}>
-                    {formatMoney(EXAMPLE_DAILY_MOVE.amount, EXAMPLE_CURRENCY)} <span>{percent(EXAMPLE_DAILY_MOVE.pct)}</span>
-                  </p>
-                  <div className={styles.twoCol}>
-                    <div>
-                      <h4>{isSv ? "Bästa tillgångar" : "Best assets"}</h4>
-                      <p className={styles.assetRow}>
-                        <span>{EXAMPLE_MOVERS[0].symbol}</span>
-                        <strong>{percent(EXAMPLE_MOVERS[0].pct)}</strong>
-                      </p>
-                    </div>
-                    <div>
-                      <h4>{isSv ? "Svagaste tillgångar" : "Worst assets"}</h4>
-                      <p className={styles.assetRow}>
-                        <span>{EXAMPLE_MOVERS[1].symbol}</span>
-                        <strong>{percent(EXAMPLE_MOVERS[1].pct)}</strong>
-                      </p>
-                    </div>
-                  </div>
-                </article>
-                <article className={`${styles.panel} ${styles.examplePanel} appSection`}>
-                  <h3>{isSv ? "Marknadsvärde" : "Market Value"}</h3>
-                  <p className={styles.kpi}>
-                    {formatMoney(EXAMPLE_MARKET_VALUE.total, EXAMPLE_CURRENCY)}{" "}
-                    <span>
-                      {percent(EXAMPLE_MARKET_VALUE.returnPct)} {isSv ? "mot inköpspris" : "vs. cost basis"}
-                    </span>
-                  </p>
-                </article>
-              </div>
-            </section>
-          </>
+          <section className={`${styles.firstRun} appSection`} aria-label={isSv ? "Kom igång" : "Get started"}>
+            <h2>{isSv ? "Lägg till ditt första innehav" : "Add your first holding"}</h2>
+            <p className={styles.firstRunLead}>
+              {isSv
+                ? "Sök på bolaget och ange hur många aktier du har. Det tar tio sekunder — inköpspris är valfritt och kan fyllas i senare."
+                : "Search for the company and enter how many shares you hold. It takes ten seconds — average cost is optional and can wait."}
+            </p>
+            <div className={styles.firstRunActions}>
+              <Link className="appButton" href="/portfolio#add-holding">
+                {isSv ? "Lägg till innehav" : "Add a holding"}
+              </Link>
+              <Link className={styles.firstRunLink} href="/portfolio#import-holdings">
+                {isSv ? "Importera en fil eller koppla din bank" : "Import a file or connect your bank"}
+              </Link>
+            </div>
+          </section>
         ) : null}
 
         {hasPositions ? (
-        <section className={styles.topGrid}>
-          <article className={`${styles.panel} appSection`}>
-            <h2>{isSv ? "Daglig rörelse" : "Daily Move"}</h2>
-            {dailyMove.available ? (
-              <>
-                <p className={styles.kpi}>
-                  {formatMoney(dailyMove.totalAmount, currencyLabel)}{" "}
-                  <span>{dailyMove.totalPct === null ? "—" : percent(dailyMove.totalPct)}</span>
-                </p>
-                {dailyMove.excludedCount > 0 ? (
-                  <p className={styles.coverage}>
-                    {isSv
-                      ? `Baserat på ${dailyMove.coveredCount} av ${positions.length} innehav. Resten saknar föregående stängningskurs i ${currencyLabel}.`
-                      : `Based on ${dailyMove.coveredCount} of ${positions.length} holdings. The rest have no previous close in ${currencyLabel}.`}
+          <>
+            {syntheticCount > 0 ? (
+              <p className={styles.syntheticNotice} role="status">
+                <strong>{isSv ? "Platshållarkurser" : "Placeholder prices"}</strong>{" "}
+                {isSv
+                  ? `${syntheticCount} av ${positions.length} innehav prissätts just nu med platshållare, inte marknadsdata.`
+                  : `${syntheticCount} of ${positions.length} holdings are currently priced with a placeholder, not market data.`}
+              </p>
+            ) : null}
+
+            <section className={styles.kpis} aria-label={isSv ? "Nyckeltal" : "Key figures"}>
+              <article className={`${styles.tile} ${styles.tileHero} appSection`}>
+                <h2 className={styles.tileLabel}>{isSv ? "Totalt värde" : "Total value"}</h2>
+                <p className={styles.hero}>{totalValue === null ? "—" : money.format(totalValue)}</p>
+                {dailyMove.available ? (
+                  <p className={`${styles.tileDelta} ${directionClass(dailyMove.amount)}`}>
+                    {signedMoney(dailyMove.amount)}
+                    {dailyMove.pct === null ? null : <span> {percent(dailyMove.pct)}</span>}{" "}
+                    <span>{isSv ? "idag" : "today"}</span>
                   </p>
                 ) : null}
-                <div className={styles.twoCol}>
-                  <div>
-                    <h3>{isSv ? "Bästa tillgångar" : "Best assets"}</h3>
-                    {dailyMove.best.map((row) => (
-                      <p key={`best-${row.id}`} className={styles.assetRow}>
-                        <span>{row.symbol}</span>
-                        <strong>{percent(row.dayChangePct)}</strong>
-                      </p>
-                    ))}
-                  </div>
-                  <div>
-                    <h3>{isSv ? "Svagaste tillgångar" : "Worst assets"}</h3>
-                    {dailyMove.worst.length === 0 ? (
-                      <p className={styles.assetRow}>
-                        <span>—</span>
-                      </p>
-                    ) : (
-                      dailyMove.worst.map((row) => (
-                        <p key={`worst-${row.id}`} className={styles.assetRow}>
-                          <span>{row.symbol}</span>
-                          <strong>{percent(row.dayChangePct)}</strong>
-                        </p>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <>
-                <p className={styles.kpiUnavailable}>{isSv ? "Inte tillgängligt än" : "Not available yet"}</p>
-                <p className={styles.unavailableNote}>
-                  {/* Only reachable with holdings — the no-holdings case is the
-                      first-run card above, not a panel full of dashes. */}
-                  {isSv
-                    ? "Daglig rörelse visas först när vi har en föregående stängningskurs från en marknadsdatakälla. Innehav som hämtas från en depå levereras utan kurshistorik."
-                    : "We show a daily move once we have a previous close from a market data feed. Holdings imported from a broker arrive without price history."}
-                </p>
-              </>
-            )}
-          </article>
+                {totals && totals.unconvertedCount > 0 ? (
+                  <p className={styles.coverage}>
+                    {isSv
+                      ? `Täcker ${totals.convertedCount} av ${totals.positionCount} innehav. ${totals.unconvertedCount} i ${totals.unconvertedCurrencies.join(", ")} kunde inte växlas och räknas inte in.`
+                      : `Covers ${totals.convertedCount} of ${totals.positionCount} holdings. ${totals.unconvertedCount} in ${totals.unconvertedCurrencies.join(", ")} could not be converted and are excluded.`}
+                  </p>
+                ) : null}
+              </article>
 
-          <article className={`${styles.panel} appSection`}>
-            <h2>{isSv ? "Marknadsvärde" : "Market Value"}</h2>
-            <p className={styles.kpi}>
-              {formatMoney(marketValue.totalNow, currencyLabel)}{" "}
-              <span>
-                {marketValue.returnPct === null
-                  ? isSv
-                    ? "avkastning saknas"
-                    : "return unavailable"
-                  : `${percent(marketValue.returnPct)} ${isSv ? "mot inköpspris" : "vs. cost basis"}`}
-              </span>
-            </p>
-            {unpricedCount > 0 ? (
-              <p className={styles.coverage}>
-                {isSv
-                  ? `Live marknadsdata saknas för ${unpricedCount} innehav — de räknas inte in.`
-                  : `Live market data is unavailable for ${unpricedCount} holding(s) — they are not counted.`}
-              </p>
+              <article className={`${styles.tile} appSection`}>
+                <h2 className={styles.tileLabel}>{isSv ? "Idag" : "Today"}</h2>
+                {dailyMove.available ? (
+                  <>
+                    <p className={`${styles.tileValue} ${directionClass(dailyMove.amount)}`}>
+                      {dailyMove.pct === null ? signedMoney(dailyMove.amount) : percent(dailyMove.pct)}
+                    </p>
+                    <p className={styles.tileSub}>{signedMoney(dailyMove.amount)}</p>
+                    <dl className={styles.movers}>
+                      <div>
+                        <dt>{isSv ? "Bäst" : "Best"}</dt>
+                        <dd>
+                          <span>{dailyMove.best.position.symbol}</span>
+                          <strong className={directionClass(dailyMove.best.pct)}>{percent(dailyMove.best.pct)}</strong>
+                        </dd>
+                      </div>
+                      {dailyMove.worst ? (
+                        <div>
+                          <dt>{isSv ? "Sämst" : "Worst"}</dt>
+                          <dd>
+                            <span>{dailyMove.worst.position.symbol}</span>
+                            <strong className={directionClass(dailyMove.worst.pct)}>{percent(dailyMove.worst.pct)}</strong>
+                          </dd>
+                        </div>
+                      ) : null}
+                    </dl>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.tileUnavailable}>{isSv ? "Inte tillgängligt" : "Not available"}</p>
+                    <p className={styles.coverage}>
+                      {isSv
+                        ? "Vi visar dagens rörelse först när en marknadskälla gett oss en föregående stängningskurs. Innehav från en depå kommer utan kurshistorik."
+                        : "We show a daily move once a market source has given us a previous close. Holdings imported from a broker arrive without price history."}
+                    </p>
+                  </>
+                )}
+              </article>
+
+              <article className={`${styles.tile} appSection`}>
+                <h2 className={styles.tileLabel}>{isSv ? "Avkastning" : "Return"}</h2>
+                {totalReturn.available ? (
+                  <>
+                    <p className={`${styles.tileValue} ${directionClass(totalReturn.amount)}`}>
+                      {percent(totalReturn.pct)}
+                    </p>
+                    <p className={styles.tileSub}>{signedMoney(totalReturn.amount)}</p>
+                    <p className={styles.coverage}>
+                      {isSv
+                        ? `Mot inköpspris, för ${totalReturn.coveredCount} av ${positions.length} innehav.`
+                        : `Against cost basis, for ${totalReturn.coveredCount} of ${positions.length} holdings.`}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <p className={styles.tileUnavailable}>{isSv ? "Inget inköpspris" : "No cost basis"}</p>
+                    <p className={styles.coverage}>
+                      {isSv
+                        ? "Ange inköpspris på dina innehav för att se avkastning."
+                        : "Add an average cost to your holdings to see return."}
+                    </p>
+                  </>
+                )}
+              </article>
+            </section>
+
+            <PortfolioChart points={history} currency={displayCurrency} loading={historyLoading} />
+
+            <section className={`${styles.holdings} appSection`} aria-label={isSv ? "Innehav" : "Holdings"}>
+              <header className={styles.holdingsHead}>
+                <h2 className={styles.tileLabel}>
+                  {isSv ? "Innehav" : "Holdings"} <span>{positions.length}</span>
+                </h2>
+                <Link className={styles.quietLink} href="/portfolio">
+                  {isSv ? "Hantera" : "Manage"}
+                </Link>
+              </header>
+
+              <ul className={styles.rows}>
+                {holdings.map((position) => {
+                  const share =
+                    totalValue && totalValue > 0 && typeof position.valueInDisplayCurrency === "number"
+                      ? (position.valueInDisplayCurrency / totalValue) * 100
+                      : null;
+                  const open = position.id === selectedId;
+                  return (
+                    <li key={position.id}>
+                      <button
+                        type="button"
+                        className={open ? `${styles.row} ${styles.rowOpen}` : styles.row}
+                        aria-expanded={open}
+                        aria-controls="position-detail"
+                        onClick={() => setSelectedId(open ? null : position.id)}
+                      >
+                        <span className={styles.rowMain}>
+                          <span className={styles.rowSymbol}>{position.symbol}</span>
+                          <span className={styles.rowName}>
+                            {position.name === position.symbol ? "" : position.name}
+                            {position.name === position.symbol ? null : " · "}
+                            {position.quantity.toLocaleString(locale)} {isSv ? "st" : "sh"}
+                          </span>
+                        </span>
+
+                        <span className={styles.rowValue}>
+                          {position.valueInDisplayCurrency === null || position.valueInDisplayCurrency === undefined
+                            ? position.marketValue === null || position.marketValue === undefined
+                              ? "—"
+                              : formatIn(position.marketValue, position.currency)
+                            : money.format(position.valueInDisplayCurrency)}
+                          {share === null ? null : (
+                            <span className={styles.rowShareText}>{shareFormat.format(share)}%</span>
+                          )}
+                        </span>
+
+                        <span
+                          className={`${styles.rowDay} ${
+                            typeof position.dayChangePct === "number" ? directionClass(position.dayChangePct) : styles.flat
+                          }`}
+                        >
+                          {position.synthetic === true
+                            ? isSv
+                              ? "platshållare"
+                              : "placeholder"
+                            : typeof position.dayChangePct === "number" && Number.isFinite(position.dayChangePct)
+                              ? percent(position.dayChangePct)
+                              : "—"}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
+
+            {selected ? (
+              <section id="position-detail" className={`${styles.detail} appSection`} aria-label={selected.symbol}>
+                <header className={styles.detailHead}>
+                  <div>
+                    <h2 className={styles.detailTitle}>{selected.symbol}</h2>
+                    <p className={styles.detailSub}>
+                      {selected.name === selected.symbol ? null : `${selected.name} · `}
+                      {selected.quantity.toLocaleString(locale)} {isSv ? "aktier" : "shares"}
+                      {selected.accountType ? ` · ${selected.accountType}` : ""}
+                    </p>
+                  </div>
+                  <button type="button" className={styles.quietLink} onClick={() => setSelectedId(null)}>
+                    {isSv ? "Stäng" : "Close"}
+                  </button>
+                </header>
+
+                <dl className={styles.facts}>
+                  <div>
+                    <dt>{isSv ? "Kurs" : "Price"}</dt>
+                    <dd>
+                      {typeof selected.currentPrice === "number"
+                        ? formatIn(selected.currentPrice, selected.currency)
+                        : isSv
+                          ? "Saknas"
+                          : "Unavailable"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{isSv ? "Inköpspris" : "Avg. cost"}</dt>
+                    <dd>{selected.avgCost === null ? "—" : formatIn(selected.avgCost, selected.currency)}</dd>
+                  </div>
+                  <div>
+                    <dt>{isSv ? "Värde" : "Value"}</dt>
+                    <dd>
+                      {selected.marketValue === null || selected.marketValue === undefined
+                        ? "—"
+                        : formatIn(selected.marketValue, selected.currency)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{isSv ? "Orealiserat" : "Unrealised"}</dt>
+                    <dd
+                      className={
+                        typeof selected.unrealizedPnl === "number" ? directionClass(selected.unrealizedPnl) : undefined
+                      }
+                    >
+                      {typeof selected.unrealizedPnl === "number"
+                        ? `${selected.unrealizedPnl > 0 ? "+" : selected.unrealizedPnl < 0 ? "−" : ""}${formatIn(Math.abs(selected.unrealizedPnl), selected.currency)}`
+                        : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{isSv ? "Idag" : "Today"}</dt>
+                    <dd
+                      className={
+                        typeof selected.dayChangePct === "number" ? directionClass(selected.dayChangePct) : undefined
+                      }
+                    >
+                      {selected.synthetic === true
+                        ? isSv
+                          ? "Platshållare"
+                          : "Placeholder"
+                        : typeof selected.dayChangePct === "number" && Number.isFinite(selected.dayChangePct)
+                          ? percent(selected.dayChangePct)
+                          : "—"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>{isSv ? "Källa" : "Source"}</dt>
+                    <dd>{selected.broker ?? (isSv ? "Manuellt" : "Manual")}</dd>
+                  </div>
+                </dl>
+
+                <StockChart symbol={selected.symbol} name={selected.name === selected.symbol ? null : selected.name} />
+              </section>
             ) : null}
-            {marketValue.excludedCount > 0 ? (
-              <p className={styles.coverage}>
-                {isSv
-                  ? `Visar innehav i ${currencyLabel}. ${marketValue.excludedCount} innehav i annan valuta räknas inte in.`
-                  : `Showing holdings in ${currencyLabel}. ${marketValue.excludedCount} holding(s) in another currency are not included.`}
-              </p>
-            ) : null}
-            {marketValue.returnPct === null ? (
-              <p className={styles.coverage}>
-                {isSv
-                  ? "Ange inköpspris på dina innehav för att se avkastning."
-                  : "Add an average cost to your holdings to see return."}
-              </p>
-            ) : null}
-            <p className={styles.unavailableNote}>
-              {isSv
-                ? "Värdegraf visas inte än. Vi började spara en daglig ögonblicksbild av portföljen den dag du lade till ditt första innehav — grafen kommer när det finns tillräckligt med historik."
-                : "The value chart is not here yet. We started recording a daily snapshot of your portfolio the day you added your first holding — the chart follows once there is enough history to draw."}
-            </p>
-          </article>
-        </section>
+          </>
         ) : null}
 
         {error ? <p className={styles.error}>{error}</p> : null}

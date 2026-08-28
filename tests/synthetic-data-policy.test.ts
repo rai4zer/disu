@@ -63,6 +63,25 @@ test("dashboard renders no hash-derived numbers", () => {
   assert.ok(!source.includes("charCodeAt"), "no hash-seeded values on the dashboard");
 });
 
+test("an empty dashboard stays empty rather than showing invented example figures", () => {
+  // The old first-run screen filled its panels with made-up "this is what it
+  // looks like once you hold something" numbers. A labelled fabrication is
+  // still a fabrication sitting where the reader's own money goes, and a
+  // screenshot of it is indistinguishable from the real thing.
+  const source = readRepoFile("app/dashboard/page.tsx");
+  for (const removed of ["EXAMPLE_DAILY_MOVE", "EXAMPLE_MARKET_VALUE", "EXAMPLE_MOVERS", "EXAMPLE_CURRENCY"]) {
+    assert.ok(!source.includes(removed), `${removed} must stay deleted`);
+  }
+});
+
+test("the portfolio chart never fabricates a day it was not given", () => {
+  const source = readRepoFile("app/components/portfolio-chart.tsx");
+  // A gap is broken into separate paths, never bridged by a carried-forward or
+  // interpolated value (migration 0021, docs/synthetic-data-policy.md).
+  assert.ok(source.includes("MAX_JOINABLE_GAP_DAYS"), "the chart must cut its line across an unobserved stretch");
+  assert.ok(source.includes("segments.push"), "the line is drawn as segments, so a gap can stay a gap");
+});
+
 test("no user-facing surface reports an unknown change as a flat zero", () => {
   for (const file of ["app/api/market/indices/route.ts", "app/components/market-strip.tsx"]) {
     assert.ok(!readRepoCode(file).includes('"0.00%"'), `${file} must render "--" for a missing reading`);

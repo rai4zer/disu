@@ -1,0 +1,253 @@
+.card {
+  margin-top: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.delta {
+  margin: 4px 0 0;
+  font-size: 1.02rem;
+  font-weight: 620;
+  line-height: 1.2;
+}
+
+.delta span {
+  margin-left: 6px;
+  font-weight: 560;
+  color: var(--muted);
+}
+
+.delta_up {
+  color: var(--success-ink);
+}
+
+.delta_down {
+  color: var(--danger-ink);
+}
+
+.delta_flat {
+  color: var(--ink);
+}
+
+/* Range presets: quiet text buttons, not a segmented control fighting the card. */
+.ranges {
+  display: flex;
+  gap: 2px;
+}
+
+.range {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 560;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.range:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.range:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.rangeOn,
+.rangeOn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+}
+
+.plot {
+  position: relative;
+  width: 100%;
+  outline: none;
+}
+
+.plot:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 10px;
+}
+
+.svg {
+  display: block;
+  /* Direction is carried by the signed delta text as well as the hue, so the
+     colour is never the only thing saying which way the line went. */
+  --series: var(--ink-soft);
+}
+
+.svg_up {
+  --series: var(--success-ink);
+}
+
+.svg_down {
+  --series: var(--danger-ink);
+}
+
+/* Hairline, solid, one step off the surface: chrome must stay recessive. */
+.grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.axis,
+.axisEdge {
+  fill: var(--muted);
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.area {
+  fill: var(--series);
+  fill-opacity: 0.1;
+  stroke: none;
+}
+
+.line {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.crosshair {
+  stroke: var(--border-strong);
+  stroke-width: 1;
+}
+
+/* 2px surface ring so the marker stays legible over the line and the fill. */
+.marker {
+  fill: var(--series);
+  stroke: var(--surface-elevated-strong);
+  stroke-width: 2;
+}
+
+.tooltip {
+  position: absolute;
+  transform: translate(-50%, 0);
+  pointer-events: none;
+  display: grid;
+  gap: 1px;
+  padding: 6px 9px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-elevated-strong);
+  box-shadow: var(--shadow-soft);
+  white-space: nowrap;
+}
+
+.tooltip strong {
+  font-size: 0.9rem;
+  font-weight: 640;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip span {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.readout {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.readout strong {
+  color: var(--ink);
+  font-weight: 620;
+}
+
+.readout span {
+  margin-left: 6px;
+}
+
+.note {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--muted);
+  max-width: 72ch;
+}
+
+.tableToggle {
+  justify-self: start;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.tableWrap {
+  max-height: 260px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableCaption {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 0.74rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.table th,
+.table td {
+  padding: 6px 10px;
+  text-align: right;
+  border-top: 1px solid var(--border);
+  font-weight: 500;
+}
+
+.table thead th {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.table th:first-child,
+.table tbody th {
+  text-align: left;
+  color: var(--muted);
+}

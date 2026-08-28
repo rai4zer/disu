@@ -3,92 +3,322 @@
   padding: 0;
 }
 
-.topGrid {
+/* One vertical rhythm for the whole overview: the cards do the separating, so
+   nothing here needs a rule or a heading to sit under. */
+.kpis,
+.holdings,
+.detail {
+  margin-top: 12px;
+}
+
+.kpis {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1.4fr 1fr 1fr;
   gap: 12px;
+  align-items: stretch;
 }
 
-.panel {
+.tile {
+  margin-top: 0;
   display: grid;
-  gap: 10px;
+  gap: 6px;
+  align-content: start;
 }
 
-.panel h2 {
+.tileLabel {
   margin: 0;
-  font-size: 1.06rem;
-  line-height: 1.2;
-  letter-spacing: -0.012em;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
 
-.kpi {
-  margin: 0;
-  font-size: 1.7rem;
-  font-weight: 650;
-  line-height: 1.1;
+.tileLabel span {
+  margin-left: 6px;
+  font-weight: 560;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--muted) 78%, transparent);
+}
+
+/* The one hero figure on the page. Proportional figures, not tabular — equal
+   digit widths make a large number look loose. */
+.hero {
+  margin: 2px 0 0;
+  font-size: 2.9rem;
+  font-weight: 640;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
 
-.kpi span {
-  margin-left: 8px;
-  font-size: 0.9rem;
+.tileValue {
+  margin: 2px 0 0;
+  font-size: 1.6rem;
+  font-weight: 640;
+  line-height: 1.1;
+  letter-spacing: -0.014em;
+}
+
+.tileSub {
+  margin: 0;
+  font-size: 0.86rem;
   font-weight: 560;
   color: var(--muted);
 }
 
-.twoCol {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.twoCol h3 {
-  margin: 0 0 6px;
-  font-size: 0.82rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.assetRow {
+.tileDelta {
   margin: 0;
-  min-height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.91rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 78%, transparent);
-}
-
-.assetRow strong {
+  font-size: 0.95rem;
   font-weight: 620;
 }
 
-.kpiUnavailable {
-  margin: 0;
-  font-size: 1.25rem;
+.tileDelta span {
+  font-weight: 560;
+  color: var(--muted);
+}
+
+.tileUnavailable {
+  margin: 2px 0 0;
+  font-size: 1.18rem;
   font-weight: 600;
   line-height: 1.1;
   color: var(--muted);
 }
 
-.unavailableNote {
+/* Direction is always paired with a sign or a label, never carried by hue
+   alone (docs/synthetic-data-policy.md keeps the same rule for provenance). */
+.up {
+  color: var(--success-ink);
+}
+
+.down {
+  color: var(--danger-ink);
+}
+
+.flat {
+  color: var(--ink);
+}
+
+.movers {
+  margin: 6px 0 0;
+  display: grid;
+  gap: 3px;
+}
+
+.movers div {
+  display: contents;
+}
+
+/* The two rows read as best-then-worst from their order and their signs, so the
+   labels are kept for assistive tech rather than spent on tile width. */
+.movers dt {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.movers dd {
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
   font-size: 0.82rem;
-  line-height: 1.4;
+}
+
+.movers dd span {
   color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.movers dd strong {
+  font-weight: 620;
+  font-variant-numeric: tabular-nums;
 }
 
 .coverage {
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.4;
+  font-size: 0.76rem;
+  line-height: 1.42;
   color: var(--muted);
+  max-width: 62ch;
+}
+
+/* Holdings: a list of buttons, because each row opens the position. */
+.holdings {
+  display: grid;
+  gap: 8px;
+}
+
+.holdingsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.quietLink {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+}
+
+.row {
+  appearance: none;
+  border: 0;
+  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: transparent;
+  width: 100%;
+  /* A 44px-tall target, so the row is a real hit area and not just its text. */
+  min-height: 44px;
+  padding: 9px 8px;
+  border-radius: 10px;
+  font: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, auto) 74px;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+}
+
+.rows li:first-child .row {
+  border-top: 0;
+}
+
+.row:hover,
+.row:focus-visible {
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  outline: none;
+}
+
+.rowOpen {
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.rowMain {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.rowSymbol {
+  font-size: 0.92rem;
+  font-weight: 620;
+  letter-spacing: -0.005em;
+}
+
+.rowName {
+  font-size: 0.76rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowValue {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.rowShareText {
+  font-size: 0.74rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.rowDay {
+  text-align: right;
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* Position detail, opened from a row. */
+.detail {
+  display: grid;
+  gap: 12px;
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 1.14rem;
+  font-weight: 640;
+  letter-spacing: -0.014em;
+}
+
+.detailSub {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 12px;
+}
+
+.facts div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.facts dt {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 580;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Placeholder-priced rows must never look like observed market data. */
 .syntheticNotice {
-  margin: 0 0 12px;
+  margin: 12px 0 0;
   padding: 10px 12px;
   border: 1px solid var(--danger-ink);
   border-radius: 10px;
@@ -103,27 +333,18 @@
 }
 
 .error {
-  margin: 0;
+  margin: 12px 0 0;
   color: var(--danger-ink);
   font-size: 0.85rem;
 }
 
-@media (max-width: 980px) {
-  .topGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .twoCol {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* First run: no holdings yet. One focused action, not zeroed-out panels
+/* First run: no holdings yet. One focused action and nothing else — no zeroed
+   panels, and no invented example figures standing in for the reader's own
    (ROADMAP §9.6). */
 .firstRun {
   display: grid;
   gap: 12px;
-  margin: 0 0 16px;
+  margin: 12px 0 0;
 }
 
 .firstRun h2 {
@@ -153,47 +374,33 @@
   text-decoration: underline;
 }
 
-/* The example preview. Deliberately dimmed and badged so it can never be read
-   as the reader's own figures (docs/synthetic-data-policy.md). */
-.example {
-  display: grid;
-  gap: 10px;
+@media (max-width: 980px) {
+  .kpis {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tileHero {
+    grid-column: 1 / -1;
+  }
 }
 
-.exampleNotice {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-  max-width: 72ch;
-}
+@media (max-width: 620px) {
+  .kpis {
+    grid-template-columns: 1fr;
+  }
 
-.exampleBadge {
-  display: inline-block;
-  padding: 1px 8px;
-  border: 1px dashed var(--muted);
-  border-radius: 999px;
-  font-size: 0.72rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
+  .hero {
+    font-size: 2.4rem;
+  }
 
-.examplePanel {
-  opacity: 0.62;
-  border-style: dashed;
-}
+  .row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) 66px;
+    gap: 8px;
+  }
 
-.examplePanel h3 {
-  margin: 0;
-  font-size: 1.06rem;
-  line-height: 1.2;
-  letter-spacing: -0.012em;
-}
-
-.examplePanel h4 {
-  margin: 0 0 4px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
+  /* The share-of-portfolio figure goes first: the value and the day move are
+     the two numbers worth the width. */
+  .rowShareText {
+    display: none;
+  }
 }

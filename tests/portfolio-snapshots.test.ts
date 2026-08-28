@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { startFakeSupabase, type FakeSupabase } from "./support/fake-supabase.ts";
+import { toComparableSeries, type StoredSnapshot } from "@/app/lib/portfolio/history-series";
 import { computePortfolioValuation } from "@/app/lib/portfolio/snapshot-value";
 import type { PortfolioPosition } from "@/app/lib/portfolio/portfolio-positions";
 
@@ -291,4 +292,78 @@ test("a person's own snapshots are the only ones they can read", async () => {
     assert.ok(scoped.length > 0);
     assert.equal(scoped[scoped.length - 1].query.user_id, `eq.${ALICE}`);
   });
+});
+
+/* ------------------------------------------------------------------ reader */
+
+/**
+ * What the dashboard chart is allowed to draw from what was stored.
+ *
+ * The reader has the mirror-image duty of the writer: the writer refuses to
+ * record a day it could not observe, and the reader refuses to join days that
+ * are not comparable. A history whose unit changed halfway would otherwise show
+ * a jump the portfolio never made.
+ */
+
+function stored(date: string, value: number, currency = "SEK"): StoredSnapshot {
+  return {
+    snapshot_date: date,
+    captured_at: `${date}T09:00:00.000Z`,
+    currency,
+    total_value: value,
+    cost_basis: null,
+    costed_value: null,
+    position_count: 1,
+    valued_position_count: 1
+  };
+}
+
+test("the series is returned oldest first, whatever order the store handed back", () => {
+  const series = toComparableSeries([
+    stored("2026-08-03", 300),
+    stored("2026-08-01", 100),
+    stored("2026-08-02", 200)
+  ]);
+
+  assert.deepEqual(
+    series.points.map((point) => point.date),
+    ["2026-08-01", "2026-08-02", "2026-08-03"]
+  );
+  assert.equal(series.currency, "SEK");
+});
+
+test("history is cut where its currency changes, and the cut is reported", () => {
+  const series = toComparableSeries([
+    stored("2026-08-01", 100, "USD"),
+    stored("2026-08-02", 110, "USD"),
+    stored("2026-08-03", 1_050, "SEK"),
+    stored("2026-08-04", 1_070, "SEK")
+  ]);
+
+  // Only the trailing run in the newest currency is comparable. The USD days
+  // are not converted and not joined on — they are dropped and counted.
+  assert.equal(series.currency, "SEK");
+  assert.deepEqual(
+    series.points.map((point) => point.date),
+    ["2026-08-03", "2026-08-04"]
+  );
+  assert.equal(series.droppedForCurrencyChange, 2);
+});
+
+test("a missing day stays missing — the reader never fills a gap", () => {
+  const series = toComparableSeries([stored("2026-08-01", 100), stored("2026-08-05", 140)]);
+
+  assert.deepEqual(
+    series.points.map((point) => point.date),
+    ["2026-08-01", "2026-08-05"]
+  );
+  assert.equal(series.points.length, 2, "no value is invented for 2026-08-02 through 04");
+});
+
+test("no history is an empty series, not a zero-valued point", () => {
+  const series = toComparableSeries([]);
+
+  assert.deepEqual(series.points, []);
+  assert.equal(series.currency, null);
+  assert.equal(series.droppedForCurrencyChange, 0);
 });

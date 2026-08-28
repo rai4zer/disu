@@ -284,6 +284,19 @@ verification**.
       nothing. Middleware stays signature-only (Edge runtime, no database), but now rejects a
       token with no `sid`, so the two layers agree.
 
+      **The client-side half of this, fixed 2026-08-28.** Moving the authoritative check into
+      `app/layout.tsx` made `signedIn` a *server-rendered* value, and the App Router caches the
+      RSC payload for shared layouts across a client-side navigation. `router.replace()` after
+      a successful sign-in therefore rendered the layout computed *before* the cookie existed:
+      the app landed on `/dashboard` wearing the signed-out chrome — "Skapa konto" in the nav,
+      no module rail — while the page's own fetches returned real data, because the cookie was
+      perfectly good. Sign-out already called `router.refresh()`; sign-in never did.
+      `tests/auth-session-revocation.test.ts` now asserts that every client-side session
+      transition refreshes as many times as it navigates, so the two halves cannot drift apart
+      again. The general lesson is worth keeping: **a server-resolved auth flag is only as
+      fresh as the last RSC fetch**, so any transition that changes who you are has to
+      invalidate that cache explicitly.
+
       Expired session rows are pruned by the existing retention sweep. Sessions record *why*
       they ended (`signed_out`, `password_reset`), and deliberately store no IP, user agent or
       device label — that would be new personal data to declare, retain and erase for no
@@ -507,13 +520,34 @@ rate limiting, silent schema change, or a ToS complaint. All three break the cor
       real-time. Only M6 needs real-time.
 - [ ] Cache aggressively at the symbol level; you have ~10k users watching maybe 800 distinct
       symbols. One fetch per symbol per interval, shared across all users.
-- [ ] **`FALLBACK_ITEMS` in `app/api/market/indices/route.ts` is still an ungated synthetic
-      path.** The market strip can serve invented index values in production while the
-      portfolio cannot — `MARKET_MOCK_FALLBACK_MODE` does not reach it. Small, and closing it
-      makes the policy consistent. *Surfaced 2026-08-28.*
-- [ ] **Index quotes are not behind `MarketProvider`.** `/index/list` + `/index/candle` are
-      catalogue resolution, not `getQuote(symbol)`; the shared Finnhub client is used but the
-      interface would need a `getIndexQuote` method. Deliberate, not forgotten.
+- [x] **`FALLBACK_ITEMS` in `app/api/market/indices/route.ts`** *(closed 2026-08-28, and the
+      finding was partly wrong: it never held invented values.* `FALLBACK_ITEMS` — now
+      `UNKNOWN_ITEMS` — was `price: "--"`, `value: "--"`, `time: "--:--"`, which is the honest
+      rendering. What was true is the second half: `MARKET_MOCK_FALLBACK_MODE` could not reach
+      the strip, so the honesty rested on a literal nobody was stopping a future edit from
+      changing. It now rests on a return type — see the row below.*)*
+- [x] **Index quotes are behind `MarketProvider`** *(done 2026-08-28.* Upstream reads moved to
+      `app/lib/market/index-quotes.ts` and the interface gained `getIndexQuotes(indices)` plus
+      `getIndexQuote(index)`. Batch-shaped deliberately: nine indices through `getQuote()`
+      would be nine calls per refresh, and Yahoo's rate limiter is the documented failure mode.
+      The route kept what is genuinely its own — cache TTL, failure cooldown, per-index
+      retention, chart pacing, formatting — and dropped from 575 lines to 277 with no network
+      code left in it.
+
+      **Indices have no placeholder at all, in any mode.** A synthetic share price arrives
+      labelled beside the holding it belongs to and `computeDayChange()` refuses to derive a
+      change from it; a synthetic index level is an unlabelled claim about a whole market in a
+      one-line strip with nowhere to put the caveat. So `PlaceholderMarketProvider` returns
+      `null` for indices even under `MARKET_MOCK_FALLBACK_MODE=always`. That is stricter than
+      the rule for holdings, on purpose.
+
+      The chain is also **inverted for indices** — Finnhub first, then Yahoo. Finnhub's index
+      data is keyed and documented; Yahoo's is the unofficial endpoint that answers a
+      nine-symbol batch with 401 and rate-limits the retry. For single quotes Yahoo has the
+      better coverage and still goes first.
+
+      Extracted `app/lib/market/finnhub-client.ts` on the way, so `index-quotes.ts` can share
+      the token handling without a cycle back through the provider.)*
 - [ ] **No live smoke test.** Every market test mocks the network, so nothing catches Yahoo
       changing its JSON shape — one of the three failure modes named above.
 
@@ -524,7 +558,9 @@ a null-returning variant, with unavailability rendered honestly on the portfolio
 dashboard; D5 settled — one display currency (SEK), FX applied server-side, unconvertible and
 unpriced holdings excluded from the total and disclosed; the `getQuote()` relabel trap removed
 by construction. `tests/market-provider-strict.test.ts` and `tests/portfolio-currency.test.ts`
-(26 cases) hold the line.
+hold the line — though `market-provider-strict` was never in the `test:unit` list and so had
+never run in CI; wired in 2026-08-28, along with `NODE_ENV=test` on `test:unit` and
+`test:smoke`, without which `npm run ci` failed on a clean checkout.
 
 ### 2.8 M0 exit criteria
 
@@ -963,6 +999,14 @@ the user understood exactly what this does, would they thank you?*
 1. The current gate's exit criteria are the only valid definition of "important".
 2. Anything not in the current gate goes on the board. The board is not a promise.
 3. `npm run ci` stays green. You have no one to catch your regressions.
+   *It was not, and nobody noticed — found 2026-08-28.* Two failures of exactly the kind this
+   rule exists to catch: `tests/auth-password-policy.test.ts` asserts `NODE_ENV === "test"`
+   and nothing set it, so `npm run ci` failed on a clean checkout **and in GitHub Actions**,
+   while the breach check quietly made real network calls on every test run; and
+   `tests/market-provider-strict.test.ts` — cited in §2.7 as holding the synthetic-data line —
+   was never in the `test:unit` list, so it had never run in CI at all. Both fixed in
+   `package.json`. The lesson to carry: a green CI badge proves the tests **that are wired up**
+   pass. Adding a test file is two steps, and the second one is silent when you skip it.
 4. Buy instead of build for anything not core (email, analytics, error tracking, market data).
    Your core is the four questions in §1.1 and nothing else.
 5. Every gate closes with the docs updated. `architecture.md` is unusually good — that is an
@@ -1009,6 +1053,16 @@ the user understood exactly what this does, would they thank you?*
       from `/api/portfolio/positions`, which needs a signed-in user. Confirm rows are actually
       landing before treating history as safe; the project auto-pauses on the free tier, and a
       paused day records nothing.)*
+- [x] Read the stored history back — the value chart *(done 2026-08-28 —
+      `/api/portfolio/history`, `app/lib/portfolio/history-series.ts` and the dashboard chart.
+      Two rules are worth knowing because both are easy to "fix" into dishonesty. **Gaps stay
+      gaps:** a day with no row is a day nothing could be observed, so the line breaks rather
+      than interpolating across it. **A currency change breaks the series:** rows carry their
+      own currency because `PORTFOLIO_DISPLAY_CURRENCY` is configuration and configuration
+      changes, so a reader gets only the trailing run in the newest currency and is told how
+      many older rows were cut, rather than having units silently mixed into a jump the
+      portfolio never made. `toComparableSeries()` is a pure function so both rules are pinned
+      by `tests/portfolio-snapshots.test.ts`.)*
 - [x] Session revocation server-side *(§2.3 done 2026-08-25 — logout and password reset both
       revoke)*
 - [x] **Apply the pending migrations to production** 🔴 *(done 2026-08-28 — `ymvptljuivjulrxpokla`

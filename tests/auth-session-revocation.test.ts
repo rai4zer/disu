@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import test from "node:test";
 
 import { startFakeSupabase, type FakeSupabase } from "./support/fake-supabase.ts";
@@ -203,4 +205,37 @@ test("a token whose stored owner disagrees with its payload is refused", async (
 
     assert.equal(await getAuthenticatedSessionFromToken(token), null);
   });
+});
+
+/**
+ * The chrome half of the same contract.
+ *
+ * `app/layout.tsx` resolves `signedIn` on the server and hands it to `AppShell`,
+ * which is what decides between the module rail and the signed-out nav. A
+ * client-side `router.replace()` reuses the cached RSC payload for shared
+ * layouts, so a session transition that does not also call `router.refresh()`
+ * leaves the *previous* answer on screen: sign in and the app still offers you
+ * "Skapa konto", with no modules, while the page's own fetches succeed because
+ * the cookie is perfectly good.
+ *
+ * Source-level because the failure is a missing call in a client component —
+ * there is no server behaviour to assert against.
+ */
+test("every client-side session transition refreshes the server-rendered chrome", () => {
+  const transitions = [
+    ["app/auth/login/login-form.tsx", "sign-in and registration"],
+    ["app/components/logout-button.tsx", "sign-out"]
+  ] as const;
+
+  for (const [file, what] of transitions) {
+    const source = readFileSync(path.join(process.cwd(), file), "utf8");
+    const replaces = source.match(/router\.replace\(/g)?.length ?? 0;
+    const refreshes = source.match(/router\.refresh\(/g)?.length ?? 0;
+    assert.ok(replaces > 0, `${file}: expected a navigation on ${what}`);
+    assert.equal(
+      refreshes,
+      replaces,
+      `${file}: ${what} navigates ${replaces}x but refreshes ${refreshes}x — the layout keeps the stale signedIn`
+    );
+  }
 });

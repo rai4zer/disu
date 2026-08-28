@@ -1,8 +1,20 @@
 import { buildTickerSuggestions } from "@/app/lib/ticker-suggestions";
+import { finnhubFetch, finnhubToken, isFinnhubPhaseFatal, readJsonResponse } from "./finnhub-client";
+import {
+  fetchFinnhubIndexCandle,
+  fetchFinnhubIndexList,
+  fetchYahooIndexBatch,
+  fetchYahooIndexChart,
+  resolveFinnhubIndexSymbol,
+  type IndexDescriptor,
+  type IndexReading
+} from "./index-quotes";
 import { computeDayChange, createPlaceholderQuote, type DayChange, type QuoteSnapshot } from "./quote";
 
 export { computeDayChange };
 export type { DayChange, QuoteSnapshot };
+export { INDEX_CATALOGUE, YahooRateLimitedError } from "./index-quotes";
+export type { IndexDescriptor, IndexReading } from "./index-quotes";
 
 export type TickerSuggestion = {
   symbol: string;
@@ -27,7 +39,35 @@ export interface MarketProvider {
    * meanings removes the trap rather than documenting it.
    */
   getQuote(symbol: string, fallbackCurrency?: string): Promise<QuoteSnapshot>;
+  /**
+   * Index levels for the market strip.
+   *
+   * Batch-shaped on purpose: nine indices asked for one at a time is nine
+   * upstream calls per refresh, and Yahoo's rate limiter is the documented
+   * failure mode (docs/market-live-feed.md). An index we could not read is
+   * `null` in place — never an invented level, whatever
+   * `MARKET_MOCK_FALLBACK_MODE` says. See ./index-quotes for why an index has
+   * no honest placeholder when a share price does.
+   */
+  getIndexQuotes(indices: IndexDescriptor[], signal?: AbortSignal): Promise<IndexQuoteBatch>;
+  /**
+   * One index, for callers that pace their own refreshes. The route uses this
+   * to renew a slice of the strip per cycle rather than the whole of it.
+   */
+  getIndexQuote(index: IndexDescriptor, signal?: AbortSignal): Promise<IndexReading | null>;
 }
+
+/**
+ * What a batch read produced, and — when it produced less than everything —
+ * why. `reason` is for the log, not the UI: the strip says "--" and stops
+ * there rather than explaining an upstream to someone checking the OMXS30.
+ */
+export type IndexQuoteBatch = {
+  readings: Array<IndexReading | null>;
+  /** Which feed answered. "none" when nothing did. */
+  source: string;
+  reason: string;
+};
 
 const CURATED_TICKERS: Array<{ symbol: string; name: string; currency: string }> = [
   { symbol: "AAPL", name: "Apple Inc", currency: "USD" },
@@ -282,53 +322,10 @@ export function syntheticFallbackAllowed(): boolean {
 // correct and will use Finnhub the moment the plan covers more; do not read it
 // as evidence that the coverage gap in ROADMAP §2.7 is closed. It is not.
 
-export function finnhubToken(): string | null {
-  const token = (process.env.FINNHUB_API_KEY ?? "").trim();
-  return token.length > 0 ? token : null;
-}
-
-/**
- * Reads a JSON body, refusing anything that is not actually JSON.
- *
- * Finnhub answers rate limits and auth failures with HTML or plain text, and
- * `JSON.parse` on an error page throws something unhelpful several frames away
- * from the cause. Shared with `app/api/market/indices/route.ts`, which had its
- * own copy.
- */
-export async function readJsonResponse<T>(response: Response, source: string): Promise<T> {
-  const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
-  const bodyText = await response.text();
-  if (!contentType.includes("application/json")) {
-    throw new Error(`${source}: non-json response`);
-  }
-  try {
-    return JSON.parse(bodyText) as T;
-  } catch {
-    throw new Error(`${source}: invalid json response`);
-  }
-}
-
-export async function finnhubFetch<T>(pathAndQuery: string, source: string, signal?: AbortSignal): Promise<T> {
-  const token = finnhubToken();
-  if (!token) {
-    throw new Error(`${source}: FINNHUB_API_KEY is not configured`);
-  }
-  const separator = pathAndQuery.includes("?") ? "&" : "?";
-  const response = await fetch(
-    `https://finnhub.io/api/v1${pathAndQuery}${separator}token=${encodeURIComponent(token)}`,
-    { headers: { Accept: "application/json" }, cache: "no-store", signal }
-  );
-  if (!response.ok) {
-    // 403 means "your plan does not include this", not "Finnhub is down".
-    // Worth distinguishing: one is fixed by paying, the other by waiting, and a
-    // log full of bare 403s reads like an outage.
-    if (response.status === 403) {
-      throw new Error(`${source}: not included in the current Finnhub plan (HTTP 403)`);
-    }
-    throw new Error(`${source}: HTTP ${response.status}`);
-  }
-  return readJsonResponse<T>(response, source);
-}
+// The HTTP client itself lives in ./finnhub-client so that ./index-quotes can
+// share it without importing this module, which imports index-quotes in turn.
+// Re-exported here because this is where callers have always found it.
+export { finnhubFetch, finnhubToken, readJsonResponse };
 
 type FinnhubQuoteResponse = {
   /** current price */
@@ -564,6 +561,19 @@ class YahooMarketProvider implements MarketProvider {
       return fetchYahooChartQuote(symbol);
     }
   }
+
+  async getIndexQuotes(indices: IndexDescriptor[], signal?: AbortSignal): Promise<IndexQuoteBatch> {
+    const outcome = await fetchYahooIndexBatch(indices, signal ?? new AbortController().signal);
+    return {
+      readings: outcome.readings,
+      source: outcome.readings.some(Boolean) ? "yahoo" : "none",
+      reason: outcome.reason
+    };
+  }
+
+  async getIndexQuote(index: IndexDescriptor, signal?: AbortSignal): Promise<IndexReading | null> {
+    return fetchYahooIndexChart(index, signal ?? new AbortController().signal);
+  }
 }
 
 class PlaceholderMarketProvider implements MarketProvider {
@@ -600,6 +610,28 @@ class PlaceholderMarketProvider implements MarketProvider {
     const resolvedCurrency = fallbackCurrency?.trim().toUpperCase() || inferCurrencyFromTicker(normalizedSymbol);
     return createPlaceholderQuote(normalizedSymbol, resolvedCurrency);
   }
+
+  /**
+   * Indices are where the placeholder stops.
+   *
+   * A synthetic *share* price is defensible because it arrives labelled, beside
+   * the one holding it belongs to, and `computeDayChange()` refuses to derive a
+   * change from it. An index level has none of that: it is a claim about a whole
+   * market, rendered in a strip with no room for a caveat, and every reader
+   * would take it as observed. So this returns nulls in every mode — `always`
+   * included — and the strip renders "--".
+   */
+  async getIndexQuotes(indices: IndexDescriptor[]): Promise<IndexQuoteBatch> {
+    return {
+      readings: indices.map(() => null),
+      source: "none",
+      reason: "index levels are never synthesised"
+    };
+  }
+
+  async getIndexQuote(): Promise<IndexReading | null> {
+    return null;
+  }
 }
 
 class FinnhubMarketProvider implements MarketProvider {
@@ -612,6 +644,59 @@ class FinnhubMarketProvider implements MarketProvider {
 
   async getQuote(symbol: string): Promise<QuoteSnapshot> {
     return fetchFinnhubQuote(symbol);
+  }
+
+  /**
+   * Resolve the catalogue once, then one candle call per index. A 403 or 429 on
+   * any of them ends the phase: on this plan they mean "not in your tier" and
+   * "over budget", and both answer identically for the eight indices after it.
+   */
+  async getIndexQuotes(indices: IndexDescriptor[], signal?: AbortSignal): Promise<IndexQuoteBatch> {
+    const abort = signal ?? new AbortController().signal;
+    const reasons: string[] = [];
+    let catalogue: Awaited<ReturnType<typeof fetchFinnhubIndexList>> = [];
+    try {
+      catalogue = await fetchFinnhubIndexList(abort);
+    } catch (error) {
+      reasons.push(error instanceof Error ? error.message : "finnhub index list: unknown error");
+    }
+
+    const readings: Array<IndexReading | null> = [];
+    let dead = false;
+    for (const index of indices) {
+      if (dead) {
+        readings.push(null);
+        continue;
+      }
+      const resolved = resolveFinnhubIndexSymbol(catalogue, index.finnhubMatchers);
+      const candidates = [resolved, ...index.finnhubSymbols].filter((v): v is string => Boolean(v));
+      let reading: IndexReading | null = null;
+      for (const symbol of candidates) {
+        try {
+          reading = await fetchFinnhubIndexCandle(symbol, abort);
+          break;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : `finnhub candle ${symbol}: unknown error`;
+          reasons.push(message);
+          if (isFinnhubPhaseFatal(message)) {
+            dead = true;
+            break;
+          }
+        }
+      }
+      readings.push(reading);
+    }
+
+    return {
+      readings,
+      source: readings.some(Boolean) ? "finnhub" : "none",
+      reason: reasons.filter(Boolean).join(" | ")
+    };
+  }
+
+  async getIndexQuote(index: IndexDescriptor, signal?: AbortSignal): Promise<IndexReading | null> {
+    const batch = await this.getIndexQuotes([index], signal);
+    return batch.readings[0] ?? null;
   }
 }
 
@@ -676,6 +761,52 @@ class HybridMarketProvider implements MarketProvider {
       throw new MarketDataUnavailableError(symbol.trim().toUpperCase(), failures[0]);
     }
     return this.placeholder.getQuote(symbol, fallbackCurrency);
+  }
+
+  /**
+   * Finnhub first here, unlike `getQuote()`.
+   *
+   * The order is inverted for a reason: Finnhub's index data is a keyed,
+   * documented endpoint, while Yahoo's is the unofficial one that answers a
+   * nine-symbol batch with 401 and then rate-limits the retry. For single
+   * quotes Yahoo has the better coverage and goes first; for indices it is the
+   * flakier of the two, so it catches what Finnhub's plan does not include.
+   *
+   * No placeholder tail. `syntheticFallbackAllowed()` is not consulted because
+   * there is nothing to allow — see `PlaceholderMarketProvider.getIndexQuotes`.
+   */
+  async getIndexQuotes(indices: IndexDescriptor[], signal?: AbortSignal): Promise<IndexQuoteBatch> {
+    const reasons: string[] = [];
+
+    if (finnhubToken()) {
+      const finnhub = await this.finnhub.getIndexQuotes(indices, signal);
+      if (finnhub.readings.some(Boolean)) {
+        return finnhub;
+      }
+      reasons.push(finnhub.reason || "finnhub configured but returned no live index values");
+    }
+
+    const yahoo = await this.yahoo.getIndexQuotes(indices, signal);
+    if (yahoo.readings.some(Boolean)) {
+      return yahoo;
+    }
+    reasons.push(yahoo.reason);
+
+    const keyHint = finnhubToken() ? "" : "FINNHUB_API_KEY not configured";
+    return {
+      readings: indices.map(() => null),
+      source: "none",
+      reason: [...reasons, keyHint].filter(Boolean).join(" | ")
+    };
+  }
+
+  /**
+   * The paced per-index path is Yahoo's chart endpoint only. Finnhub is already
+   * exhausted by the batch above — if its plan does not cover an index, asking
+   * again one index at a time spends quota to be told the same thing.
+   */
+  async getIndexQuote(index: IndexDescriptor, signal?: AbortSignal): Promise<IndexReading | null> {
+    return this.yahoo.getIndexQuote(index, signal);
   }
 }
 

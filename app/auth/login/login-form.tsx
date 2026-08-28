@@ -96,6 +96,7 @@ export default function LoginForm({ googleEnabled }: Props) {
       const response = await fetch("/api/auth/me", { cache: "no-store" });
       if (!cancelled && response.ok) {
         router.replace(nextPath);
+        router.refresh();
       }
     }
     void checkSession();
@@ -175,6 +176,15 @@ export default function LoginForm({ googleEnabled }: Props) {
       }
 
       router.replace(nextPath);
+      // The root layout resolves `signedIn` on the server, but a client-side
+      // navigation reuses the cached RSC payload for shared layouts — so the
+      // layout that renders is the one computed *before* this request set the
+      // cookie. Without this refresh the app lands on /dashboard wearing the
+      // signed-out chrome: "Skapa konto" in the nav, no module rail, while the
+      // page's own client fetches return real data because the cookie is fine.
+      // Sign-out already does this (components/logout-button.tsx); sign-in was
+      // the missing half.
+      router.refresh();
     } catch {
       setError(
         mode === "forgot"
@@ -292,14 +302,6 @@ export default function LoginForm({ googleEnabled }: Props) {
               placeholder={isSv ? "Lösenord" : "Password"}
               required
             />
-          )}
-
-          {mode === "register" && (
-            <p className={styles.passwordHint}>
-              {isSv
-                ? `Minst ${PASSWORD_MIN_LENGTH} tecken. Några orelaterade ord är både starkare och lättare att minnas än P@ssw0rd.`
-                : `At least ${PASSWORD_MIN_LENGTH} characters. A few unrelated words are both stronger and easier to remember than P@ssw0rd.`}
-            </p>
           )}
 
           {error && <p className={styles.error}>{error}</p>}

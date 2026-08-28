@@ -206,13 +206,59 @@ test("Finnhub treats a zero price as a failure, not a quote", () => {
   );
 });
 
-test("the indices route no longer speaks to Finnhub directly", () => {
+test("the indices route reaches every upstream through the provider", () => {
   const route = readRepoFile("app/api/market/indices/route.ts");
+  for (const upstream of ["finnhub.io/api", "finance.yahoo.com"]) {
+    assert.ok(
+      !route.includes(upstream),
+      `the indices route still builds its own ${upstream} URLs — index quotes belong behind MarketProvider, ` +
+        "or MARKET_MOCK_FALLBACK_MODE cannot reach the market strip (ROADMAP §2.7)"
+    );
+  }
+  assert.ok(!route.includes("fetch("), "the indices route should not perform its own network reads");
   assert.ok(
-    !route.includes("finnhub.io/api"),
-    "the indices route still builds its own Finnhub URLs — token handling and JSON validation should be shared"
+    route.includes("getMarketProvider"),
+    "the indices route does not go through the shared market provider"
   );
-  assert.ok(route.includes("finnhubFetch"), "the indices route does not use the shared Finnhub client");
+});
+
+test("an index level is never synthesised, in any fallback mode", async () => {
+  const { INDEX_CATALOGUE } = await import("../app/lib/market/market-provider.ts");
+  const previousMode = process.env.MARKET_MOCK_FALLBACK_MODE;
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    throw new Error("network disabled for test");
+  }) as typeof fetch;
+
+  try {
+    // `always` is the permissive end of the policy — it exists so offline demos
+    // get numbers, and for share prices it short-circuits the network and mints
+    // a placeholder. Indices must not follow: a made-up index level is an
+    // unlabelled claim about a whole market, with nowhere in a one-line strip to
+    // put the caveat. So every mode, `always` included, must come back empty.
+    for (const mode of ["always", "offline", "never"]) {
+      process.env.MARKET_MOCK_FALLBACK_MODE = mode;
+      const batch = await getMarketProvider().getIndexQuotes(INDEX_CATALOGUE);
+      assert.equal(batch.source, "none", `mode ${mode}: a source was claimed with every feed down`);
+      assert.ok(
+        batch.readings.every((reading) => reading === null),
+        `mode ${mode}: an index level was invented`
+      );
+    }
+  } finally {
+    globalThis.fetch = realFetch;
+    if (previousMode === undefined) delete process.env.MARKET_MOCK_FALLBACK_MODE;
+    else process.env.MARKET_MOCK_FALLBACK_MODE = previousMode;
+  }
+});
+
+test("the market strip renders an unknown index as a dash, not a zero", () => {
+  const route = readRepoFile("app/api/market/indices/route.ts");
+  assert.ok(route.includes('price: "--"'), "the unknown-index item must carry a dash price");
+  assert.ok(
+    !/price:\s*0\b/.test(route) && !/changePct:\s*0\b/.test(route),
+    "the unknown-index item must not fabricate a zero level or a flat change"
+  );
 });
 
 test("an unpriced holding is excluded from the total and counted", async () => {
