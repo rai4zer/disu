@@ -1,29 +1,71 @@
 {
   "brand": "DISU",
-  "login": "Login",
-  "kicker": "Investment Operations Platform",
-  "title": "One system for your entire investing workflow.",
-  "subtitle": "DISU brings Portfolio, Sentiment, Quant, and Primers into one flow so you can move from signal to decision faster.",
-  "requestDemo": "Request demo",
-  "workEmail": "Work email",
-  "emailPlaceholder": "name@company.com",
+  "login": "Sign in",
+  "kicker": "Understand what you own",
+  "title": "Understand your investments. Everything you own in one place",
+  "subtitle": "Disu brings your holdings, the market mood, the paths ahead, and the story behind each company into one calm view.",
+  "landingLead": "Understand your investments. Everything you own in one place",
+  "landingCreateAccount": "Create account in 2 min",
+  "landingHaveAccount": "Have an account? Sign in",
+  "landingModuleCta": "Create account",
+  "landingFinalCta": "Create account and stay on top of your investments",
+  "landingFinalCtaNote": "Free to start. No card, no lock-in.",
   "languageLabel": "Language",
   "features": [
     {
-      "title": "Portfolio as your source of truth",
-      "description": "Connect brokers, sync positions, and keep a live overview of your holdings."
+      "title": "Your portfolio",
+      "description": "Connect your bank or broker. Keep track of what you own."
     },
     {
-      "title": "Sentiment with market context",
-      "description": "Track market tone around a ticker and separate signal from noise before you act."
+      "title": "The market mood",
+      "description": "We read the news and the forums for you, and separate the signals worth knowing from the noise."
     },
     {
-      "title": "Primers from filings",
-      "description": "Generate concise company briefs from 10-K and 10-Q filings in minutes."
+      "title": "Companies at a glance",
+      "description": "Turn annual and quarterly reports into short, clear summaries you can read in minutes."
     },
     {
-      "title": "Quant scenarios for decisions",
-      "description": "Model short- and medium-term price scenarios with probabilities to support investment decisions."
+      "title": "Looking ahead",
+      "description": "See the paths a share could take. No fortune telling, just an honest picture so you can ride out the swings."
+    }
+  ],
+  "calculator": {
+    "title": "The eighth wonder of the world",
+    "body": "See what the money grows into – and what it looks like if it just sits there.",
+    "startCapital": "Starting amount",
+    "monthlyDeposit": "Monthly deposit",
+    "rate": "Yearly return",
+    "years": "Time",
+    "yearsUnit": "years",
+    "withCompounding": "Invested and compounding",
+    "withoutCompounding": "Money just sitting",
+    "growth": "Growth on top",
+    "today": "Today",
+    "afterYears": "After {years} years",
+    "valueToday": "Value today",
+    "valueAfterYears": "Value after {years} years",
+    "chartSummary": "Bar chart comparing invested money with money left sitting. After {years} years: {compounded} invested versus {flat} sitting."
+  },
+  "modules": [
+    {
+      "image": "portfolio",
+      "title": "Your portfolio",
+      "body": "Connect your bank or broker. Keep track of what you own."
+    },
+    {
+      "image": "sentiment",
+      "title": "The market mood",
+      "body": "We read the news and the forums for you, and separate the signals worth knowing from the noise"
+    },
+    {
+      "image": "quant",
+      "title": "Looking ahead",
+      "body": "See the paths a share could take. No fortune telling, just an honest picture so you can ride out the swings"
+    },
+    {
+      "image": "primers",
+      "title": "Companies at a glance",
+      "body": "Turn annual and quarterly reports into short, clear summaries you can read in minutes"
     }
   ]
 }

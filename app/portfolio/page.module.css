@@ -44,12 +44,22 @@
 
 .actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   margin-top: 2px;
   margin-bottom: 0;
 }
 
+.actionButtons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .secondaryBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
   border-radius: 999px;
   padding: 9px 12px;
   font-weight: 580;
@@ -64,9 +74,127 @@
   cursor: not-allowed;
 }
 
+/* Destructive action: same shape as .secondaryBtn, tinted so it reads apart
+   from the safe actions beside it. --danger-ink swaps per theme. */
+.dangerBtn {
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-weight: 580;
+  cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--danger-ink) 38%, var(--border-strong));
+  background: transparent;
+  color: var(--danger-ink);
+}
+
+.dangerBtn:hover:not(:disabled) {
+  border-color: var(--danger-ink);
+  background: color-mix(in srgb, var(--danger-ink) 8%, transparent);
+}
+
+.dangerBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .connectors,
 .connections {
   margin-bottom: 0;
+}
+
+.addPosition {
+  display: grid;
+  gap: 12px;
+}
+
+.addGrid {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.25fr) minmax(110px, 0.7fr) minmax(150px, 0.9fr) auto;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.field {
+  margin: 0;
+}
+
+.fieldError {
+  margin: 4px 0 0;
+  color: var(--danger-ink);
+  font-size: 0.79rem;
+}
+
+.formActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.linkButton {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.optionalGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+
+/* Ladder step number in front of each section heading, so the three ways in are
+   visibly ordered by effort rather than by page position. */
+.stepBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  font-size: 0.74rem;
+  font-weight: 640;
+  vertical-align: middle;
+}
+
+.optionalTag {
+  margin-left: 6px;
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+}
+
+.fieldHint {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+.trustNote {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+  max-width: 78ch;
+}
+
+.importer {
+  display: grid;
+  gap: 12px;
+}
+
+.importActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .sectionHead {
@@ -89,29 +217,59 @@
   font-size: 0.85rem;
 }
 
-.connectorGrid {
+.connectStack {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
-.connectorCard,
 .connectionCard {
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px;
-  background: var(--surface-elevated);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
 }
 
-.connectorCard h3 {
+.connectHubBody {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+
+.providerSelect {
+  min-width: 240px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+  padding: 9px 12px;
+  font-size: 0.9rem;
+}
+
+.hubActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.connectionsHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.connectionsHead h3 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
+  font-weight: 610;
 }
 
-.connectorCard p {
-  margin: 4px 0 10px;
+.connectionsHead p {
+  margin: 0;
   color: var(--muted);
-  font-size: 0.85rem;
+  font-size: 0.83rem;
 }
 
 .uploadWrap {
@@ -152,14 +310,15 @@
 .connectionMeta {
   margin: 4px 0 0;
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.82rem;
 }
 
 .connectionActions {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  justify-content: flex-end;
 }
 
 .statusBadge {
@@ -184,9 +343,9 @@
 .tableHead,
 .tableRow {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr 1fr 2fr;
-  gap: 12px;
-  padding: 12px 14px;
+  grid-template-columns: minmax(108px, 1.1fr) 0.8fr 0.92fr 0.92fr 1.08fr 0.92fr 0.94fr;
+  gap: 8px;
+  padding: 12px 10px;
   align-items: center;
 }
 
@@ -207,24 +366,182 @@
 }
 
 .ticker {
+  display: grid;
+  gap: 3px;
   font-weight: 700;
 }
 
-.inlineActions {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+.manualBadge {
+  display: inline-block;
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-weight: 500;
 }
 
-.inlineActions a {
-  text-decoration: none;
-  font-weight: 600;
-  color: var(--ink-soft);
-  font-size: 0.84rem;
-  border: 1px solid var(--border);
+.rowMeta {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.accountCell {
+  display: grid;
+  justify-items: start;
+  gap: 6px;
+}
+
+.accountRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.accountBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
   border-radius: 999px;
-  padding: 4px 8px;
-  background: var(--surface-elevated);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.accountBadgeAf {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.accountBadgeIsk {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #ffffff;
+}
+
+.accountControls {
+  display: block;
+}
+
+.rowEditMeta {
+  display: grid;
+  gap: 6px;
+}
+
+.rowInput {
+  min-width: 0;
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 6px 8px;
+}
+
+.rowActions {
+  display: inline-flex;
+  gap: 6px;
+  margin-top: 0;
+  flex-wrap: nowrap;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.editToolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.rowBtn,
+.rowBtnGhost,
+.rowBtnDanger {
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--ink);
+  font-size: 0.72rem;
+  font-weight: 620;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.rowBtnGhost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+.rowBtnDanger {
+  color: var(--danger-ink);
+  background: rgba(182, 63, 44, 0.08);
+  border-color: rgba(182, 63, 44, 0.14);
+}
+
+.rowError {
+  display: block;
+  margin-top: 4px;
+  color: var(--danger-ink);
+  font-size: 0.74rem;
+}
+
+.pillPos,
+.pillNeg {
+  width: fit-content;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  padding: 2px 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.pillPos {
+  color: var(--success-ink);
+}
+
+.pillNeg {
+  color: var(--danger-ink);
+}
+
+.kpiSynthetic {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  color: var(--danger-ink);
+}
+
+/* A placeholder price must be visually distinct from an observed quote. */
+.syntheticCell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--danger-ink);
+}
+
+.syntheticFlag {
+  border-radius: 999px;
+  border: 1px solid var(--danger-ink);
+  padding: 1px 6px;
+  font-size: 0.68rem;
+  font-weight: 620;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  white-space: nowrap;
 }
 
 .emptyTable {
@@ -234,9 +551,15 @@
   font-size: 0.86rem;
 }
 
+.tableActions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+}
+
 .error {
   margin: 12px 0 0;
-  color: #b63f2c;
+  color: var(--danger-ink);
 }
 
 @media (max-width: 900px) {
@@ -247,6 +570,15 @@
   .sectionHead {
     display: grid;
     gap: 5px;
+  }
+
+  .addGrid {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .optionalGrid {
+    grid-template-columns: 1fr;
   }
 
   .tableHead,
@@ -267,9 +599,34 @@
 
   .connectionActions {
     align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .connectionsHead {
+    display: grid;
+    gap: 4px;
+  }
+
+  .providerSelect {
+    min-width: 100%;
   }
 
   .actions {
     justify-content: flex-start;
   }
+
+  .tableActions {
+    justify-content: flex-start;
+  }
+}
+
+/* Inline prompt in the Avg Cost cell for a manual holding that has none. */
+.addCostBtn {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-decoration: underline;
 }

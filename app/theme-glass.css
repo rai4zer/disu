@@ -1,0 +1,254 @@
+html.glass-enabled {
+  --content-gutter: 32px;
+  --sidebar-content-gap: 24px;
+  --glass-sidebar-float-offset: 10px;
+  --glass-border: 1px solid var(--panel-border);
+  --glass-panel-bg: rgba(255, 255, 255, 0.28);
+  --glass-panel-bg-strong: rgba(255, 255, 255, 0.38);
+  --glass-surface-soft: rgba(255, 255, 255, 0.34);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 30px rgba(8, 15, 28, 0.06);
+  --glass-button-bg: rgba(255, 255, 255, 0.54);
+  --glass-button-bg-hover: rgba(255, 255, 255, 0.72);
+  --glass-button-text: var(--ink);
+  --glass-button-border: rgba(20, 28, 45, 0.06);
+}
+
+html.glass-enabled[data-theme="dark"] {
+  --glass-border: 1px solid var(--panel-border);
+  --glass-panel-bg: rgba(20, 24, 36, 0.18);
+  --glass-panel-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-surface-soft: rgba(24, 28, 40, 0.26);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 64px rgba(0, 0, 0, 0.38);
+  --glass-button-bg: rgba(255, 255, 255, 0.08);
+  --glass-button-bg-hover: rgba(255, 255, 255, 0.14);
+  --glass-button-text: var(--ink);
+  --glass-button-border: rgba(255, 255, 255, 0.1);
+}
+
+html.glass-enabled body {
+  font-family: var(--font-sans);
+  background: transparent;
+}
+
+html.glass-enabled body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: var(--surface);
+}
+
+html.glass-enabled .appSection,
+html.glass-enabled .appPanel {
+  border: var(--glass-border);
+  border-radius: 20px;
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(18px) saturate(132%);
+  -webkit-backdrop-filter: blur(18px) saturate(132%);
+  box-shadow: var(--glass-shadow);
+  padding: 24px;
+  margin-top: 24px;
+}
+
+html.glass-enabled .appTitle,
+html.glass-enabled h1,
+html.glass-enabled h2,
+html.glass-enabled h3 {
+  letter-spacing: -0.02em;
+}
+
+html.glass-enabled .appDescription {
+  line-height: 1.65;
+}
+
+html.glass-enabled .appForm {
+  gap: 24px;
+}
+
+html.glass-enabled .appField {
+  gap: 8px;
+}
+
+html.glass-enabled .appInput {
+  border: var(--glass-border);
+  background: var(--glass-surface-soft);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -10px 20px rgba(10, 14, 28, 0.04);
+}
+
+/* Primary action stays a solid accent fill, as in riddermarkOS. */
+html.glass-enabled .appButton {
+  border: 1px solid transparent;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  box-shadow: var(--shadow-cta);
+}
+
+html.glass-enabled .appButton:hover {
+  background: var(--cta-bg-hover);
+  color: var(--cta-text);
+}
+
+html.glass-enabled .appButtonSecondary,
+html.glass-enabled button[class*="secondaryBtn"],
+html.glass-enabled a[class*="secondaryBtn"] {
+  border: 1px solid var(--glass-button-border);
+  background: var(--glass-button-bg);
+  color: var(--glass-button-text);
+  box-shadow: 0 8px 22px -18px rgba(8, 15, 28, 0.4);
+}
+
+html.glass-enabled .appButtonSecondary:hover,
+html.glass-enabled button[class*="secondaryBtn"]:hover,
+html.glass-enabled a[class*="secondaryBtn"]:hover {
+  background: var(--glass-button-bg-hover);
+  color: var(--glass-button-text);
+}
+
+html.glass-enabled .appButton:disabled,
+html.glass-enabled button[class*="secondaryBtn"]:disabled {
+  opacity: 0.52;
+}
+
+html.glass-enabled [class*="app-shell_frame"]::before {
+  display: none;
+}
+
+/* Sidebar is just a transparent track; the nav pill carries the glass. */
+html.glass-enabled [class*="app-shell_sidebar"] {
+  top: calc(var(--shell-top-offset) + 12px);
+  left: 0;
+  height: calc(100vh - var(--shell-top-offset) - 24px);
+  width: var(--sidebar-width);
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+html.glass-enabled [class*="app-shell_navPill"] {
+  border: var(--glass-border);
+  background: var(--glass-panel-bg-strong);
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  box-shadow: var(--glass-shadow);
+}
+
+html.glass-enabled [class*="app-shell_main"] {
+  padding-left: calc(var(--sidebar-content-gap) - var(--glass-sidebar-float-offset));
+  padding-right: var(--sidebar-content-gap);
+}
+
+html.glass-enabled [class*="app-shell_navItem"] {
+  border-color: transparent;
+  background: transparent;
+}
+
+html.glass-enabled [class*="app-shell_navItem"]:hover {
+  border-color: var(--glass-button-border);
+  background: var(--glass-surface-soft);
+}
+
+html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"]:hover {
+  border-color: var(--glass-button-border);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Active nav reads as a solid accent pill, as in riddermarkOS. */
+html.glass-enabled [class*="app-shell_navItemActive"],
+html.glass-enabled[data-theme="dark"] [class*="app-shell_navItemActive"] {
+  border-color: transparent;
+  background: var(--accent);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(77, 141, 255, 0.22);
+}
+
+html.glass-enabled [class*="top-nav_wrap"],
+html.glass-enabled [class*="market-strip_strip"] {
+  border-bottom: var(--glass-border);
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+}
+
+html.glass-enabled [class*="top-nav_itemActive"],
+html.glass-enabled [class*="top-nav_item"]:hover {
+  background: var(--glass-surface-soft);
+}
+
+html.glass-enabled [class*="top-nav_panel"] {
+  border: var(--glass-border);
+  background: var(--glass-panel-bg-strong);
+  backdrop-filter: blur(16px) saturate(130%);
+  -webkit-backdrop-filter: blur(16px) saturate(130%);
+}
+
+html.glass-enabled [class*="app-footer_footer"],
+html.glass-enabled [class*="app-footer_disclaimer"] {
+  border: var(--glass-border);
+  background: var(--glass-panel-bg);
+  backdrop-filter: blur(12px) saturate(125%);
+  -webkit-backdrop-filter: blur(12px) saturate(125%);
+}
+
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] h2,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] p,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] li {
+  color: var(--ink-soft);
+}
+
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_footer"] {
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.66);
+}
+
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] h3,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] a,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] span,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] a,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] span,
+/* The consent-withdrawal control is a button, not a link, and must not be
+   quieter than the links beside it — a faded "Cookie settings" is the asymmetry
+   that makes the consent unreliable (GDPR Art. 7(3)). */
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legalButton"] {
+  color: var(--ink-soft);
+}
+
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] {
+  border-top-color: var(--border-strong);
+}
+
+@media (max-width: 980px) {
+  html.glass-enabled {
+    --content-gutter: 20px;
+    --glass-sidebar-float-offset: 0px;
+  }
+
+  html.glass-enabled [class*="app-shell_sidebar"] {
+    left: auto;
+    width: auto;
+    height: auto;
+  }
+
+  html.glass-enabled [class*="app-shell_main"] {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  html.glass-enabled .appSection,
+  html.glass-enabled .appPanel {
+    padding: 18px;
+  }
+}

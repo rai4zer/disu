@@ -1,29 +1,71 @@
 {
   "brand": "DISU",
   "login": "Logga in",
-  "kicker": "Investeringsplattform",
-  "title": "Ett system för hela din investeringsprocess.",
-  "subtitle": "DISU samlar Portfölj, Sentiment, Quant och Primers i ett tydligt flöde så att du går från signal till beslut snabbare.",
-  "requestDemo": "Begär demo",
-  "workEmail": "E-post",
-  "emailPlaceholder": "namn@bolag.se",
+  "kicker": "Förstå vad du äger",
+  "title": "Förstå dina investeringar. Allt du äger samlat på ett ställe",
+  "subtitle": "Disu samlar dina innehav, marknadsläget, vägarna framåt och historien bakom varje bolag i en och samma lugna vy.",
+  "landingLead": "Förstå dina investeringar. Allt du äger samlat på ett ställe",
+  "landingCreateAccount": "Skapa konto på 2 min",
+  "landingHaveAccount": "Har du konto? Logga in",
+  "landingModuleCta": "Skapa konto",
+  "landingFinalCta": "Skapa konto och håll koll på dina investeringar",
+  "landingFinalCtaNote": "Gratis att komma igång. Inget kort, ingen bindning.",
   "languageLabel": "Språk",
   "features": [
     {
-      "title": "Portfölj som utgångspunkt",
-      "description": "Koppla mäklare, synka innehav och få en uppdaterad helhetsbild av portföljen."
+      "title": "Din portfölj",
+      "description": "Koppla din bank eller mäklare, håll koll på dina innehav."
     },
     {
-      "title": "Sentiment med marknadskontext",
-      "description": "Följ marknadens ton runt en ticker och skilj signal från brus innan du agerar."
+      "title": "Marknadsläget",
+      "description": "Vi läser nyheterna och forumen åt dig, och skiljer värdefulla signaler från brus."
     },
     {
-      "title": "Primers från bolagsrapporter",
-      "description": "Generera korta bolagssammanfattningar från 10-K och 10-Q på några minuter."
+      "title": "Snabbkoll på bolag",
+      "description": "Förvandla rapporter till korta, tydliga sammanfattningar du läser på minuter."
     },
     {
-      "title": "Quant-scenarier för beslut",
-      "description": "Modellera korta och medellånga prisscenarier med sannolikheter som stöd för investeringsbeslut."
+      "title": "Blicka framåt",
+      "description": "Se vilka vägar aktien kan ta och parera svängarna."
+    }
+  ],
+  "calculator": {
+    "title": "Världens åttonde underverk",
+    "body": "Se vad pengarna växer till – och hur det ser ut om de bara ligger still.",
+    "startCapital": "Startbelopp",
+    "monthlyDeposit": "Månadssparande",
+    "rate": "Årlig avkastning",
+    "years": "Tid",
+    "yearsUnit": "år",
+    "withCompounding": "Investerat med ränta på ränta",
+    "withoutCompounding": "Pengar utan ränta",
+    "growth": "Avkastning ovanpå",
+    "today": "Idag",
+    "afterYears": "Efter {years} år",
+    "valueToday": "Värde idag",
+    "valueAfterYears": "Värde efter {years} år",
+    "chartSummary": "Stapeldiagram som jämför investerade pengar med pengar som ligger still. Efter {years} år: {compounded} investerat mot {flat} utan ränta."
+  },
+  "modules": [
+    {
+      "image": "portfolio",
+      "title": "Din portfölj",
+      "body": "Koppla din bank eller mäklare, håll koll på dina innehav"
+    },
+    {
+      "image": "sentiment",
+      "title": "Marknadsläget",
+      "body": "Vi läser nyheterna och forumen åt dig, och skiljer värdefulla signaler från brus"
+    },
+    {
+      "image": "quant",
+      "title": "Blicka framåt",
+      "body": "Se vilka vägar aktien kan ta och parera svängarna"
+    },
+    {
+      "image": "primers",
+      "title": "Snabbkoll på bolag",
+      "body": "Förvandla rapporter till korta, tydliga sammanfattningar du läser på minuter"
     }
   ]
 }

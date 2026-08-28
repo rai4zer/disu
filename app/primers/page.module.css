@@ -26,9 +26,9 @@
 
 .form {
   display: grid;
-  gap: 12px;
-  max-width: 860px;
-  margin-bottom: 20px;
+  gap: 18px;
+  width: 100%;
+  margin-bottom: 28px;
 }
 
 .label {
@@ -73,7 +73,7 @@
 
 .error {
   margin: 0 0 14px;
-  color: #cb4343;
+  color: var(--danger-ink);
 }
 
 .loaderWrap {
@@ -101,7 +101,7 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: color-mix(in oklab, var(--ink) 75%, #74a5ff 25%);
+  background: color-mix(in oklab, var(--ink) 75%, var(--accent) 25%);
   position: absolute;
   left: 50%;
   top: 3px;
@@ -218,4 +218,33 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* Signed-out gate. The page is public so a visitor can see what a primer is
+   before signing up; only the run needs an account. */
+.gateCard {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 16px;
+  border-style: dashed;
+}
+
+.gateText {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  max-width: 62ch;
+}
+
+.gateActions {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.gateLink {
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-decoration: underline;
 }

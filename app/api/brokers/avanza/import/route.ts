@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { parseAvanzaPositionsCsv } from "@/app/lib/brokers/avanzaCsv";
 import { importPositionsForBroker } from "@/app/lib/brokers/store";
+import { recordFunnelEvent } from "@/app/lib/analytics/funnel-store";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = getSessionFromRequest(request);
+    const session = await getAuthenticatedSession(request);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -28,6 +29,12 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await importPositionsForBroker(session.userId, "avanza", rows);
+
+    void recordFunnelEvent(request, "holding_added", {
+      userId: session.userId,
+      path: "/portfolio",
+      properties: { method: "csv_import", count: rows.length }
+    });
 
     return NextResponse.json(result);
   } catch (error) {

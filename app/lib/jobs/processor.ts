@@ -1,5 +1,6 @@
 import { recordEvent } from "@/app/lib/db/events";
 import { deriveArtifactsFromResult } from "@/app/lib/jobs/artifacts";
+import { log } from "@/app/lib/observability/log";
 import { computeRetryDelayMs, nextStageForTerminalStatus, shouldRequeueRunningJob } from "@/app/lib/jobs/lifecycle";
 import {
   cleanupOldJobArtifacts,
@@ -10,6 +11,9 @@ import {
   listRunningJobs,
   updateJob
 } from "@/app/lib/jobs/store";
+import { pruneExpiredSessions } from "@/app/lib/auth/sessions";
+import { pruneOldFunnelEvents } from "@/app/lib/analytics/funnel-store";
+import { runDailySnapshotSweep } from "@/app/lib/portfolio/snapshots";
 import type { PrimerJobPayload, QuantJobPayload } from "@/app/lib/jobs/types";
 import { executeQuantJob } from "@/app/lib/quant/executor";
 import { executePrimerJob } from "@/app/lib/primers/executor";
@@ -56,6 +60,46 @@ export function initJobWorker(): void {
   setInterval(() => {
     void cleanupOldJobData();
   }, 6 * 60 * 60 * 1000);
+  setTimeout(() => {
+    void captureDailySnapshots();
+  }, 15_000);
+  setInterval(() => {
+    void captureDailySnapshots();
+  }, snapshotSweepIntervalMs());
+}
+
+/**
+ * How often to look for holders with no snapshot for today.
+ *
+ * Repeated sweeps are how a day survives a restart or a transient Yahoo outage,
+ * not a way to refine the number: the writer keeps the first capture of each
+ * date, so a later sweep only fills gaps.
+ */
+function snapshotSweepIntervalMs(): number {
+  const raw = Number(process.env.PORTFOLIO_SNAPSHOT_SWEEP_INTERVAL_MS ?? String(6 * 60 * 60 * 1000));
+  return Number.isFinite(raw) && raw >= 60_000 ? raw : 6 * 60 * 60 * 1000;
+}
+
+/**
+ * Daily portfolio history (migration 0021), on the same background timer as the
+ * retention sweep.
+ *
+ * It lives here because this process is where the app's periodic chores already
+ * run, and because the alternative — writing a snapshot when someone loads the
+ * dashboard — would record history only for the days people happened to visit,
+ * which is the one property a value chart cannot have.
+ *
+ * Errors are logged and dropped: a failed sweep costs a day of history for the
+ * users it did not reach, and must not take the job worker down with it.
+ */
+async function captureDailySnapshots(): Promise<void> {
+  try {
+    await runDailySnapshotSweep();
+  } catch (error) {
+    log.error("portfolio.snapshot.sweep.failed", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }
 
 export function cancelRunningJob(jobId: string): boolean {
@@ -250,5 +294,45 @@ async function cleanupOldJobData(): Promise<void> {
   const jobsCutoffIso = new Date(now - jobsRetentionDays * 24 * 60 * 60 * 1000).toISOString();
   const artifactsCutoffIso = new Date(now - artifactsRetentionDays * 24 * 60 * 60 * 1000).toISOString();
 
-  await Promise.all([cleanupOldJobArtifacts(artifactsCutoffIso), cleanupOldTerminalJobs(jobsCutoffIso)]);
+  const started = Date.now();
+  try {
+    // Expired session rows ride along on the same sweep: once a session is past
+    // its expiry no token can reference it, so the row is dead weight. Funnel
+    // events ride along too — app/lib/legal/retention.ts tells users they are
+    // deleted after 180 days, and this call is what makes that true.
+    const [deletedArtifacts, deletedJobs, deletedSessions, deletedFunnelEvents] = await Promise.all([
+      cleanupOldJobArtifacts(artifactsCutoffIso),
+      cleanupOldTerminalJobs(jobsCutoffIso),
+      pruneExpiredSessions(),
+      pruneOldFunnelEvents()
+    ]);
+    const durationMs = Date.now() - started;
+    const alertThresholdRaw = Number(process.env.JOB_RETENTION_ALERT_THRESHOLD_MS ?? "30000");
+    const alertThresholdMs = Number.isFinite(alertThresholdRaw) && alertThresholdRaw > 0 ? alertThresholdRaw : 30_000;
+    if (durationMs >= alertThresholdMs) {
+      log.warn("jobs.cleanup.slow", {
+        durationMs,
+        deletedJobs,
+        deletedArtifacts,
+        deletedSessions,
+        deletedFunnelEvents,
+        jobsCutoffIso,
+        artifactsCutoffIso
+      });
+    } else {
+      log.info("jobs.cleanup.ok", {
+        durationMs,
+        deletedJobs,
+        deletedArtifacts,
+        deletedSessions,
+        deletedFunnelEvents,
+        jobsCutoffIso,
+        artifactsCutoffIso
+      });
+    }
+  } catch (error) {
+    const durationMs = Date.now() - started;
+    const message = error instanceof Error ? error.message : String(error);
+    log.error("jobs.cleanup.failed", { durationMs, error: message });
+  }
 }

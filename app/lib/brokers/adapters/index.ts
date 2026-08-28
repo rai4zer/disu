@@ -10,6 +10,10 @@ const missingAdapter: BrokerAdapter = {
 };
 
 const adapters: Record<BrokerProvider, BrokerAdapter> = {
+  swedbank: missingAdapter,
+  seb: missingAdapter,
+  handelsbanken: missingAdapter,
+  nordea: missingAdapter,
   nordnet: missingAdapter,
   avanza: missingAdapter
 };

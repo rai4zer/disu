@@ -40,6 +40,21 @@ def _latest_primer_text(cache_dir: Path, ticker: str) -> str:
     return candidates[0].read_text(encoding="utf-8", errors="ignore").strip()
 
 
+def _validate_success_payload(payload: dict[str, object], ticker: str) -> None:
+    required_string_keys = ["ticker", "pdf_path", "pdf_abspath", "cache_dir", "primer_text"]
+    for key in required_string_keys:
+        value = payload.get(key)
+        if not isinstance(value, str):
+            raise ValueError(f"{key} must be a string")
+    if str(payload["ticker"]).upper() != ticker.upper():
+        raise ValueError("payload ticker does not match requested ticker")
+
+    for key in ["form", "filing_date"]:
+        value = payload.get(key)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(f"{key} must be a string or null")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="JSON bridge for filings primer generation")
     parser.add_argument("--ticker", required=True, type=str)
@@ -75,6 +90,7 @@ def main() -> None:
             "cache_dir": str((cfg.cache_dir / ticker).resolve()),
             "primer_text": _latest_primer_text(cfg.cache_dir, ticker),
         }
+        _validate_success_payload(payload, ticker)
         print(json.dumps(payload))
     except Exception as error:
         payload = {

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" role="img" aria-label="Quant">
+  <defs>
+    <linearGradient id="qf" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a84ff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#0a84ff" stop-opacity="0.02"/>
+    </linearGradient>
+  </defs>
+  <rect width="600" height="600" rx="32" fill="url(#qf)"/>
+  <g fill="#0a84ff">
+    <rect x="140" y="300" width="34" height="90" rx="8" opacity="0.45"/>
+    <rect x="200" y="260" width="34" height="130" rx="8" opacity="0.6"/>
+    <rect x="260" y="290" width="34" height="100" rx="8" opacity="0.5"/>
+  </g>
+  <path d="M150 320 C220 300, 250 250, 320 230" fill="none" stroke="#0a84ff" stroke-width="12" stroke-linecap="round"/>
+  <path d="M320 230 L470 150" fill="none" stroke="#0a84ff" stroke-width="12" stroke-linecap="round" stroke-dasharray="4 22"/>
+  <path d="M320 230 L470 150 L470 300 L320 230 Z" fill="#0a84ff" opacity="0.12"/>
+  <path d="M320 230 L470 300" fill="none" stroke="#0a84ff" stroke-width="6" stroke-linecap="round" stroke-dasharray="4 22" opacity="0.5"/>
+  <circle cx="320" cy="230" r="14" fill="#0a84ff"/>
+</svg>

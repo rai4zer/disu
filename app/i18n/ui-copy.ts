@@ -12,7 +12,8 @@ export const uiCopy = {
     },
     market: {
       ariaLabel: "Market overview",
-      signIn: "Sign in"
+      signIn: "Sign in",
+      account: "Account"
     },
     languageToggle: {
       label: "Switch language",
@@ -32,6 +33,14 @@ export const uiCopy = {
       signInTitle: "Sign in to DISU",
       createTitle: "Create your DISU account",
       waiting: "Please wait..."
+    },
+    errorBoundary: {
+      title: "Something went wrong on this page",
+      body: "The page stopped working before it finished loading. The problem has been reported — trying again often clears it.",
+      bodyRoot: "The app could not start. The problem has been reported. Reloading usually helps.",
+      retry: "Try again",
+      home: "Go to start page",
+      reference: "Reference:"
     },
     topNav: {
       overview: "Overview",
@@ -67,7 +76,8 @@ export const uiCopy = {
     },
     market: {
       ariaLabel: "Marknadsöversikt",
-      signIn: "Logga in"
+      signIn: "Logga in",
+      account: "Konto"
     },
     languageToggle: {
       label: "Byt språk",
@@ -87,6 +97,14 @@ export const uiCopy = {
       signInTitle: "Logga in i DISU",
       createTitle: "Skapa ditt DISU-konto",
       waiting: "Vänta..."
+    },
+    errorBoundary: {
+      title: "Något gick fel på den här sidan",
+      body: "Sidan slutade fungera innan den laddats klart. Felet är rapporterat — det brukar hjälpa att försöka igen.",
+      bodyRoot: "Appen kunde inte starta. Felet är rapporterat. Ladda om sidan så brukar det lösa sig.",
+      retry: "Försök igen",
+      home: "Till startsidan",
+      reference: "Referens:"
     },
     topNav: {
       overview: "Översikt",

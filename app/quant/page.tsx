@@ -7,11 +7,13 @@ import { resolveTickerSymbol } from "@/app/lib/ticker-suggestions";
 import TickerAutocomplete from "@/app/components/ticker-autocomplete";
 import {
   cancelJob,
+  dismissJob,
   getRecentJobs,
   pollJobResultWithProgress,
   retryJob
 } from "@/app/lib/jobs/client";
 import { useLanguage } from "@/app/i18n/language";
+import UiState from "@/app/components/ui-state";
 
 type QuantRow = {
   date: string;
@@ -48,6 +50,12 @@ type QuantResponse =
       rows: QuantRow[];
       history: HistoryPoint[];
       reports: ReportPoint[];
+      meta?: {
+        modelVersion: string;
+        bridgeVersion: string;
+        fallbackMode: "none" | "offline";
+        cached?: boolean;
+      };
     }
   | {
       ok: false;
@@ -87,6 +95,9 @@ type ResumableQuantJob = {
 };
 
 const ACTIVE_QUANT_JOB_KEY = "disu.jobs.quant.active";
+const QUANT_TICKER_PREF_KEY = "pref.quant.ticker";
+const QUANT_RANGE_PREF_KEY = "pref.quant.range";
+const QUANT_CHART_MODE_PREF_KEY = "pref.quant.chart_mode";
 
 type RangeKey = "1d" | "1w" | "1m" | "3m" | "ytd" | "1y" | "3y" | "5y" | "max";
 type ChartMode = "sharp" | "smooth" | "candlestick" | "ohlc";
@@ -194,6 +205,12 @@ export default function QuantPage() {
   const [rows, setRows] = useState<QuantRow[]>([]);
   const [history, setHistory] = useState<HistoryPoint[]>([]);
   const [reports, setReports] = useState<ReportPoint[]>([]);
+  const [resultMeta, setResultMeta] = useState<{
+    modelVersion: string;
+    bridgeVersion: string;
+    fallbackMode: "none" | "offline";
+    cached?: boolean;
+  } | null>(null);
   const [activeHorizon, setActiveHorizon] = useState<number | null>(null);
   const [rangeKey, setRangeKey] = useState<RangeKey>("1w");
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number; date: string; price: number } | null>(null);
@@ -222,6 +239,47 @@ export default function QuantPage() {
   const rafRef = useRef<number | null>(null);
   const ghostTimerRef = useRef<number | null>(null);
   const toolMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const savedTicker = window.localStorage.getItem(QUANT_TICKER_PREF_KEY);
+    const savedRange = window.localStorage.getItem(QUANT_RANGE_PREF_KEY);
+    const savedChartMode = window.localStorage.getItem(QUANT_CHART_MODE_PREF_KEY);
+    if (savedTicker) {
+      setTicker(savedTicker);
+    }
+    if (savedRange && RANGE_OPTIONS.some((option) => option.key === savedRange)) {
+      setRangeKey(savedRange as RangeKey);
+    }
+    if (savedChartMode && ["sharp", "smooth", "candlestick", "ohlc"].includes(savedChartMode)) {
+      setChartMode(savedChartMode as ChartMode);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (ticker.trim()) {
+      window.localStorage.setItem(QUANT_TICKER_PREF_KEY, ticker.trim().toUpperCase());
+    }
+  }, [ticker]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(QUANT_RANGE_PREF_KEY, rangeKey);
+  }, [rangeKey]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.localStorage.setItem(QUANT_CHART_MODE_PREF_KEY, chartMode);
+  }, [chartMode]);
   const animatedRef = useRef<{
     x: number;
     y: number;
@@ -259,6 +317,7 @@ export default function QuantPage() {
       setRows([]);
       setHistory([]);
       setReports([]);
+      setResultMeta(null);
       setActiveHorizon(null);
       setError(payload.error);
       return;
@@ -267,6 +326,7 @@ export default function QuantPage() {
     setRows(payload.rows);
     setHistory(payload.history ?? []);
     setReports(payload.reports ?? []);
+    setResultMeta(payload.meta ?? null);
     setTicker(payload.ticker);
     const oneDay = payload.rows.find((row) => row.horizon === 1)?.horizon ?? null;
     setActiveHorizon(oneDay ?? pickBestHorizon(payload.rows));
@@ -328,6 +388,7 @@ export default function QuantPage() {
       setRows([]);
       setHistory([]);
       setReports([]);
+      setResultMeta(null);
       setActiveHorizon(null);
       setHoverPoint(null);
       setGhostProjection(null);
@@ -387,6 +448,7 @@ export default function QuantPage() {
       setRows([]);
       setHistory([]);
       setReports([]);
+      setResultMeta(null);
       setActiveHorizon(null);
       setHoverPoint(null);
       setMarkerTooltip(null);
@@ -814,12 +876,14 @@ export default function QuantPage() {
 
           <label className={`${styles.checkboxRow} appCheckbox`}>
             <input type="checkbox" checked={retrain} onChange={(event) => setRetrain(event.target.checked)} />
-            {isSv ? "Tvinga omträning av modell" : "Force retrain model"}
+            {isSv ? "Träna om modell" : "Retrain model"}
           </label>
 
-          <button type="submit" className={`${styles.button} appButton`} disabled={loading}>
-            {loading ? (isSv ? "Kör..." : "Running...") : isSv ? "Kör" : "Run"}
-          </button>
+          <div className={styles.actionsRow}>
+            <button type="submit" className={`${styles.button} appButton`} disabled={loading}>
+              {loading ? (isSv ? "Kör..." : "Running...") : isSv ? "Kör" : "Run"}
+            </button>
+          </div>
         </form>
 
         {resumableJob ? (
@@ -857,10 +921,19 @@ export default function QuantPage() {
               <button
                 type="button"
                 className="appButtonSecondary"
-                onClick={() => {
-                  clearActiveJobId(resumableJob.id);
-                  setResumableJob(null);
-                }}
+                onClick={() =>
+                  void (async () => {
+                    try {
+                      if (resumableJob.status === "failed") {
+                        await dismissJob(resumableJob.id);
+                      }
+                      clearActiveJobId(resumableJob.id);
+                      setResumableJob(null);
+                    } catch (dismissError) {
+                      setError(dismissError instanceof Error ? dismissError.message : isSv ? "Kunde inte dölja jobb" : "Could not dismiss job");
+                    }
+                  })()
+                }
                 disabled={loading}
               >
                 {isSv ? "Stäng" : "Dismiss"}
@@ -886,12 +959,13 @@ export default function QuantPage() {
           </section>
         ) : null}
 
-        {error ? <p className={`${styles.error} appError`}>{error}</p> : null}
+        {error ? <UiState kind="error" message={error} className={styles.error} /> : null}
 
         {rows.length > 0 ? (
           <section className={`${styles.results} appSection`}>
             <p className={`${styles.meta} appMeta`}>
               {isSv ? "Senaste datum" : "Latest date"}: <strong>{rows[0].date}</strong>
+              {resultMeta?.fallbackMode === "offline" ? ` | ${isSv ? "Offline-läge" : "Offline mode"}` : ""}
             </p>
 
             {chartBase && animatedProjection ? (
@@ -1058,9 +1132,9 @@ export default function QuantPage() {
 
                   <defs>
                     <linearGradient id="mountainGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#1f9e7a" stopOpacity="0.28" />
-                      <stop offset="55%" stopColor="#5ec8af" stopOpacity="0.12" />
-                      <stop offset="100%" stopColor="#d1f3ea" stopOpacity="0" />
+                      <stop offset="0%" stopColor="#4d8dff" stopOpacity="0.28" />
+                      <stop offset="55%" stopColor="#6ca6ff" stopOpacity="0.12" />
+                      <stop offset="100%" stopColor="#d0e2ff" stopOpacity="0" />
                     </linearGradient>
                   </defs>
 

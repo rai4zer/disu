@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AppFooter from "@/app/components/app-footer";
 import MarketStrip from "@/app/components/market-strip";
+import PublicNav from "@/app/components/public-nav";
 import TopNav from "@/app/components/top-nav";
 import { useLanguage } from "@/app/i18n/language";
 import { getUiCopy } from "@/app/i18n/ui-copy";
@@ -10,6 +12,9 @@ import styles from "./app-shell.module.css";
 
 type Props = {
   children: React.ReactNode;
+  /** Resolved on the server from the session cookie, so the signed-in chrome is
+      never rendered — not even for a frame — to a visitor without a session. */
+  signedIn: boolean;
 };
 
 type NavItem = {
@@ -18,15 +23,19 @@ type NavItem = {
   icon: "dashboard" | "portfolio" | "sentiment" | "quant" | "primers";
 };
 
-const PROTECTED_PREFIXES = ["/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/filings-primers", "/placera"];
+// Routes that render inside the app frame. Not the same thing as "requires a
+// session" — /help, /legal, /learn and /primers are public and are deliberately
+// not in the middleware matcher, but they still get chrome (the signed-out
+// variant below) because a visitor can reach them before signing up.
+const PROTECTED_PREFIXES = ["/account", "/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/legal", "/filings-primers", "/placera"];
 
 function shouldUseShell(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 function isActive(pathname: string, href: string): boolean {
-  if (href === "/sentiment") {
-    return pathname === "/sentiment" || pathname.startsWith("/placera");
+  if (href === "/placera") {
+    return pathname === "/placera" || pathname.startsWith("/placera/");
   }
   return pathname === href || pathname.startsWith(`${href}/`);
 }
@@ -78,20 +87,46 @@ function NavIcon({ kind }: { kind: NavItem["icon"] }) {
   );
 }
 
-export default function AppShell({ children }: Props) {
+export default function AppShell({ children, signedIn }: Props) {
   const pathname = usePathname();
   const { language } = useLanguage();
   const copy = getUiCopy(language);
   const navItems: NavItem[] = [
     { href: "/dashboard", label: copy.nav.dashboard, icon: "dashboard" },
     { href: "/portfolio", label: copy.nav.portfolio, icon: "portfolio" },
-    { href: "/sentiment", label: copy.nav.sentiment, icon: "sentiment" },
+    { href: "/placera", label: copy.nav.sentiment, icon: "sentiment" },
     { href: "/quant", label: copy.nav.quant, icon: "quant" },
     { href: "/primers", label: copy.nav.primers, icon: "primers" }
   ];
 
   if (!pathname || !shouldUseShell(pathname)) {
-    return <>{children}</>;
+    return (
+      <div className={styles.standalone}>
+        <div className={styles.standaloneContent}>{children}</div>
+        <AppFooter />
+      </div>
+    );
+  }
+
+  // Signed out on a shell route. Middleware already redirects the gated ones, so
+  // whatever reaches here is public content (the help pages linked from the
+  // footer). Show the content, but none of the signed-in chrome: no module rail,
+  // no nav into the app, no sign-out.
+  if (!signedIn) {
+    return (
+      <div className={styles.public}>
+        <MarketStrip action="signin" />
+        <PublicNav />
+
+        <main className={styles.publicMain}>
+          <div className={styles.content}>
+            <div className={styles.pageContent}>{children}</div>
+          </div>
+        </main>
+
+        <AppFooter />
+      </div>
+    );
   }
 
   return (
@@ -100,25 +135,34 @@ export default function AppShell({ children }: Props) {
       <TopNav />
 
       <aside className={styles.sidebar}>
-        <nav className={styles.nav} aria-label={copy.nav.mainNavigation}>
+        <nav className={styles.navPill} aria-label={copy.nav.mainNavigation}>
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
+              aria-label={item.label}
               className={isActive(pathname, item.href) ? `${styles.navItem} ${styles.navItemActive}` : styles.navItem}
             >
               <span className={styles.navIcon}>
                 <NavIcon kind={item.icon} />
               </span>
-              <span className={styles.navLabel}>{item.label}</span>
+              <span className={styles.navLabel} aria-hidden="true">
+                {item.label}
+              </span>
             </Link>
           ))}
         </nav>
       </aside>
 
       <main className={styles.main}>
-        <div className={styles.content}>{children}</div>
+        <div className={styles.content}>
+          <div className={styles.pageContent}>{children}</div>
+        </div>
       </main>
+
+      <div className={styles.footerSlot}>
+        <AppFooter />
+      </div>
     </div>
   );
 }

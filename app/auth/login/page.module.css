@@ -1,106 +1,389 @@
+/* ── Login page ───────────────────────────────────────────── */
+
 .page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  color: var(--ink);
+  min-height: calc(100svh - var(--market-strip-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: var(--surface);
 }
 
 .shell {
   width: 100%;
-  max-width: 560px;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.kicker {
-  margin: 0 0 2px;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 11px;
+.heading {
+  margin: 0 0 28px;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  text-align: center;
 }
 
-.title {
-  margin: 0 0 10px;
+/* ── Google sign-in ───────────────────────────────────────── */
+
+.googleError {
+  margin: 0 0 16px;
+  width: 100%;
+  font-size: 13px;
+  color: var(--danger-ink);
 }
 
-.subtitle {
-  margin: 0 0 18px;
-  color: var(--muted);
-}
-
-.switch {
-  display: inline-flex;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.switchBtn,
-.switchActive {
-  border: 1px solid var(--border);
+.googleButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
   background: transparent;
   color: var(--ink);
-  border-radius: 999px;
-  padding: 7px 12px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  text-decoration: none;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 
-.switchActive {
-  background: var(--cta-bg);
-  color: var(--cta-text);
+.googleButton:hover {
   border-color: var(--ink);
 }
 
-.card {
-  border: 0;
-  border-radius: 0;
-  padding: 0;
-  display: grid;
+.googleMark {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
   gap: 12px;
-  background: transparent;
-}
-
-.field {
-  display: grid;
-  gap: 6px;
-}
-
-.field span {
+  margin: 18px 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 12px;
 }
 
-.field input {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 12px;
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border-strong);
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+
+.input {
+  width: 100%;
+  padding: 13px 16px;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: 0;
   background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input:focus {
+  border-bottom-color: var(--ink);
+}
+
+.input::placeholder {
+  color: var(--muted);
+  opacity: 0.45;
+}
+
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px transparent inset;
+  box-shadow: 0 0 0 1000px transparent inset;
+  -webkit-text-fill-color: var(--ink);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+html[data-theme="dark"] .input:-webkit-autofill,
+html[data-theme="dark"] .input:-webkit-autofill:hover,
+html[data-theme="dark"] .input:-webkit-autofill:focus {
+  -webkit-box-shadow: 0 0 0 1000px #0a101c inset;
+  box-shadow: 0 0 0 1000px #0a101c inset;
+  -webkit-text-fill-color: var(--ink);
+}
+
+.forgotLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-family: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.forgotLink:hover {
   color: var(--ink);
 }
 
 .error {
   margin: 0;
-  color: #cb4343;
+  font-size: 13px;
+  color: var(--danger-ink);
 }
 
-.primary {
-  border: 0;
-  background: transparent;
+/* Sits under the password field on the register form: the rule stated up front
+   rather than as a rejection after submit. */
+.passwordHint {
+  margin: -6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.notice {
+  margin: 0;
+  font-size: 13px;
+  color: var(--success-ink);
+}
+
+.resetLink {
   color: inherit;
-  border-radius: 0;
-  padding: 0;
-  cursor: pointer;
+  text-decoration: underline;
 }
 
-.primary:disabled {
-  opacity: 0.65;
+.submit {
+  width: 100%;
+  padding: 14px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 12px;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+}
+
+.submit:disabled {
+  opacity: 0.45;
   cursor: default;
 }
 
+.footer {
+  margin-top: 20px;
+  width: 100%;
+  text-align: center;
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.footerText {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.footerLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.footerLink:hover {
+  color: var(--ink);
+}
+
+.footerLinkUnderline {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .page {
+    align-items: flex-start;
+    padding-top: 60px;
+  }
+}
+
+/* ── Reset-password ───────────────────────────────────────── */
+
+.resetShell {
+  max-width: 380px;
+}
+
+.resetShell .heading {
+  margin-bottom: 34px;
+}
+
+/* Deliberately not a card: the form sits straight on the page so there are no
+   nested frames between the heading, the fields and the back-link. The only
+   edges on the page are the field rules and the CTA. */
+.card {
+  width: 100%;
+  display: grid;
+  gap: 24px;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field > span {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  color: var(--muted);
+}
+
+/* Labelled variant of .input: no left inset, so the typed value sits on the
+   same axis as its label and the rule below it. */
+.field .input {
+  padding: 9px 0;
+}
+
+.primary {
+  width: 100%;
+  padding: 14px;
+  margin-top: 4px;
+  border: none;
+  border-radius: 12px;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  /* The one lifted element on the page. */
+  box-shadow: 0 10px 24px -14px color-mix(in srgb, var(--cta-bg) 85%, transparent);
+  transition: background 0.15s, box-shadow 0.2s, opacity 0.15s;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  box-shadow: 0 14px 30px -14px color-mix(in srgb, var(--cta-bg) 85%, transparent);
+}
+
+.primary:disabled {
+  opacity: 0.45;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* On a near-black surface a coloured drop shadow reads as a glow, so the lift
+   comes down to a hint. */
+html[data-theme="dark"] .primary {
+  box-shadow: 0 10px 26px -18px color-mix(in srgb, var(--cta-bg) 60%, transparent);
+}
+
+html[data-theme="dark"] .primary:hover:not(:disabled) {
+  box-shadow: 0 14px 32px -18px color-mix(in srgb, var(--cta-bg) 60%, transparent);
+}
+
 .backWrap {
-  margin: 14px 2px 0;
+  margin: 30px 0 0;
+  width: 100%;
+  text-align: center;
 }
 
 .backWrap a {
   color: var(--muted);
   text-decoration: none;
+  font-size: 14px;
+  transition: color 0.12s;
+}
+
+.backWrap a:hover {
+  color: var(--ink);
+}
+
+/* Kept for AuthModeSwitch (used in reset-password page) */
+.switch {
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+.switchBtn,
+.switchActive {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.switchActive {
+  background: rgba(255, 255, 255, 0.82);
+  color: #121826;
+  border-color: rgba(20, 28, 45, 0.06);
+  box-shadow: 0 2px 8px -4px rgba(8, 15, 28, 0.2);
+}
+
+.consent {
+  margin: 14px 0 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+
+.consentLink {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }

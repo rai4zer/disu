@@ -1,8 +1,8 @@
 .root {
-  width: min(1080px, 100%);
+  width: 100%;
   margin: 0 auto;
   display: grid;
-  gap: 16px;
+  gap: 22px;
 }
 
 .narrow {
@@ -32,6 +32,6 @@
 
 .body {
   display: grid;
-  gap: 12px;
+  gap: 18px;
   min-width: 0;
 }

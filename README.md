@@ -1,11 +1,11 @@
-# Placera Local Demo (Next.js)
+# disu-platform
 
-Minimal App Router demo that fetches Placera forum posts + comments by company id, ticker, or name.
+DISU Platform is a Next.js + Python investor workspace for portfolio tracking, broker connectivity, sentiment, quant workflows, filings primers, weekly updates, and product feedback.
 
 ## Run locally
 1. `npm install`
 2. `npm run dev`
-3. Open `http://localhost:3000/placera`
+3. Open `http://localhost:3000`
 
 ## Avoid dev-server cache collisions
 When `next dev` is running, use an isolated build output for validation builds:
@@ -15,15 +15,19 @@ When `next dev` is running, use an isolated build output for validation builds:
 
 These commands write to `.next-build` instead of `.next`, so your live dev server hot-reload state stays intact.
 
-## Use
-- Enter a company lookup value (`companyId`, ticker, or name like `AAPL`/`Apple`)
-- Optional: set `posts per company` and `comments page size`
-- Click **Fetch**
+## Main surfaces
+- `/dashboard`
+- `/portfolio`
+- `/placera`
+- `/sentiment`
+- `/quant`
+- `/primers`
+- `/help/release-notes`
 
 Example `companyId` from local `company_ids.csv`:
 - `9ea92aec-ec1d-46a4-9f5c-bcdbed76c85e` (avanza)
 
-## API route
+## Placera API route
 - `GET /api/placera`
 - Query params:
   - `companyId` (optional if `companyQuery` is provided)
@@ -37,7 +41,7 @@ Returns merged JSON payload with posts and nested comments.
 - `placera_company_ids.py` can regenerate `company_ids.csv` by querying Placera search.
 
 ## Architecture
-See `architecture.md` for component and data-flow details.
+See `architecture.md` for current component, auth, pricing, and data-flow details.
 
 ## Quant + Primers setup
 These pages run Python bridge scripts from `python/src/...` through Next.js API routes.
@@ -97,12 +101,36 @@ Auth users, broker connections, positions, and audit events are now DB-backed.
    - `db/migrations/0004_jobs_stage_and_artifacts.sql`
    - `db/migrations/0005_jobs_idempotency.sql`
    - `db/migrations/0006_jobs_stage_timing.sql`
+   - `db/migrations/0007_weekly_updates.sql`
+   - `db/migrations/0008_rename_weekly_updates_table.sql`
+   - `db/migrations/0009_weekly_updates_reliability.sql`
+   - `db/migrations/0010_jobs_dismissed_state.sql`
+   - `db/migrations/0011_broker_accounts_scope.sql`
+   - `db/migrations/0012_broker_connection_secrets.sql`
 2. Ensure required env vars exist in `.env`:
 ```env
 DISU_SESSION_SECRET=replace-with-long-random-secret
+BROKER_TOKEN_ENCRYPTION_KEY=replace-with-32-byte-random-secret
 SUPABASE_URL=https://<project-ref>.supabase.co
 SUPABASE_KEY=<service-role-or-server-key>
 QUANT_PYTHON_BIN=/absolute/path/to/python
 PRIMER_PYTHON_BIN=/absolute/path/to/python
+
+# Broker connectivity foundation (Tink)
+TINK_CLIENT_ID=<tink-client-id>
+TINK_CLIENT_SECRET=<tink-client-secret>
+TINK_REDIRECT_URI=http://localhost:3000/api/brokers/tink/callback
+TINK_AUTH_BASE_URL=https://link.tink.com/1.0/products/connect-accounts
+TINK_API_BASE_URL=https://api.tink.com
+TINK_SCOPE=accounts:read,investment-accounts:readonly
+TINK_LINK_PRODUCTS=INVESTMENTS
+TINK_MARKET=SE
 ```
 3. Restart server after env or schema updates.
+
+## Broker connection foundation (current state)
+- Broker catalog now includes: `Swedbank`, `SEB`, `Handelsbanken`, `Nordea`, `Avanza`, `Nordnet`.
+- Tink-backed providers become connectable when both `TINK_CLIENT_ID` and `TINK_CLIENT_SECRET` are set.
+- Tink OAuth callback path: `/api/brokers/tink/callback` and account selection page: `/portfolio/accounts`.
+- Avanza currently supports CSV import.
+- Nordnet is listed, but direct API onboarding is pending.

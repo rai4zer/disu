@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession, SESSION_COOKIE_NAME } from "@/app/lib/auth/session";
 
 export async function GET(request: NextRequest) {
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
-    return NextResponse.json({ authenticated: false }, { status: 401 });
+    const response = NextResponse.json({ authenticated: false }, { status: 401 });
+    response.cookies.set({
+      name: SESSION_COOKIE_NAME,
+      value: "",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0
+    });
+    return response;
   }
 
   return NextResponse.json({

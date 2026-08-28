@@ -1,0 +1,10 @@
+{
+  "ticker": "AAPL",
+  "horizons": [1, 5, 20, 60],
+  "historyMinPoints": 70,
+  "historyMaxPoints": 120,
+  "fallbackMode": "offline",
+  "bridgeVersionPrefix": "quant-bridge-v",
+  "modelVersionPrefix": "quant-v",
+  "canonicalSha256": "cd48d84a2ae85b214846562de1395917a6017af2e625e6b367dfcd646d446233"
+}

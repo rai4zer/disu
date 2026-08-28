@@ -1,0 +1,312 @@
+/* No panel chrome: the calculator sits directly on the page like the feature rows
+   above it, so the section gutter is its only inset. */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(22px, 4vh, 36px);
+}
+
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 1.6vh, 12px);
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.body {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  line-height: 1.6;
+  font-weight: 420;
+  color: var(--muted);
+  max-width: 62ch;
+}
+
+/* Controls: all four sliders sit on one row at the widened landing width, then fold
+   to 2 and 1 (see the media queries at the end of the file) — stepping 4 → 2 → 1
+   rather than through 3, which would leave one slider orphaned on its own row. */
+.controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(16px, 2.6vw, 32px);
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controlHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.controlLabel {
+  font-size: clamp(0.8rem, 1.3vw, 0.86rem);
+  font-weight: 620;
+  color: var(--ink);
+}
+
+.controlValue {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: clamp(0.84rem, 1.4vw, 0.9rem);
+  font-weight: 640;
+  color: var(--ink);
+}
+
+/* Typed entry for exact amounts; the slider stays the primary control. */
+.numberInput {
+  width: 6.5ch;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  padding: 2px 4px;
+  font: inherit;
+  color: inherit;
+  text-align: right;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.numberInput::-webkit-outer-spin-button,
+.numberInput::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.numberInputWide {
+  width: 9ch;
+}
+
+.numberInput:hover {
+  border-color: var(--border-strong);
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface-soft);
+}
+
+.unit {
+  color: var(--muted);
+  font-weight: 520;
+}
+
+.slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 5px;
+  margin: 5px 0;
+  border-radius: 999px;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--fill, 0%), var(--border-strong) var(--fill, 0%));
+  background-color: var(--border-strong);
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(8, 15, 28, 0.18);
+  transition: transform 140ms ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 2px 8px rgba(8, 15, 28, 0.18);
+}
+
+.slider:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+/* Results.
+   Fixed grid tracks on purpose: the values change width with the hovered year, and a
+   wrapping flex row would change this block's height mid-hover, shifting the chart out
+   from under the cursor and flip-flopping the hover state. */
+.results {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: clamp(8px, 1.6vh, 13px) clamp(18px, 3.4vw, 38px);
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: clamp(0.76rem, 1.2vw, 0.84rem);
+  font-weight: 560;
+  color: var(--muted);
+}
+
+.legendCompound::before,
+.legendFlat::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.legendCompound::before {
+  background: var(--accent);
+}
+
+.legendFlat::before {
+  background: var(--accent-soft);
+  border: 1px solid var(--border-strong);
+}
+
+.resultValue {
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.resultValueMuted {
+  color: var(--ink-soft);
+}
+
+.resultValueGrowth {
+  color: var(--success-ink);
+}
+
+/* Always its own row so the block height never depends on the hovered year. */
+.caption {
+  margin: 0;
+  grid-column: 1 / -1;
+  justify-self: end;
+  font-size: clamp(0.75rem, 1.15vw, 0.81rem);
+  font-weight: 560;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* Chart: one column per year, the lighter block is money without growth */
+.chartWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.chart {
+  display: flex;
+  align-items: flex-end;
+  gap: clamp(2px, 0.6vw, 10px);
+  height: clamp(150px, 26vh, 250px);
+  border-bottom: 1px solid var(--border);
+}
+
+.column {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  position: relative;
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--accent);
+  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1), opacity 140ms ease;
+}
+
+.barFlat {
+  position: absolute;
+  inset: auto 0 0 0;
+  border-radius: 3px 3px 0 0;
+  background: var(--accent-soft);
+  transition: height 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chartWrap:hover .bar {
+  opacity: 0.55;
+}
+
+.columnActive .bar,
+.chartWrap:hover .columnActive .bar {
+  opacity: 1;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: clamp(0.73rem, 1.15vw, 0.79rem);
+  font-weight: 560;
+  color: var(--muted);
+}
+
+@media (max-width: 1080px) {
+  .controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
+  .results {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  .caption {
+    justify-self: start;
+  }
+
+  .chart {
+    gap: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar,
+  .barFlat,
+  .slider::-webkit-slider-thumb {
+    transition: none;
+  }
+}

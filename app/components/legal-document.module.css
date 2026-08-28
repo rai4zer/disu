@@ -1,0 +1,91 @@
+.document {
+  display: grid;
+  gap: 0;
+}
+
+.section {
+  display: grid;
+  gap: 12px;
+  scroll-margin-top: 90px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.paragraph {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--muted);
+  line-height: 1.62;
+}
+
+.callout {
+  margin: 0;
+  max-width: 68ch;
+  padding: 12px 14px;
+  border: 1px solid var(--panel-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+  color: var(--ink);
+  line-height: 1.62;
+}
+
+.pending {
+  margin: 0;
+  max-width: 68ch;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.list {
+  margin: 0;
+  padding-left: 20px;
+  max-width: 68ch;
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  line-height: 1.58;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--panel-border);
+  border-radius: 14px;
+}
+
+.table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.table th {
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink);
+}
+
+.table td {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.table tbody tr:last-child th,
+.table tbody tr:last-child td {
+  border-bottom: none;
+}

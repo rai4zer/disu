@@ -1,0 +1,63 @@
+.page {
+  width: 100%;
+}
+
+.intro {
+  display: grid;
+  gap: 8px;
+}
+
+.intro p {
+  margin: 0;
+  max-width: 68ch;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.links {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.linkCard {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
+  text-decoration: none;
+  color: inherit;
+}
+
+.linkCard strong {
+  font-size: 0.98rem;
+}
+
+.linkCard span {
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.linkCard:hover {
+  border-color: var(--border-strong);
+}
+
+.updated {
+  margin: 20px 0 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+}
+
+.incomplete {
+  margin-top: 20px;
+  padding: 12px 14px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 14px;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+}

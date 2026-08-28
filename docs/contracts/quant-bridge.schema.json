@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://disu.local/contracts/quant-bridge.schema.json",
+  "title": "Quant Bridge Payload",
+  "description": "Payload emitted by python/src/quant/web_infer.py and consumed by app/lib/quant/executor.ts",
+  "type": "object",
+  "required": ["ok"],
+  "oneOf": [
+    {
+      "properties": {
+        "ok": { "const": true },
+        "ticker": { "type": "string", "minLength": 1 },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "date",
+              "ticker",
+              "horizon",
+              "adj_close",
+              "pred_return",
+              "p_up_raw",
+              "p_up",
+              "implied_price",
+              "model_path"
+            ],
+            "properties": {
+              "date": { "type": "string" },
+              "ticker": { "type": "string" },
+              "horizon": { "type": "number" },
+              "adj_close": { "type": "number" },
+              "pred_return": { "type": "number" },
+              "p_up_raw": { "type": "number" },
+              "p_up": { "type": "number" },
+              "implied_price": { "type": "number" },
+              "model_path": { "type": "string" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "history": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["date", "open", "high", "low", "close", "adj_close", "dividends"],
+            "properties": {
+              "date": { "type": "string" },
+              "open": { "type": "number" },
+              "high": { "type": "number" },
+              "low": { "type": "number" },
+              "close": { "type": "number" },
+              "adj_close": { "type": "number" },
+              "dividends": { "type": "number" }
+            },
+            "additionalProperties": true
+          }
+        },
+        "reports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["filedAt", "form", "quarter"],
+            "properties": {
+              "filedAt": { "type": "string" },
+              "form": { "enum": ["10-K", "10-Q"] },
+              "quarter": { "enum": ["Q1", "Q2", "Q3", "Q4", null] }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "required": ["ok", "ticker", "rows", "history"]
+    },
+    {
+      "properties": {
+        "ok": { "const": false },
+        "error": { "type": "string", "minLength": 1 },
+        "traceback": { "type": "string" }
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": true
+    }
+  ],
+  "additionalProperties": true
+}

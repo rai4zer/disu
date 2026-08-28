@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { eq, lt, supabaseRequest } from "@/app/lib/db/supabase";
+import { eq, lt } from "@/app/lib/db/supabase";
+import { systemRequest, userScoped } from "@/app/lib/db/user-scope";
 import type { JobArtifactRow, JobArtifactType, JobKind, JobPayload, JobRow, JobStatus } from "@/app/lib/jobs/types";
+
+const JOB_SELECT_FIELDS =
+  "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,dismissed_at,started_at,finished_at,created_at,updated_at";
 
 function createJobId(): string {
   return `job_${randomUUID().replace(/-/g, "").slice(0, 18)}`;
@@ -14,12 +18,11 @@ export async function enqueueJob(input: {
   maxAttempts?: number;
 }): Promise<JobRow> {
   const now = new Date().toISOString();
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await userScoped<JobRow[]>(input.userId, "jobs", {
     method: "POST",
     body: [
       {
         id: createJobId(),
-        user_id: input.userId,
         kind: input.kind,
         status: "queued",
         stage: "queued",
@@ -34,6 +37,7 @@ export async function enqueueJob(input: {
         fetch_ms: null,
         run_ms: null,
         run_after: now,
+        dismissed_at: null,
         started_at: null,
         finished_at: null,
         created_at: now,
@@ -45,11 +49,17 @@ export async function enqueueJob(input: {
   return rows[0];
 }
 
+/**
+ * Unscoped by design: the worker resolves a job id it pulled off the queue and
+ * has no session. Never call this from a route — routes must use
+ * `getJobForUser()` so a guessed id cannot read another account's job.
+ */
 export async function getJobById(jobId: string): Promise<JobRow | null> {
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await systemRequest<JobRow[]>("jobs", {
+    reason: "job worker resolves a queued job id with no session attached",
     query: {
       id: eq(jobId),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      select: JOB_SELECT_FIELDS,
       limit: "1"
     }
   });
@@ -57,11 +67,10 @@ export async function getJobById(jobId: string): Promise<JobRow | null> {
 }
 
 export async function getJobForUser(jobId: string, userId: string): Promise<JobRow | null> {
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await userScoped<JobRow[]>(userId, "jobs", {
     query: {
       id: eq(jobId),
-      user_id: eq(userId),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      select: JOB_SELECT_FIELDS,
       limit: "1"
     }
   });
@@ -69,10 +78,12 @@ export async function getJobForUser(jobId: string, userId: string): Promise<JobR
 }
 
 export async function listQueuedJobs(limit = 100): Promise<JobRow[]> {
-  return supabaseRequest<JobRow[]>("jobs", {
+  return systemRequest<JobRow[]>("jobs", {
+    reason: "job worker drains the queue across all tenants",
     query: {
       status: eq("queued"),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      dismissed_at: "is.null",
+      select: JOB_SELECT_FIELDS,
       order: "run_after.asc",
       limit: String(limit)
     }
@@ -80,10 +91,12 @@ export async function listQueuedJobs(limit = 100): Promise<JobRow[]> {
 }
 
 export async function listRunningJobs(limit = 100): Promise<JobRow[]> {
-  return supabaseRequest<JobRow[]>("jobs", {
+  return systemRequest<JobRow[]>("jobs", {
+    reason: "orphan-job recovery scans every tenant's in-flight jobs",
     query: {
       status: eq("running"),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      dismissed_at: "is.null",
+      select: JOB_SELECT_FIELDS,
       order: "started_at.asc",
       limit: String(limit)
     }
@@ -95,13 +108,13 @@ export async function findActiveJobForUserKindTicker(input: {
   kind: JobKind;
   ticker: string;
 }): Promise<JobRow | null> {
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await userScoped<JobRow[]>(input.userId, "jobs", {
     query: {
-      user_id: eq(input.userId),
       kind: eq(input.kind),
       status: `in.("queued","running")`,
       "payload->>ticker": eq(input.ticker),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      dismissed_at: "is.null",
+      select: JOB_SELECT_FIELDS,
       order: "created_at.desc",
       limit: "1"
     }
@@ -114,12 +127,11 @@ export async function findJobForUserByIdempotency(input: {
   kind: JobKind;
   idempotencyKey: string;
 }): Promise<JobRow | null> {
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await userScoped<JobRow[]>(input.userId, "jobs", {
     query: {
-      user_id: eq(input.userId),
       kind: eq(input.kind),
       idempotency_key: eq(input.idempotencyKey),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+      select: JOB_SELECT_FIELDS,
       order: "created_at.desc",
       limit: "1"
     }
@@ -135,8 +147,8 @@ export async function listRecentJobsForUser(input: {
 }): Promise<JobRow[]> {
   const limit = Math.max(1, Math.min(100, input.limit ?? 10));
   const query: Record<string, string> = {
-    user_id: eq(input.userId),
-    select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at",
+    dismissed_at: "is.null",
+    select: JOB_SELECT_FIELDS,
     order: "created_at.desc",
     limit: String(limit)
   };
@@ -151,15 +163,20 @@ export async function listRecentJobsForUser(input: {
     query.status = `in.(${encodedStatuses})`;
   }
 
-  return supabaseRequest<JobRow[]>("jobs", { query });
+  return userScoped<JobRow[]>(input.userId, "jobs", { query });
 }
 
+/**
+ * Unscoped by design: the worker advances jobs it owns off the queue. Routes
+ * must use `updateJobForUser()` instead.
+ */
 export async function updateJob(jobId: string, patch: Record<string, unknown>): Promise<JobRow> {
-  const rows = await supabaseRequest<JobRow[]>("jobs", {
+  const rows = await systemRequest<JobRow[]>("jobs", {
+    reason: "job worker advances the lifecycle of a job it claimed from the queue",
     method: "PATCH",
     query: {
       id: eq(jobId),
-      select: "id,user_id,kind,status,stage,idempotency_key,payload,result,error,error_code,attempts,max_attempts,queued_ms,fetch_ms,run_ms,run_after,started_at,finished_at,created_at,updated_at"
+      select: JOB_SELECT_FIELDS
     },
     body: {
       ...patch,
@@ -169,8 +186,29 @@ export async function updateJob(jobId: string, patch: Record<string, unknown>): 
   return rows[0];
 }
 
-export async function setJobStatus(jobId: string, status: JobStatus): Promise<JobRow> {
-  return updateJob(jobId, { status });
+/**
+ * The route-facing update. Returns null when the id is not this user's, so a
+ * caller cannot mutate a job it merely guessed the id of — the `user_id` filter
+ * is part of the write itself rather than a separate read the caller has to
+ * remember to perform first.
+ */
+export async function updateJobForUser(
+  jobId: string,
+  userId: string,
+  patch: Record<string, unknown>
+): Promise<JobRow | null> {
+  const rows = await userScoped<JobRow[]>(userId, "jobs", {
+    method: "PATCH",
+    query: {
+      id: eq(jobId),
+      select: JOB_SELECT_FIELDS
+    },
+    body: {
+      ...patch,
+      updated_at: new Date().toISOString()
+    }
+  });
+  return rows[0] ?? null;
 }
 
 function createArtifactId(): string {
@@ -192,29 +230,46 @@ export async function insertJobArtifacts(
     return [];
   }
 
-  return supabaseRequest<JobArtifactRow[]>("job_artifacts", {
-    method: "POST",
-    body: artifacts.map((artifact) => ({
-      id: createArtifactId(),
-      job_id: artifact.jobId,
-      user_id: artifact.userId,
-      kind: artifact.kind,
-      artifact_type: artifact.artifactType,
-      artifact_path: artifact.artifactPath,
-      content_hash: artifact.contentHash ?? null,
-      metadata: artifact.metadata ?? {},
-      created_at: new Date().toISOString()
-    }))
-  });
+  // Grouped by owner so each insert is scoped to exactly one user. In practice
+  // every batch comes from a single job, but the signature allows a mix and a
+  // silently mis-owned artifact row is a leak.
+  const byUser = new Map<string, typeof artifacts>();
+  for (const artifact of artifacts) {
+    const bucket = byUser.get(artifact.userId);
+    if (bucket) {
+      bucket.push(artifact);
+    } else {
+      byUser.set(artifact.userId, [artifact]);
+    }
+  }
+
+  const inserted = await Promise.all(
+    [...byUser.entries()].map(([userId, owned]) =>
+      userScoped<JobArtifactRow[]>(userId, "job_artifacts", {
+        method: "POST",
+        body: owned.map((artifact) => ({
+          id: createArtifactId(),
+          job_id: artifact.jobId,
+          kind: artifact.kind,
+          artifact_type: artifact.artifactType,
+          artifact_path: artifact.artifactPath,
+          content_hash: artifact.contentHash ?? null,
+          metadata: artifact.metadata ?? {},
+          created_at: new Date().toISOString()
+        }))
+      })
+    )
+  );
+
+  return inserted.flat();
 }
 
 export async function listJobArtifactsForUser(input: {
   userId: string;
   jobId: string;
 }): Promise<JobArtifactRow[]> {
-  return supabaseRequest<JobArtifactRow[]>("job_artifacts", {
+  return userScoped<JobArtifactRow[]>(input.userId, "job_artifacts", {
     query: {
-      user_id: eq(input.userId),
       job_id: eq(input.jobId),
       select: "id,job_id,user_id,kind,artifact_type,artifact_path,content_hash,metadata,created_at",
       order: "created_at.desc"
@@ -222,23 +277,29 @@ export async function listJobArtifactsForUser(input: {
   });
 }
 
-export async function cleanupOldJobArtifacts(olderThanIso: string): Promise<void> {
-  await supabaseRequest<unknown>("job_artifacts", {
+export async function cleanupOldJobArtifacts(olderThanIso: string): Promise<number> {
+  const deleted = await systemRequest<Array<{ id: string }>>("job_artifacts", {
+    reason: "retention pruning is defined by age, across all tenants",
     method: "DELETE",
     query: {
-      created_at: lt(olderThanIso)
+      created_at: lt(olderThanIso),
+      select: "id"
     },
-    prefer: "return=minimal"
+    prefer: "return=representation,count=exact"
   });
+  return deleted.length;
 }
 
-export async function cleanupOldTerminalJobs(olderThanIso: string): Promise<void> {
-  await supabaseRequest<unknown>("jobs", {
+export async function cleanupOldTerminalJobs(olderThanIso: string): Promise<number> {
+  const deleted = await systemRequest<Array<{ id: string }>>("jobs", {
+    reason: "retention pruning is defined by age, across all tenants",
     method: "DELETE",
     query: {
       status: `in.("succeeded","failed")`,
-      created_at: lt(olderThanIso)
+      created_at: lt(olderThanIso),
+      select: "id"
     },
-    prefer: "return=minimal"
+    prefer: "return=representation,count=exact"
   });
+  return deleted.length;
 }

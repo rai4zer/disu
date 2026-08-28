@@ -1,0 +1,24 @@
+.state {
+  margin-top: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.state_loading {
+  color: var(--muted);
+  background: var(--surface-elevated);
+}
+
+.state_empty {
+  color: var(--muted);
+  background: var(--surface-elevated);
+}
+
+.state_error {
+  color: var(--danger-ink);
+  border-color: color-mix(in srgb, var(--danger-ink) 35%, var(--border));
+  background: color-mix(in srgb, var(--danger-ink) 8%, var(--surface-elevated));
+}
+

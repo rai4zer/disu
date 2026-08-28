@@ -4,7 +4,7 @@
 
 .card {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .card h2 {
@@ -14,6 +14,11 @@
 
 .card p {
   margin: 0;
+  color: var(--muted);
+}
+
+.sectionHint {
+  font-size: 0.84rem;
   color: var(--muted);
 }
 
@@ -63,9 +68,20 @@
 
 .feedbackMinimalRow {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 8px;
   align-items: center;
+}
+
+.feedbackFormStack {
+  display: grid;
+  gap: 6px;
+}
+
+.featureComposer {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 8px;
 }
 
 .feedbackMinimalInput {
@@ -79,6 +95,27 @@
   font: inherit;
 }
 
+.feedbackMinimalTextarea {
+  width: 100%;
+  min-height: 68px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  resize: vertical;
+}
+
+.compactTextarea {
+  min-height: 56px;
+}
+
+.feedbackMinimalTextarea:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--navy) 24%, transparent);
+  outline-offset: 1px;
+}
+
 .feedbackMinimalInput:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--navy) 24%, transparent);
   outline-offset: 1px;
@@ -88,10 +125,10 @@
   border: 1px solid var(--border-strong);
   background: var(--surface-elevated-strong);
   color: var(--ink);
-  min-height: 36px;
+  min-height: 34px;
   border-radius: 999px;
-  padding: 0 14px;
-  font-size: 0.83rem;
+  padding: 0 12px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
@@ -100,8 +137,298 @@
   border-color: color-mix(in srgb, var(--navy) 34%, var(--border-strong));
 }
 
+.feedbackMinimalButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.feedbackStatus {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.releaseNotesList {
+  display: grid;
+  gap: 8px;
+}
+
+.releaseSection {
+  border: 1px solid color-mix(in srgb, var(--navy) 22%, var(--border));
+  border-radius: 14px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface-elevated) 92%, #0c1326 8%);
+}
+
+.releaseNoteCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.releaseNoteHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.releaseNoteHeader h3 {
+  margin: 0;
+  font-size: 0.99rem;
+}
+
+.releaseNoteHeader span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.markdown {
+  display: grid;
+  gap: 8px;
+}
+
+.markdown p,
+.markdown ul,
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  margin: 0;
+}
+
+.markdown ul {
+  padding-left: 18px;
+}
+
+.featureRequestList {
+  display: grid;
+  gap: 8px;
+}
+
+.featureSection {
+  border: 1px solid color-mix(in srgb, var(--success-ink) 22%, var(--border));
+  border-radius: 14px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface-elevated) 94%, #0f1d15 6%);
+}
+
+.featureRequestCard {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-elevated);
+  padding: 9px 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.featureRequestHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.featureRequestHeader time {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.statusBadge {
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.statusBadge[data-status="new"] {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--border-strong));
+}
+
+.statusBadge[data-status="planned"] {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--border-strong));
+}
+
+.statusBadge[data-status="done"] {
+  border-color: color-mix(in srgb, var(--success-ink) 45%, var(--border-strong));
+}
+
+.statusBadge[data-status="rejected"] {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border-strong));
+}
+
+.featureRequestMessage {
+  margin: 0;
+}
+
+.featureRequestActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.ghostButton {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 10px;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.ghostButton:hover {
+  border-color: var(--border-strong);
+}
+
+.commentsBlock {
+  border-top: 1px dashed var(--border);
+  padding-top: 6px;
+  display: grid;
+  gap: 6px;
+}
+
+.commentsList {
+  display: grid;
+  gap: 8px;
+}
+
+.commentItem {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.commentItem p {
+  margin: 0;
+}
+
+.commentItem time,
+.commentsEmpty,
+.commentsLoginHint {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.commentForm {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+}
+
+.adminFormGrid {
+  display: grid;
+  gap: 6px;
+}
+
+.inlineFields {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) auto auto;
+  gap: 6px;
+}
+
+.adminComposer {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  background: color-mix(in srgb, var(--surface-elevated) 92%, transparent);
+}
+
+.adminComposer > summary {
+  cursor: pointer;
+  font-size: 0.84rem;
+  color: var(--ink-soft);
+  user-select: none;
+}
+
+.adminComposer[open] > summary {
+  margin-bottom: 8px;
+}
+
+.adminSelect {
+  min-height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  padding: 0 10px;
+  font: inherit;
+}
+
+.adminNoteList {
+  display: grid;
+  gap: 8px;
+}
+
+.adminNoteCard {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px;
+  background: var(--surface-elevated);
+  display: grid;
+  gap: 6px;
+}
+
+.adminNoteCard p {
+  margin: 0;
+}
+
+.adminNoteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.adminNoteMeta strong {
+  color: var(--ink);
+}
+
+.adminStatusRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.featureToolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.paginationRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
 @media (max-width: 700px) {
+  .featureComposer {
+    grid-template-columns: 1fr;
+  }
   .feedbackMinimalRow {
+    grid-template-columns: 1fr;
+  }
+
+  .commentForm {
+    grid-template-columns: 1fr;
+  }
+
+  .inlineFields {
     grid-template-columns: 1fr;
   }
 }

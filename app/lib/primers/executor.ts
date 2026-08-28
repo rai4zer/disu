@@ -1,6 +1,7 @@
 import { access, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { killChildProcessTree } from "../jobs/subprocess.ts";
 
 export type PrimerJobResult =
   | {
@@ -13,6 +14,12 @@ export type PrimerJobResult =
       cache_dir: string;
       primer_text: string;
       cached?: boolean;
+      meta?: {
+        pipelineVersion: string;
+        llmProvider: "openai_compatible" | "none";
+        llmModel: string;
+        fallbackMode: "none" | "offline";
+      };
     }
   | {
       ok: false;
@@ -20,7 +27,102 @@ export type PrimerJobResult =
       traceback?: string;
     };
 
+const PRIMER_BRIDGE_VERSION = "primer-bridge-v1";
+
+function asObj(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function asStr(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asBool(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function primerFallbackMode(): "never" | "offline" | "always" {
+  const raw = (process.env.PRIMER_MOCK_FALLBACK_MODE ?? "").trim().toLowerCase();
+  if (raw === "never") return "never";
+  if (raw === "always") return "always";
+  if (raw === "offline") return "offline";
+  return process.env.NODE_ENV !== "production" ? "offline" : "never";
+}
+
+function withPrimerMeta(
+  result: PrimerJobResult,
+  input: { llmProvider: "openai_compatible" | "none"; fallbackMode: "none" | "offline" }
+): PrimerJobResult {
+  if (!result.ok) {
+    return result;
+  }
+  return {
+    ...result,
+    meta: {
+      pipelineVersion: `${PRIMER_BRIDGE_VERSION}:${process.env.PRIMER_PIPELINE_VERSION ?? "primer-v1"}`,
+      llmProvider: input.llmProvider,
+      llmModel: process.env.PRIMER_LLM_MODEL ?? "default",
+      fallbackMode: input.fallbackMode
+    }
+  };
+}
+
+function validatePrimerBridgePayload(payload: unknown): PrimerJobResult {
+  const obj = asObj(payload);
+  if (!obj) {
+    throw new Error("Primer bridge payload invalid: expected JSON object.");
+  }
+  const ok = asBool(obj.ok);
+  if (ok === false) {
+    const error = asStr(obj.error) ?? "Primer bridge failed.";
+    const traceback = asStr(obj.traceback) ?? undefined;
+    return { ok: false, error, traceback };
+  }
+  if (ok !== true) {
+    throw new Error("Primer bridge payload invalid: missing ok flag.");
+  }
+  const ticker = asStr(obj.ticker);
+  const pdfPath = asStr(obj.pdf_path);
+  const pdfAbsPath = asStr(obj.pdf_abspath);
+  const form = obj.form === null ? null : asStr(obj.form);
+  const filingDate = obj.filing_date === null ? null : asStr(obj.filing_date);
+  const cacheDir = asStr(obj.cache_dir);
+  const primerText = asStr(obj.primer_text);
+  const cachedRaw = obj.cached;
+  const cached = typeof cachedRaw === "boolean" ? cachedRaw : undefined;
+  if (!ticker || pdfPath === null || pdfAbsPath === null || cacheDir === null || primerText === null) {
+    throw new Error("Primer bridge payload invalid: missing required fields.");
+  }
+  if (form === null && obj.form !== null) {
+    throw new Error("Primer bridge payload invalid: form must be string or null.");
+  }
+  if (filingDate === null && obj.filing_date !== null) {
+    throw new Error("Primer bridge payload invalid: filing_date must be string or null.");
+  }
+  return {
+    ok: true,
+    ticker,
+    pdf_path: pdfPath,
+    pdf_abspath: pdfAbsPath,
+    form,
+    filing_date: filingDate,
+    cache_dir: cacheDir,
+    primer_text: primerText,
+    cached
+  };
+}
+
 function mockEnabled(): boolean {
+  const mode = primerFallbackMode();
+  if (mode === "always") {
+    return true;
+  }
+  if (mode === "never") {
+    return false;
+  }
   const raw = (process.env.PRIMER_ALLOW_MOCK_FALLBACK ?? "").trim().toLowerCase();
   if (raw === "1" || raw === "true" || raw === "yes") {
     return true;
@@ -59,7 +161,7 @@ function createMockPrimerText(ticker: string): string {
   ].join("\n");
 }
 
-function createMockPrimerResult(ticker: string): PrimerJobResult {
+function createMockPrimerResult(ticker: string, llmProvider: "openai_compatible" | "none"): PrimerJobResult {
   const cacheDir = path.join(process.cwd(), "python", "filings_cache", ticker, "offline-mock");
   return {
     ok: true,
@@ -70,7 +172,13 @@ function createMockPrimerResult(ticker: string): PrimerJobResult {
     filing_date: null,
     cache_dir: cacheDir,
     primer_text: createMockPrimerText(ticker),
-    cached: true
+    cached: true,
+    meta: {
+      pipelineVersion: `${PRIMER_BRIDGE_VERSION}:${process.env.PRIMER_PIPELINE_VERSION ?? "primer-v1"}`,
+      llmProvider,
+      llmModel: process.env.PRIMER_LLM_MODEL ?? "default",
+      fallbackMode: "offline"
+    }
   };
 }
 
@@ -207,7 +315,8 @@ function runPrimerJob(ticker: string, llmProvider: string, signal?: AbortSignal)
         MPLCONFIGDIR: process.env.MPLCONFIGDIR ?? mplConfigDir,
         PYTHONUNBUFFERED: "1"
       },
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32"
     });
 
     let stdout = "";
@@ -217,7 +326,7 @@ function runPrimerJob(ticker: string, llmProvider: string, signal?: AbortSignal)
 
     const timeout = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      killChildProcessTree(child, "SIGKILL");
     }, timeoutMs);
 
     const onAbort = () => {
@@ -226,7 +335,7 @@ function runPrimerJob(ticker: string, llmProvider: string, signal?: AbortSignal)
       }
       settled = true;
       clearTimeout(timeout);
-      child.kill("SIGKILL");
+      killChildProcessTree(child, "SIGKILL");
       reject(new Error("Job cancelled by user."));
     };
     signal?.addEventListener("abort", onAbort, { once: true });
@@ -272,7 +381,7 @@ function runPrimerJob(ticker: string, llmProvider: string, signal?: AbortSignal)
 
       let payload: PrimerJobResult;
       try {
-        payload = JSON.parse(lastLine) as PrimerJobResult;
+        payload = validatePrimerBridgePayload(JSON.parse(lastLine) as unknown);
       } catch {
         reject(
           new Error(
@@ -303,25 +412,34 @@ export async function executePrimerJob(input: {
 }): Promise<PrimerJobResult> {
   const bridgePath = path.join(process.cwd(), "python", "src", "filings", "web_primer.py");
   await access(bridgePath);
+  if (primerFallbackMode() === "always") {
+    return createMockPrimerResult(input.ticker, input.llmProvider);
+  }
 
   const useCache = process.env.PRIMER_DISABLE_RESULT_CACHE !== "1";
   if (useCache) {
     const cached = await getCachedPrimerResult(input.ticker);
     if (cached) {
-      return cached;
+      return withPrimerMeta(cached, {
+        llmProvider: input.llmProvider,
+        fallbackMode: "none"
+      });
     }
   }
 
   try {
     const result = await runPrimerJob(input.ticker, input.llmProvider, input.signal);
     if (result.ok === false && mockEnabled() && looksLikeOfflineFailure(result.error ?? "")) {
-      return createMockPrimerResult(input.ticker);
+      return createMockPrimerResult(input.ticker, input.llmProvider);
     }
-    return result;
+    return withPrimerMeta(result, {
+      llmProvider: input.llmProvider,
+      fallbackMode: "none"
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (mockEnabled() && looksLikeOfflineFailure(message)) {
-      return createMockPrimerResult(input.ticker);
+      return createMockPrimerResult(input.ticker, input.llmProvider);
     }
     throw error;
   }

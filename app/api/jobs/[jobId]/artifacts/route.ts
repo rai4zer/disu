@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { getJobForUser, listJobArtifactsForUser } from "@/app/lib/jobs/store";
 
 export async function GET(
   request: NextRequest,
   context: { params: { jobId: string } }
 ) {
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }

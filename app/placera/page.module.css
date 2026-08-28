@@ -7,335 +7,696 @@
 .form {
   display: grid;
   gap: 12px;
-  max-width: 860px;
-  margin-bottom: 20px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.field label {
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.field input {
-  border: 1px solid var(--border-strong);
-  border-radius: 12px;
-  padding: 10px 12px;
-  font-size: 1rem;
   width: 100%;
-  background: var(--surface-elevated-strong);
+  margin-bottom: 24px;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.searchField {
+  width: min(190px, 100%);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Surfaces on this page are defined by translucent fills rather than outlines, so
+   they settle into the page background instead of sitting in boxes on top of it.
+   Borders that remain are hairlines at a fraction of --border, kept only where an
+   edge carries meaning (focus rings, the comment overlay). */
+.searchInput {
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-size: 0.95rem;
+  background: color-mix(in srgb, var(--surface-elevated-strong) 50%, transparent);
   color: var(--ink);
+  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
 }
 
-.button {
-  width: fit-content;
+.searchInput::placeholder {
+  color: color-mix(in srgb, var(--muted) 85%, transparent);
 }
 
-.windowHint {
-  margin: 8px 0 0;
+.searchInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
+.runButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--cta-bg);
+  color: var(--cta-text);
+  padding: 11px 22px;
+  font-size: 0.95rem;
+  font-weight: 620;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.runButton:hover:not(:disabled) {
+  background: var(--cta-bg-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-cta);
+}
+
+.runButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.runIcon {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.quickPicks {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.quickCluster {
+  /* One pair of radii drives the whole dome, so breakpoints only retune these. */
+  --cluster-rx: 290px;
+  --cluster-ry: 100px;
+  position: relative;
+  width: 100%;
+  height: calc(var(--cluster-ry) + 48px);
+}
+
+/* The cluster is a one-time greeting: the first lookup pops the blips back out
+   (outermost first) and collapses the space they occupied. */
+.quickPicksLeaving .quickCluster {
+  animation: clusterCollapse 440ms cubic-bezier(0.4, 0, 0.2, 1) 120ms forwards;
+}
+
+.quickPicksLeaving .quickPick {
+  animation: blipOut 300ms ease-out var(--blip-out-delay, 0ms) forwards;
+  pointer-events: none;
+}
+
+.quickPicksLeaving .quickPick::after {
+  animation: none;
+}
+
+@keyframes clusterCollapse {
+  from {
+    height: calc(var(--cluster-ry) + 48px);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes blipOut {
+  from {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(0.25);
+  }
+}
+
+.quickSlot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  transform: translate(
+    calc(-50% + var(--blip-fx, 0) * var(--cluster-rx)),
+    calc(var(--blip-fy, 0) * var(--cluster-ry) * -1)
+  );
+}
+
+/* Lift a hovered chip clear of the arcs it overlaps. */
+.quickSlot:hover,
+.quickSlot:focus-within {
+  z-index: 3;
+}
+
+.quickFlag {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.quickPick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
   color: var(--muted);
-  font-size: 0.86rem;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 520;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Resting pose: leaning along the arc's tangent. */
+  transform: rotate(var(--blip-tilt, 0deg));
+  animation: blipIn 420ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--blip-delay, 0ms) backwards;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+/* Radar-style ping that fires once as the chip lands, then gets out of the way. */
+.quickPick::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: blipPing 620ms ease-out var(--blip-delay, 0ms) backwards;
+}
+
+.quickPick:hover:not(:disabled) {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transform: rotate(var(--blip-tilt, 0deg)) scale(1.07);
+}
+
+@keyframes blipIn {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
+  }
+}
+
+@keyframes blipPing {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.quickPick:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.quickPickActive {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+@media (max-width: 1080px) {
+  .quickCluster {
+    --cluster-rx: 215px;
+    --cluster-ry: 84px;
+  }
+}
+
+/* Narrow viewports: no room for the dome, so fall back to a plain wrapped cluster
+   while keeping the pop-in. */
+@media (max-width: 760px) {
+  .quickCluster {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    height: auto;
+  }
+
+  .quickSlot {
+    position: static;
+    transform: none;
+    /* Flat layout, so drop the tangent lean (keyframes read this too). */
+    --blip-tilt: 0deg;
+  }
+
+  /* Height is auto here, so fade the wrapped cluster instead of collapsing it. */
+  .quickPicksLeaving .quickCluster {
+    animation: clusterFade 420ms ease forwards;
+  }
+}
+
+@keyframes clusterFade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickPick,
+  .quickPick::after,
+  .quickPicksLeaving .quickPick,
+  .quickPicksLeaving .quickCluster {
+    animation: none;
+  }
+
+  .quickPick::after {
+    display: none;
+  }
+
+  .quickPicksLeaving {
+    opacity: 0;
+  }
 }
 
 .error {
   margin-top: 14px;
-  color: #b63f2c;
-  background: color-mix(in srgb, #b63f2c 6%, var(--surface-elevated));
-  border: 1px solid color-mix(in srgb, #b63f2c 28%, transparent);
+  color: var(--danger-ink);
+  background: color-mix(in srgb, var(--danger-ink) 9%, transparent);
+  border: 1px solid transparent;
   border-radius: 12px;
   padding: 10px;
 }
 
-.overview {
-  margin-top: 14px;
+.deck {
+  margin-top: 4px;
   display: grid;
-  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  /* Fixed track sizes so the four cards never reflow with content. */
+  grid-template-columns: minmax(300px, 1.45fr) repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
-.badgeCard {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: var(--surface-elevated-strong);
+/* Translucent fill plus a wide, faint shadow instead of an outline. background-color
+   only — the sentiment tints below paint background-image, so both can coexist. */
+.deckCard {
+  height: 330px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  background-color: color-mix(in srgb, var(--surface-elevated-strong) 55%, transparent);
+  box-shadow: 0 2px 22px color-mix(in srgb, var(--ink) 4%, transparent);
+  overflow: hidden;
+}
+
+.mainCard {
+  padding: 14px 16px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+/* Sentiment reads as a wash bleeding down from the top edge, replacing the tinted
+   outlines these cards used to carry. */
+.mainCard_positive {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--success-ink) 10%, transparent),
+    transparent 45%
+  );
+}
+
+.mainCard_negative {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger-ink) 10%, transparent),
+    transparent 45%
+  );
+}
+
+.mainCard_neutral {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--neutral-ink) 9%, transparent),
+    transparent 45%
+  );
+}
+
+.mainTop {
   display: flex;
-  gap: 12px;
-  min-height: 132px;
   align-items: center;
+  gap: 14px;
 }
 
-.badgeArtWrap {
-  width: 72px;
-  height: 72px;
+.moodStage {
+  width: 96px;
+  height: 86px;
+  flex-shrink: 0;
   border-radius: 12px;
   display: grid;
   place-items: center;
-  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
   color: var(--ink);
+  overflow: hidden;
 }
 
-.badgeIcon {
-  width: 56px;
-  height: 56px;
+.moodFigure {
+  width: 84px;
+  height: 74px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.92;
+}
+
+.moodFigure g,
+.moodFigure path {
+  transform-box: fill-box;
   transform-origin: center;
 }
 
-.iconCore {
-  transform-origin: 50% 50%;
+.figBull {
+  animation: bullCharge 1.5s ease-in-out infinite;
 }
 
-.iconMushroom {
-  animation: mushroomRise 3.2s ease-in-out infinite;
+.figDust {
+  animation: dustStreak 1.5s linear infinite;
 }
 
-.iconWalk {
-  animation: walkBody 1.7s ease-in-out infinite;
+.figBear {
+  animation: bearRear 1.4s ease-in-out infinite;
 }
 
-.legA {
+.figPawLeft,
+.figPawRight {
+  transform-origin: 90% 10%;
+  animation: pawSlam 1.4s ease-in-out infinite;
+}
+
+.figImpact {
+  animation: impactFlash 1.4s ease-in-out infinite;
+}
+
+.figGround {
+  opacity: 0.35;
+}
+
+.figCrab {
+  animation: crabSidestep 3.4s ease-in-out infinite;
+}
+
+.figClawLeft {
+  transform-origin: 100% 100%;
+  animation: clawSnap 0.9s ease-in-out infinite;
+}
+
+.figClawRight {
+  transform-origin: 0% 100%;
+  animation: clawSnap 0.9s ease-in-out infinite reverse;
+}
+
+.figLegA {
   animation: legStepA 0.9s ease-in-out infinite;
 }
 
-.legB {
+.figLegB {
   animation: legStepB 0.9s ease-in-out infinite;
 }
 
-.iconBearAttack {
-  animation: bearLunge 1.2s ease-in-out infinite;
+.mainIdentity {
+  min-width: 0;
 }
 
-.pawLeft,
-.pawRight {
-  animation: pawLift 1.2s ease-in-out infinite;
-}
-
-.iconBullGore {
-  animation: bullDrive 1.1s ease-in-out infinite;
-}
-
-.goreMotion {
-  animation: motionSlash 1.1s linear infinite;
-}
-
-.iconRocket {
-  animation: rocketLift 1.9s ease-in-out infinite;
-}
-
-.flame {
-  animation: flamePulse 0.48s ease-in-out infinite;
-}
-
-.badgeMeta h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  line-height: 1.2;
-}
-
-.badgeTitle {
+.mainEyebrow {
   margin: 0 0 2px;
   color: var(--muted);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
-.badgeSubline {
+.mainMood {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.mainScore {
   margin: 4px 0 0;
   color: var(--muted);
+  font-size: 0.85rem;
 }
 
-.kpiGrid {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px;
-  background: var(--surface-elevated-strong);
+.mainCompany {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  min-width: 0;
 }
 
-.kpi {
+.mainCompanyName {
+  font-size: 1rem;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainCompanyMeta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainStats {
+  margin: 0;
   display: grid;
-  gap: 4px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  align-content: start;
 }
 
-.metricLabel {
-  font-size: 0.74rem;
+.mainStat {
+  min-width: 0;
+}
+
+.mainStat dt {
+  color: var(--muted);
+  font-size: 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  color: var(--muted);
 }
 
-.confidence_low {
-  color: #8f6a23;
-}
-
-.confidence_medium {
-  color: #3566a7;
-}
-
-.confidence_high {
-  color: #2b8a56;
-}
-
-.distributionPanel {
-  margin-top: 10px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--surface-elevated-strong);
-  padding: 10px 12px;
-}
-
-.distributionTrack {
+.mainStat dd {
+  margin: 2px 0 0;
+  font-weight: 580;
+  font-size: 0.92rem;
   display: flex;
-  height: 10px;
-  border-radius: 999px;
+  align-items: baseline;
+  gap: 6px;
   overflow: hidden;
-  border: 1px solid var(--border);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.distributionPositive {
-  background: #2b8a56;
-}
-
-.distributionNeutral {
-  background: #8f8f8f;
-}
-
-.distributionNegative {
-  background: #c44a3b;
-}
-
-.distributionLabels {
-  margin-top: 8px;
-  display: flex;
-  gap: 10px;
-  justify-content: space-between;
-  color: var(--muted);
+.deltaUp {
+  color: var(--success-ink);
   font-size: 0.78rem;
-  flex-wrap: wrap;
+  font-weight: 600;
 }
 
-.lanes {
-  margin-top: 12px;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.deltaDown {
+  color: var(--danger-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
-.lane {
-  background: var(--surface-elevated-strong);
-  border: 1px solid var(--border);
-  border-radius: 12px;
+.laneCard {
   padding: 10px;
-  height: clamp(420px, 56vh, 620px);
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
 }
 
 .lane_positive {
-  border-color: color-mix(in srgb, #2b8a56 36%, var(--border));
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--success-ink) 11%, transparent),
+    transparent 40%
+  );
 }
 
 .lane_neutral {
-  border-color: color-mix(in srgb, #808080 30%, var(--border));
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--neutral-ink) 10%, transparent),
+    transparent 40%
+  );
 }
 
 .lane_negative {
-  border-color: color-mix(in srgb, #c44a3b 36%, var(--border));
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger-ink) 11%, transparent),
+    transparent 40%
+  );
 }
 
 .laneHeader {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   padding-bottom: 8px;
   margin-bottom: 8px;
 }
 
 .laneHeader h3 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.95rem;
 }
 
-.laneHeader span {
-  color: var(--muted);
-  font-size: 0.85rem;
+.laneViewport {
+  position: relative;
+  overflow: hidden;
+  /* Fade the ends so comments enter and leave without a hard cut. */
+  mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
-.laneBody {
+.laneTrack {
   display: grid;
   gap: 8px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 6px;
   align-content: start;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ink) 30%, transparent) transparent;
+  animation-name: commentScroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
 }
 
-.laneBody::-webkit-scrollbar {
-  width: 10px;
+.laneViewport:hover .laneTrack,
+.laneTrack:focus-within {
+  animation-play-state: paused;
 }
 
-.laneBody::-webkit-scrollbar-thumb {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--ink) 20%, transparent) 0%,
-    color-mix(in srgb, var(--ink) 40%, transparent) 100%
-  );
-  border: 2px solid transparent;
-  background-clip: padding-box;
-  border-radius: 999px;
+@keyframes commentScroll {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    /* The 4px offsets the final row gap so the two passes meet seamlessly. */
+    transform: translate3d(0, calc(-50% - 4px), 0);
+  }
 }
 
-.laneBody::-webkit-scrollbar-track {
-  background: color-mix(in srgb, var(--surface-elevated) 80%, transparent);
-  border-radius: 999px;
+.commentCard {
+  display: grid;
+  gap: 6px;
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 8px 9px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--ink);
+  cursor: default;
+  font: inherit;
+  transition: background-color 150ms ease;
+}
+
+.commentCard:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.commentMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.commentText {
+  line-height: 1.35;
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.commentPreview {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 10px;
+  border-radius: 12px;
+  /* Still near-opaque with a blur behind it: this overlays the scrolling lane and has
+     to stay readable, so it keeps a faint edge where the other surfaces drop theirs. */
+  background: color-mix(in srgb, var(--surface-elevated-strong) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border: 1px solid color-mix(in srgb, var(--accent) 14%, transparent);
+  overflow-y: auto;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 6px;
+  align-content: start;
+}
+
+.commentPreviewHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.commentPreviewMeta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.commentPreviewBody {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .emptyLane {
   margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.entityCard {
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
-  border-radius: 9px;
-  padding: 9px;
-  background: color-mix(in srgb, var(--surface-elevated) 86%, transparent);
-}
-
-.entityHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-  color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.86rem;
 }
 
 .badgePost,
 .badgeReply {
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
   font-weight: 600;
 }
@@ -346,55 +707,95 @@
 }
 
 .badgeReply {
-  background: color-mix(in srgb, #2b8a56 18%, transparent);
+  background: color-mix(in srgb, var(--success-ink) 18%, transparent);
   color: var(--ink);
 }
 
-.entityScore {
-  border-radius: 999px;
-  padding: 1px 8px;
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
+.confidence_low {
+  color: var(--warning-ink);
 }
 
-.entityAuthor {
-  color: var(--muted);
-  font-size: 0.88rem;
-  margin-bottom: 6px;
+.confidence_medium {
+  color: var(--info-ink);
 }
 
-.entityContent {
+.confidence_high {
+  color: var(--success-ink);
+}
+
+/* Was a 1px gradient ring drawn by padding a brightly filled parent. Now the same
+   gradient is the panel's own wash, at a fraction of the strength — the accent still
+   marks this as the generated summary, without an outline around it. */
+.summaryCard {
+  margin-top: 12px;
+  border-radius: 18px;
+  padding: 0;
+  background-color: color-mix(in srgb, var(--surface-elevated-strong) 55%, transparent);
+  background-image: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--success-ink) 8%, transparent),
+    color-mix(in srgb, var(--accent) 10%, transparent)
+  );
+  box-shadow: 0 2px 22px color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.summaryInner {
+  border-radius: 18px;
+  background: transparent;
+  padding: 14px 16px;
+  display: grid;
+  gap: 10px;
+}
+
+.summaryHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.summaryHead h3 {
   margin: 0;
-  line-height: 1.4;
-  white-space: pre-wrap;
+  font-size: 0.98rem;
+}
+
+.summaryMark svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  fill: color-mix(in srgb, var(--success-ink) 70%, var(--accent));
+}
+
+.summaryText {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 0.95rem;
   overflow-wrap: anywhere;
-  word-break: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-@keyframes mushroomRise {
-  0%,
-  100% {
-    transform: translateY(1px) scale(0.98);
-    opacity: 0.84;
-  }
-  50% {
-    transform: translateY(-3px) scale(1.04);
-    opacity: 1;
-  }
+.summaryFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
-@keyframes walkBody {
-  0%,
-  100% {
-    transform: translateX(-1px);
-  }
-  50% {
-    transform: translateX(1px);
-  }
+.summaryToggle {
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  color: var(--ink);
+  padding: 6px 14px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.summaryToggle:hover {
+  background: color-mix(in srgb, var(--success-ink) 16%, transparent);
 }
 
 @keyframes legStepA {
@@ -403,83 +804,150 @@
     transform: translateY(0);
   }
   50% {
-    transform: translateY(1.2px);
+    transform: translateY(1.4px);
   }
 }
 
 @keyframes legStepB {
   0%,
   100% {
-    transform: translateY(1.2px);
+    transform: translateY(1.4px);
   }
   50% {
     transform: translateY(0);
   }
 }
 
-@keyframes bearLunge {
+/* Gallop in, drop the head, butt, recover. */
+@keyframes bullCharge {
   0%,
-  100% {
-    transform: translateY(0);
+  40% {
+    transform: translateX(3px) rotate(0deg);
   }
-  50% {
-    transform: translateY(-2px);
+  62% {
+    transform: translateX(-5px) rotate(-7deg);
+  }
+  74% {
+    transform: translateX(-2px) rotate(3deg);
+  }
+  100% {
+    transform: translateX(3px) rotate(0deg);
   }
 }
 
-@keyframes pawLift {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-1.5px);
-  }
-}
-
-@keyframes bullDrive {
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-  45% {
-    transform: translateX(2px);
-  }
-}
-
-@keyframes motionSlash {
+@keyframes dustStreak {
   0% {
     opacity: 0;
-    transform: translateX(-1px);
+    transform: translateX(4px);
   }
-  45% {
-    opacity: 0.9;
+  50% {
+    opacity: 0.75;
   }
   100% {
     opacity: 0;
-    transform: translateX(2px);
+    transform: translateX(-4px);
   }
 }
 
-@keyframes rocketLift {
+/* Rear up, then slam back down onto the ground line. */
+@keyframes bearRear {
   0%,
-  100% {
-    transform: translateY(1px);
+  40% {
+    transform: translateY(-3px);
   }
-  50% {
-    transform: translateY(-4px);
+  58% {
+    transform: translateY(2px);
+  }
+  68% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-3px);
   }
 }
 
-@keyframes flamePulse {
+@keyframes pawSlam {
+  0%,
+  40% {
+    transform: rotate(-16deg);
+  }
+  58% {
+    transform: rotate(14deg);
+  }
+  70% {
+    transform: rotate(8deg);
+  }
+  100% {
+    transform: rotate(-16deg);
+  }
+}
+
+@keyframes impactFlash {
+  0%,
+  52% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  60% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  78%,
+  100% {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+
+/* Sideways chop: the crab market. */
+@keyframes crabSidestep {
   0%,
   100% {
-    opacity: 0.6;
-    transform: scaleY(0.9);
+    transform: translateX(-5px);
   }
   50% {
-    opacity: 1;
-    transform: scaleY(1.1);
+    transform: translateX(5px);
+  }
+}
+
+@keyframes clawSnap {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-14deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .figBull,
+  .figBear,
+  .figCrab,
+  .figDust,
+  .figImpact,
+  .figPawLeft,
+  .figPawRight,
+  .figClawLeft,
+  .figClawRight,
+  .figLegA,
+  .figLegB {
+    animation: none;
+  }
+
+  .laneViewport {
+    overflow-y: auto;
+  }
+
+  .laneTrack {
+    animation: none;
+    transform: none;
+  }
+}
+
+@media (max-width: 1180px) {
+  .deck {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -488,30 +956,17 @@
     grid-template-columns: 1fr;
   }
 
-  .overview {
+  .deck {
     grid-template-columns: 1fr;
   }
 
-  .kpiGrid {
+  .mainStats {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .lanes {
-    grid-template-columns: 1fr;
-  }
-
-  .lane {
-    height: 360px;
   }
 }
 
 @media (max-width: 520px) {
-  .kpiGrid {
+  .mainStats {
     grid-template-columns: 1fr;
-  }
-
-  .distributionLabels {
-    font-size: 0.74rem;
-    gap: 6px;
   }
 }

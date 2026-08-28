@@ -1,3 +1,6 @@
+/* Palette and type mirror riddermarkOS (app/globals.css + tailwind.config.ts).
+   Backgrounds are flat fills here — riddermarkOS layers radial gradients on body,
+   which we intentionally drop. */
 :root {
   color-scheme: light;
   --market-strip-height: 30px;
@@ -6,20 +9,52 @@
   --sidebar-width: 178px;
   --content-max-width: 1080px;
   --content-gutter: 24px;
-  --navy: #0a84ff;
-  --ink: #111217;
-  --ink-soft: #1f2430;
-  --muted: #6b7280;
-  --border: rgba(17, 18, 23, 0.1);
-  --border-strong: rgba(17, 18, 23, 0.18);
-  --surface: #f5f5f7;
-  --surface-soft: #f2f2f4;
-  --surface-elevated: #fbfbfc;
+  --font-sans:
+    "SF Pro Text",
+    "SF Pro Display",
+    Inter,
+    "SF Pro Icons",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Helvetica Neue",
+    "Segoe UI",
+    sans-serif;
+
+  --ink: #121826;
+  --ink-soft: #3c4a60;
+  --ink-muted: #66748b;
+  --muted: var(--ink-muted);
+
+  --accent: #4d8dff;
+  --accent-soft: #d0e2ff;
+  --accent-hover: #3f7df0;
+  --navy: var(--accent);
+
+  --border: rgba(20, 28, 45, 0.08);
+  --border-strong: rgba(20, 28, 45, 0.16);
+  --panel-border: rgba(20, 28, 45, 0.04);
+
+  --surface: #f6f8fc;
+  --surface-soft: #f1f4fa;
+  --surface-elevated: #fbfcfe;
   --surface-elevated-strong: #ffffff;
-  --shadow-soft: 0 14px 28px -22px rgba(17, 18, 23, 0.25);
-  --shadow-cta: 0 10px 16px -12px rgba(17, 18, 23, 0.35);
-  --cta-bg: #1d1d1f;
-  --cta-bg-hover: #000000;
+
+  /* riddermarkOS status hues. The `-ink` variants are darkened for use as text
+     on light surfaces, where the raw hues drop below 3:1 contrast. */
+  --danger: #ff5d5d;
+  --danger-ink: #cf3b3b;
+  --success: #3ab875;
+  --success-ink: #2c8c59;
+  --warning: #f0a52c;
+  --warning-ink: #92400e;
+  --info: var(--accent);
+  --info-ink: #2f6fd0;
+  --neutral-ink: var(--ink-muted);
+
+  --shadow-soft: 0 10px 30px rgba(8, 15, 28, 0.06);
+  --shadow-cta: 0 10px 24px rgba(77, 141, 255, 0.22);
+  --cta-bg: var(--accent);
+  --cta-bg-hover: var(--accent-hover);
   --cta-text: #ffffff;
 }
 
@@ -32,21 +67,41 @@ html {
 
 html[data-theme="dark"] {
   color-scheme: dark;
-  --navy: #0a84ff;
-  --ink: #f5f5f7;
-  --ink-soft: #d1d1d6;
-  --muted: #9a9aa1;
-  --border: rgba(245, 245, 247, 0.12);
-  --border-strong: rgba(245, 245, 247, 0.22);
-  --surface: #0f1013;
-  --surface-soft: #141519;
-  --surface-elevated: #1a1b20;
-  --surface-elevated-strong: #1f2025;
-  --shadow-soft: 0 14px 28px -22px rgba(0, 0, 0, 0.9);
-  --shadow-cta: 0 10px 16px -12px rgba(0, 0, 0, 0.9);
-  --cta-bg: #f5f5f7;
-  --cta-bg-hover: #ffffff;
-  --cta-text: #111217;
+
+  --ink: #f3f7ff;
+  --ink-soft: #ccd6e8;
+  --ink-muted: #97a4be;
+  --muted: var(--ink-muted);
+
+  --accent: #6ca6ff;
+  --accent-soft: #1c3154;
+  --accent-hover: #82b4ff;
+  --navy: var(--accent);
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --panel-border: rgba(255, 255, 255, 0.08);
+
+  --surface: #0a101c;
+  --surface-soft: #0e1524;
+  --surface-elevated: #121b2d;
+  --surface-elevated-strong: #16203a;
+
+  --danger: #ff6767;
+  --danger-ink: #ff8585;
+  --success: #4ac784;
+  --success-ink: #4ac784;
+  --warning: #ffc25c;
+  --warning-ink: #ffc25c;
+  --info: var(--accent);
+  --info-ink: #8fbaff;
+  --neutral-ink: var(--ink-muted);
+
+  --shadow-soft: 0 24px 64px rgba(0, 0, 0, 0.45);
+  --shadow-cta: 0 10px 24px rgba(77, 141, 255, 0.28);
+  --cta-bg: var(--accent);
+  --cta-bg-hover: var(--accent-hover);
+  --cta-text: #ffffff;
 }
 
 * {
@@ -58,9 +113,12 @@ body {
   width: 100%;
   max-width: 100%;
   color: var(--ink);
-  font-family: "Avenir Next", "Avenir", "Segoe UI", "Helvetica Neue", sans-serif;
+  font-family: var(--font-sans);
   font-size: 15px;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  letter-spacing: -0.01em;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   background: var(--surface);
   overflow-x: hidden;
@@ -95,7 +153,7 @@ a {
 
 .appPanel {
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 20px;
   padding: clamp(16px, 2vw, 22px);
   background: var(--surface-elevated-strong);
   box-shadow: var(--shadow-soft);
@@ -117,17 +175,17 @@ a {
 }
 
 .appSection {
-  margin-top: 14px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  background: var(--surface-elevated);
+  margin-top: 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-elevated) 74%, transparent);
 }
 
 .appForm {
-  margin-top: 16px;
+  margin-top: 20px;
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 .appField {
@@ -138,11 +196,17 @@ a {
 }
 
 .appInput {
-  border: 1px solid var(--border-strong);
-  border-radius: 10px;
-  padding: 10px 12px;
-  background: var(--surface-elevated-strong);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--surface-elevated-strong) 82%, transparent);
   color: var(--ink);
+}
+
+.appInput:focus {
+  outline: none;
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 16%, transparent);
 }
 
 .appCheckbox {
@@ -155,21 +219,22 @@ a {
 
 .appButton {
   width: fit-content;
-  border: 1px solid var(--cta-bg);
+  border: 1px solid transparent;
   border-radius: 999px;
   background: var(--cta-bg);
   color: var(--cta-text);
-  padding: 9px 13px;
+  padding: 10px 15px;
   font-size: 0.94rem;
   font-weight: 620;
   cursor: pointer;
-  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+  transition: background-color 180ms ease, border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .appButton:hover {
   background: var(--cta-bg-hover);
   border-color: var(--cta-bg-hover);
   transform: translateY(-1px);
+  box-shadow: var(--shadow-cta);
 }
 
 .appButton:disabled {
@@ -190,7 +255,7 @@ a {
 
 .appError {
   margin: 12px 0 0;
-  color: #b63f2c;
+  color: var(--danger-ink);
 }
 
 .appMeta {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { initJobWorker } from "@/app/lib/jobs/processor";
 import { listRecentJobsForUser } from "@/app/lib/jobs/store";
 import type { JobKind, JobStatus } from "@/app/lib/jobs/types";
@@ -42,7 +42,7 @@ function parseLimit(raw: string | null): number {
 export async function GET(request: NextRequest) {
   initJobWorker();
 
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }

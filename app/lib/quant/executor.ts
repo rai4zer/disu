@@ -1,6 +1,7 @@
 import { access } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { killChildProcessTree } from "../jobs/subprocess.ts";
 
 export type QuantJobResult =
   | {
@@ -31,6 +32,12 @@ export type QuantJobResult =
         form: "10-K" | "10-Q";
         quarter: "Q1" | "Q2" | "Q3" | "Q4" | null;
       }>;
+      meta?: {
+        modelVersion: string;
+        bridgeVersion: string;
+        fallbackMode: "none" | "offline";
+        cached?: boolean;
+      };
     }
   | {
       ok: false;
@@ -40,7 +47,181 @@ export type QuantJobResult =
 
 let tickerCikMapPromise: Promise<Map<string, string>> | null = null;
 
+const QUANT_BRIDGE_VERSION = "quant-bridge-v1";
+
+function asObj(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+function asNum(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function asStr(value: unknown): string | null {
+  return typeof value === "string" ? value : null;
+}
+
+function asBool(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
+}
+
+function parseQuantRows(value: unknown) {
+  if (!Array.isArray(value)) {
+    throw new Error("Quant bridge payload invalid: rows must be an array.");
+  }
+  return value.map((row, idx) => {
+    const o = asObj(row);
+    if (!o) {
+      throw new Error(`Quant bridge payload invalid: rows[${idx}] must be an object.`);
+    }
+    const date = asStr(o.date);
+    const ticker = asStr(o.ticker);
+    const horizon = asNum(o.horizon);
+    const adjClose = asNum(o.adj_close);
+    const predReturn = asNum(o.pred_return);
+    const pUpRaw = asNum(o.p_up_raw);
+    const pUp = asNum(o.p_up);
+    const impliedPrice = asNum(o.implied_price);
+    const modelPath = asStr(o.model_path);
+    if (
+      !date ||
+      !ticker ||
+      horizon === null ||
+      adjClose === null ||
+      predReturn === null ||
+      pUpRaw === null ||
+      pUp === null ||
+      impliedPrice === null ||
+      !modelPath
+    ) {
+      throw new Error(`Quant bridge payload invalid: rows[${idx}] has invalid fields.`);
+    }
+    return {
+      date,
+      ticker,
+      horizon,
+      adj_close: adjClose,
+      pred_return: predReturn,
+      p_up_raw: pUpRaw,
+      p_up: pUp,
+      implied_price: impliedPrice,
+      model_path: modelPath
+    };
+  });
+}
+
+function parseHistory(value: unknown) {
+  if (!Array.isArray(value)) {
+    throw new Error("Quant bridge payload invalid: history must be an array.");
+  }
+  return value.map((point, idx) => {
+    const o = asObj(point);
+    if (!o) {
+      throw new Error(`Quant bridge payload invalid: history[${idx}] must be an object.`);
+    }
+    const date = asStr(o.date);
+    const open = asNum(o.open);
+    const high = asNum(o.high);
+    const low = asNum(o.low);
+    const close = asNum(o.close);
+    const adjClose = asNum(o.adj_close);
+    const dividends = asNum(o.dividends);
+    if (
+      !date ||
+      open === null ||
+      high === null ||
+      low === null ||
+      close === null ||
+      adjClose === null ||
+      dividends === null
+    ) {
+      throw new Error(`Quant bridge payload invalid: history[${idx}] has invalid fields.`);
+    }
+    return {
+      date,
+      open,
+      high,
+      low,
+      close,
+      adj_close: adjClose,
+      dividends
+    };
+  });
+}
+
+function parseReports(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value
+    .map((report) => {
+      const o = asObj(report);
+      if (!o) {
+        return null;
+      }
+      const filedAt = asStr(o.filedAt);
+      const form = asStr(o.form);
+      const quarterRaw = o.quarter;
+      if (!filedAt || (form !== "10-K" && form !== "10-Q")) {
+        return null;
+      }
+      const quarter =
+        quarterRaw === null || quarterRaw === "Q1" || quarterRaw === "Q2" || quarterRaw === "Q3" || quarterRaw === "Q4"
+          ? quarterRaw
+          : null;
+      return { filedAt, form, quarter };
+    })
+    .filter((value): value is { filedAt: string; form: "10-K" | "10-Q"; quarter: "Q1" | "Q2" | "Q3" | "Q4" | null } => Boolean(value));
+}
+
+function validateQuantBridgePayload(payload: unknown): QuantJobResult {
+  const obj = asObj(payload);
+  if (!obj) {
+    throw new Error("Quant bridge payload invalid: expected JSON object.");
+  }
+  const ok = asBool(obj.ok);
+  if (ok === false) {
+    const error = asStr(obj.error) ?? "Quant bridge failed.";
+    const traceback = asStr(obj.traceback) ?? undefined;
+    return { ok: false, error, traceback };
+  }
+  if (ok !== true) {
+    throw new Error("Quant bridge payload invalid: missing ok flag.");
+  }
+
+  const ticker = asStr(obj.ticker);
+  if (!ticker) {
+    throw new Error("Quant bridge payload invalid: missing ticker.");
+  }
+
+  return {
+    ok: true,
+    ticker,
+    rows: parseQuantRows(obj.rows),
+    history: parseHistory(obj.history),
+    reports: parseReports(obj.reports)
+  };
+}
+
+function quantFallbackMode(): "never" | "offline" | "always" {
+  const raw = (process.env.QUANT_MOCK_FALLBACK_MODE ?? "").trim().toLowerCase();
+  if (raw === "never") return "never";
+  if (raw === "always") return "always";
+  if (raw === "offline") return "offline";
+  return process.env.NODE_ENV !== "production" ? "offline" : "never";
+}
+
 function mockEnabled(): boolean {
+  const mode = quantFallbackMode();
+  if (mode === "always") {
+    return true;
+  }
+  if (mode === "never") {
+    return false;
+  }
   const raw = (process.env.QUANT_ALLOW_MOCK_FALLBACK ?? "").trim().toLowerCase();
   if (raw === "1" || raw === "true" || raw === "yes") {
     return true;
@@ -162,7 +343,13 @@ function createMockQuantResult(ticker: string): QuantJobResult {
     ticker,
     rows,
     history,
-    reports: []
+    reports: [],
+    meta: {
+      modelVersion: process.env.QUANT_MODEL_VERSION ?? "quant-v1",
+      bridgeVersion: QUANT_BRIDGE_VERSION,
+      fallbackMode: "offline",
+      cached: false
+    }
   };
 }
 
@@ -283,7 +470,8 @@ function runPythonInfer(ticker: string, retrain: boolean, signal?: AbortSignal):
         MPLCONFIGDIR: process.env.MPLCONFIGDIR ?? mplConfigDir,
         PYTHONUNBUFFERED: "1"
       },
-      stdio: ["ignore", "pipe", "pipe"]
+      stdio: ["ignore", "pipe", "pipe"],
+      detached: process.platform !== "win32"
     });
 
     let stdout = "";
@@ -293,7 +481,7 @@ function runPythonInfer(ticker: string, retrain: boolean, signal?: AbortSignal):
 
     const timeout = setTimeout(() => {
       timedOut = true;
-      child.kill("SIGKILL");
+      killChildProcessTree(child, "SIGKILL");
     }, timeoutMs);
 
     const onAbort = () => {
@@ -302,7 +490,7 @@ function runPythonInfer(ticker: string, retrain: boolean, signal?: AbortSignal):
       }
       settled = true;
       clearTimeout(timeout);
-      child.kill("SIGKILL");
+      killChildProcessTree(child, "SIGKILL");
       reject(new Error("Job cancelled by user."));
     };
     signal?.addEventListener("abort", onAbort, { once: true });
@@ -348,7 +536,7 @@ function runPythonInfer(ticker: string, retrain: boolean, signal?: AbortSignal):
 
       let payload: QuantJobResult;
       try {
-        payload = JSON.parse(lastLine) as QuantJobResult;
+        payload = validateQuantBridgePayload(JSON.parse(lastLine) as unknown);
       } catch {
         reject(
           new Error(
@@ -379,6 +567,9 @@ export async function executeQuantJob(input: {
 }): Promise<QuantJobResult> {
   const scriptPath = path.join(process.cwd(), "python", "src", "quant", "web_infer.py");
   await access(scriptPath);
+  if (quantFallbackMode() === "always") {
+    return createMockQuantResult(input.ticker);
+  }
 
   let result: QuantJobResult;
   try {
@@ -397,6 +588,12 @@ export async function executeQuantJob(input: {
 
   if (result.ok) {
     result.reports = await fetchLatestReports(input.ticker);
+    result.meta = {
+      modelVersion: process.env.QUANT_MODEL_VERSION ?? "quant-v1",
+      bridgeVersion: QUANT_BRIDGE_VERSION,
+      fallbackMode: "none",
+      cached: false
+    };
   }
   return result;
 }

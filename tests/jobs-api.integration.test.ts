@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import test from "node:test";
+
+import { createLiveSessionCookie } from "./support/integration-session.ts";
 
 type DbUser = {
   id: string;
@@ -49,6 +51,10 @@ async function restRequest<T>(path: string, init?: RequestInit): Promise<{ ok: b
 }
 
 async function cleanupUser(userId: string): Promise<void> {
+  await restRequest<unknown>(`user_sessions?user_id=eq.${userId}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" }
+  });
   await restRequest<unknown>(`job_artifacts?user_id=eq.${userId}`, {
     method: "DELETE",
     headers: { Prefer: "return=minimal" }
@@ -61,17 +67,6 @@ async function cleanupUser(userId: string): Promise<void> {
     method: "DELETE",
     headers: { Prefer: "return=minimal" }
   });
-}
-
-function createSessionCookie(userId: string, email: string): string {
-  const payload = {
-    userId,
-    email,
-    exp: Math.floor(Date.now() / 1000) + 60 * 60
-  };
-  const payloadB64 = Buffer.from(JSON.stringify(payload), "utf-8").toString("base64url");
-  const signature = createHmac("sha256", sessionSecret).update(payloadB64).digest("base64url");
-  return `${SESSION_COOKIE_NAME}=${payloadB64}.${signature}`;
 }
 
 test("jobs API routes expose status/artifacts and support retry/cancel", { skip: !hasApiTestEnv }, async () => {
@@ -164,7 +159,7 @@ test("jobs API routes expose status/artifacts and support retry/cancel", { skip:
   });
   assert.equal(artifactInsert.ok, true, `failed to insert artifact: ${JSON.stringify(artifactInsert.body)}`);
 
-  const cookie = createSessionCookie(userId, email);
+  const cookie = await createLiveSessionCookie({ baseUrl, apiKey, sessionSecret, userId, email });
   const headers = { cookie };
 
   const statusRes = await fetch(`${appBaseUrl}/api/jobs/${failedJobId}`, { headers });

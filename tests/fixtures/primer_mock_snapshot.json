@@ -1,0 +1,8 @@
+{
+  "ticker": "MSFT",
+  "requiredSections": ["Company Snapshot", "Business Model", "Financial Picture", "Watchlist"],
+  "fallbackMode": "offline",
+  "pipelineVersionPrefix": "primer-bridge-v",
+  "allowedProviders": ["openai_compatible", "none"],
+  "canonicalSha256": "e63bc0baf6404683de773458dde5012de626484b7171016d5bb205939e31325e"
+}

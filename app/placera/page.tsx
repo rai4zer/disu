@@ -1,12 +1,90 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import type { PlaceraEntity, PlaceraPayload, SentimentSummary } from "./types";
 import Workspace from "@/app/components/workspace";
 import { resolveTickerSymbol } from "@/app/lib/ticker-suggestions";
-import TickerAutocomplete from "@/app/components/ticker-autocomplete";
+import { buildForumSummary } from "./summary";
 import { useLanguage } from "@/app/i18n/language";
+import UiState from "@/app/components/ui-state";
+import StockChart from "@/app/components/stock-chart";
+const SENTIMENT_TICKER_PREF_KEY = "pref.sentiment.ticker";
+
+const QUICK_PICKS: Array<{ symbol: string; name: string; flag: string }> = [
+  { symbol: "AAPL", name: "Apple", flag: "🇺🇸" },
+  { symbol: "MSFT", name: "Microsoft", flag: "🇺🇸" },
+  { symbol: "NVDA", name: "NVIDIA", flag: "🇺🇸" },
+  { symbol: "AMZN", name: "Amazon", flag: "🇺🇸" },
+  { symbol: "GOOGL", name: "Alphabet", flag: "🇺🇸" },
+  { symbol: "META", name: "Meta", flag: "🇺🇸" },
+  { symbol: "TSLA", name: "Tesla", flag: "🇺🇸" },
+  { symbol: "AVGO", name: "Broadcom", flag: "🇺🇸" },
+  { symbol: "ASML", name: "ASML", flag: "🇳🇱" },
+  { symbol: "NVO", name: "Novo Nordisk", flag: "🇩🇰" },
+  { symbol: "SAP", name: "SAP", flag: "🇩🇪" },
+  { symbol: "TM", name: "Toyota", flag: "🇯🇵" },
+  { symbol: "SHOP", name: "Shopify", flag: "🇨🇦" },
+  { symbol: "BABA", name: "Alibaba", flag: "🇨🇳" }
+];
+
+type ClusterSpot = { fx: number; fy: number; tilt: number; delayMs: number };
+
+// The picks fan out over two concentric semi-circles (inner arc = the first, most
+// prominent names) and pop in from the middle outwards. Positions are emitted as
+// fractions of the arc radii so CSS can shrink the whole dome per breakpoint, and
+// everything is derived from the index — never random — so SSR markup matches.
+function buildCluster(total: number): ClusterSpot[] {
+  const outerCount = Math.min(total, Math.max(1, Math.round(total * 0.71)));
+  const rings = [
+    { count: total - outerCount, radius: 0.5, from: 152, to: 28 },
+    { count: outerCount, radius: 1, from: 172, to: 8 }
+  ];
+
+  const round = (value: number) => Math.round(value * 1000) / 1000;
+  const spots: ClusterSpot[] = [];
+
+  for (const ring of rings) {
+    for (let index = 0; index < ring.count; index += 1) {
+      const t = ring.count === 1 ? 0.5 : index / (ring.count - 1);
+      const angle = ring.from + (ring.to - ring.from) * t;
+      const radians = (angle * Math.PI) / 180;
+      spots.push({
+        fx: round(Math.cos(radians) * ring.radius),
+        fy: round(Math.sin(radians) * ring.radius),
+        // Lean each chip along the tangent so the arc reads as an arc.
+        tilt: round((90 - angle) / 14),
+        delayMs: 0
+      });
+    }
+  }
+
+  spots
+    .map((spot, index) => ({ index, distance: Math.hypot(spot.fx, spot.fy * 0.45) }))
+    .sort((a, b) => a.distance - b.distance)
+    .forEach((entry, rank) => {
+      spots[entry.index].delayMs = rank * 38;
+    });
+
+  return spots;
+}
+
+const CLUSTER = buildCluster(QUICK_PICKS.length);
+const CLUSTER_IN_MS = Math.max(...CLUSTER.map((spot) => spot.delayMs));
+// Leaving reverses the entrance: the outermost blips wink out first, then the arc's
+// space collapses. Must outlast the CSS exit (120ms delay + 440ms collapse).
+const CLUSTER_EXIT_MS = 580;
+
+function blipStyle(index: number): CSSProperties {
+  const spot = CLUSTER[index];
+  return {
+    "--blip-fx": spot.fx,
+    "--blip-fy": spot.fy,
+    "--blip-tilt": `${spot.tilt}deg`,
+    "--blip-delay": `${spot.delayMs}ms`,
+    "--blip-out-delay": `${Math.round((CLUSTER_IN_MS - spot.delayMs) * 0.35)}ms`
+  } as CSSProperties;
+}
 
 function formatDate(value: string | null, isSv: boolean): string {
   if (!value) {
@@ -31,127 +109,158 @@ function badgeLabel(badge: SentimentSummary["badge"], isSv: boolean): string {
   return isSv ? "Neutral" : "Neutral";
 }
 
-function badgeFigure(
-  badge: SentimentSummary["badge"]
-): "bear_walk" | "bear_attack" | "bull_walk" | "bull_gore" | "mushroom" | "rocket" | "neutral" {
-  if (badge === "armageddon") return "mushroom";
-  if (badge === "strong_bear") return "bear_attack";
-  if (badge === "bear") return "bear_walk";
-  if (badge === "strong_bull") return "bull_gore";
-  if (badge === "bull") return "bull_walk";
-  if (badge === "exuberance") return "rocket";
-  return "neutral";
+function bucketTitle(bucket: PlaceraEntity["sentiment_bucket"], isSv: boolean): string {
+  if (bucket === "positive") return isSv ? "Positiv" : "Positive";
+  if (bucket === "negative") return isSv ? "Negativ" : "Negative";
+  return isSv ? "Neutral" : "Neutral";
 }
 
-function BadgeIcon({ figure }: { figure: ReturnType<typeof badgeFigure> }) {
-  if (figure === "mushroom") {
+type TickerProfile = {
+  symbol: string;
+  name: string | null;
+  exchange: string | null;
+  currency: string | null;
+  marketCap: number | null;
+  price: number | null;
+  changePercent: number | null;
+  peRatio: number | null;
+  volume: number | null;
+};
+
+function formatMarketCap(value: number | null, isSv: boolean): string {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return "-";
+  }
+  const units: Array<[number, string]> = [
+    [1e12, isSv ? "bn" : "T"],
+    [1e9, isSv ? "mdr" : "B"],
+    [1e6, isSv ? "mn" : "M"]
+  ];
+  for (const [threshold, suffix] of units) {
+    if (value >= threshold) {
+      return `${(value / threshold).toFixed(value / threshold >= 100 ? 0 : 1)} ${suffix}`;
+    }
+  }
+  return value.toLocaleString(isSv ? "sv-SE" : "en-US", { maximumFractionDigits: 0 });
+}
+
+function formatPrice(value: number | null, currency: string | null, isSv: boolean): string {
+  if (value === null || !Number.isFinite(value)) {
+    return "-";
+  }
+  const formatted = value.toLocaleString(isSv ? "sv-SE" : "en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  return currency ? `${formatted} ${currency}` : formatted;
+}
+
+// A negative or missing trailing P/E means the company has no meaningful multiple.
+function formatRatio(value: number | null, isSv: boolean): string {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return "-";
+  }
+  return value.toLocaleString(isSv ? "sv-SE" : "en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
+  });
+}
+
+function formatVolume(value: number | null, isSv: boolean): string {
+  if (value === null || !Number.isFinite(value) || value <= 0) {
+    return "-";
+  }
+  const units: Array<[number, string]> = [
+    [1e9, isSv ? "mdr" : "B"],
+    [1e6, isSv ? "mn" : "M"],
+    [1e3, isSv ? "tn" : "K"]
+  ];
+  for (const [threshold, suffix] of units) {
+    if (value >= threshold) {
+      const scaled = value / threshold;
+      return `${scaled.toFixed(scaled >= 100 ? 0 : 1)} ${suffix}`;
+    }
+  }
+  return value.toLocaleString(isSv ? "sv-SE" : "en-US", { maximumFractionDigits: 0 });
+}
+
+/**
+ * Bull charges and butts when the mood is positive, bear rears up and slams its
+ * paws down when negative, and a crab sidesteps when the market is going nowhere
+ * ("crab market" is the trader's own word for sideways chop).
+ */
+function MoodFigure({ mood }: { mood: "positive" | "neutral" | "negative" }) {
+  if (mood === "positive") {
     return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconMushroom}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <path d="M14 30 C14 19 22 12 32 12 C42 12 50 19 50 30 C50 38 43 43 35 44 C34 46 36 49 39 52 H25 C28 49 30 46 29 44 C21 43 14 38 14 30 Z" />
-          <path d="M29 30 L35 30 L34 44 L30 44 Z" />
-          <path d="M23 52 H41" />
+      <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
+        <g className={styles.figBull}>
+          <path className={styles.figDust} d="M8 30 H18" />
+          <path className={styles.figDust} d="M6 38 H16" />
+          <rect x="22" y="27" width="28" height="15" rx="7.5" />
+          <circle cx="53" cy="29" r="8" />
+          <path d="M47 22 C45 15 39 13 35 17" />
+          <path d="M59 22 C61 15 67 13 70 17" />
+          <path d="M50 31 H56" />
+          <path className={styles.figLegA} d="M27 42 V51" />
+          <path className={styles.figLegB} d="M34 42 V51" />
+          <path className={styles.figLegA} d="M41 42 V51" />
+          <path className={styles.figLegB} d="M47 42 V51" />
+          <path d="M22 31 C18 30 17 27 18 24" />
         </g>
       </svg>
     );
   }
 
-  if (figure === "bear_walk") {
+  if (mood === "negative") {
     return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconWalk}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <rect x="20" y="28" width="28" height="14" rx="7" />
-          <circle cx="18" cy="31" r="6" />
-          <circle cx="14" cy="25" r="2.5" />
-          <circle cx="22" cy="25" r="2.5" />
-          <path className={styles.legA} d="M24 42 V50" />
-          <path className={styles.legB} d="M32 42 V50" />
-          <path className={styles.legA} d="M40 42 V50" />
-          <path d="M48 32 C51 32 52 30 52 28" />
+      <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
+        <g className={styles.figBear}>
+          <circle cx="36" cy="18" r="9" />
+          <circle cx="29" cy="10" r="3" />
+          <circle cx="43" cy="10" r="3" />
+          <path d="M32 20 H40" />
+          <rect x="27" y="27" width="18" height="19" rx="8" />
+          <path className={styles.figPawLeft} d="M27 32 L16 40" />
+          <path className={styles.figPawRight} d="M45 32 L56 40" />
+          <path d="M31 46 V54" />
+          <path d="M41 46 V54" />
         </g>
-      </svg>
-    );
-  }
-
-  if (figure === "bear_attack") {
-    return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconBearAttack}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <circle cx="32" cy="31" r="10" />
-          <circle cx="28" cy="21" r="3" />
-          <circle cx="36" cy="21" r="3" />
-          <path d="M27 33 H37" />
-          <path className={styles.pawLeft} d="M19 20 L25 27" />
-          <path className={styles.pawRight} d="M45 20 L39 27" />
-          <path d="M26 42 V50" />
-          <path d="M38 42 V50" />
+        <g className={styles.figImpact}>
+          <path d="M10 46 L6 42" />
+          <path d="M12 50 H5" />
+          <path d="M62 46 L66 42" />
+          <path d="M60 50 H67" />
         </g>
-      </svg>
-    );
-  }
-
-  if (figure === "bull_walk") {
-    return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconWalk}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <rect x="20" y="29" width="28" height="13" rx="6.5" />
-          <circle cx="18" cy="31" r="6" />
-          <path d="M12 27 C13 22 17 21 21 25" />
-          <path d="M17 25 C21 21 25 22 26 27" />
-          <path className={styles.legA} d="M24 42 V50" />
-          <path className={styles.legB} d="M33 42 V50" />
-          <path className={styles.legA} d="M42 42 V50" />
-          <path d="M48 33 C51 33 52 31 52 29" />
-        </g>
-      </svg>
-    );
-  }
-
-  if (figure === "bull_gore") {
-    return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconBullGore}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <circle cx="33" cy="32" r="10" />
-          <path d="M27 24 C24 18 18 17 14 21" />
-          <path d="M39 24 C42 18 48 17 52 21" />
-          <path d="M27 34 H39" />
-          <path d="M28 42 V50" />
-          <path d="M38 42 V50" />
-          <path className={styles.goreMotion} d="M46 30 H56" />
-          <path className={styles.goreMotion} d="M48 35 H58" />
-        </g>
-      </svg>
-    );
-  }
-
-  if (figure === "rocket") {
-    return (
-      <svg viewBox="0 0 64 64" className={`${styles.badgeIcon} ${styles.iconRocket}`} aria-hidden="true">
-        <g className={styles.iconCore}>
-          <path d="M32 10 C38 16 39 28 32 41 C25 28 26 16 32 10 Z" />
-          <circle cx="32" cy="22" r="3" />
-          <path d="M26 33 L20 39 L27 39" />
-          <path d="M38 33 L44 39 L37 39" />
-          <path className={styles.flame} d="M30 41 H34 L32 52 Z" />
-        </g>
+        <path className={styles.figGround} d="M8 56 H64" />
       </svg>
     );
   }
 
   return (
-    <svg viewBox="0 0 64 64" className={styles.badgeIcon} aria-hidden="true">
-      <g className={styles.iconCore}>
-        <circle cx="32" cy="32" r="18" />
-        <path d="M24 32 H40" />
+    <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
+      <g className={styles.figCrab}>
+        <path d="M20 36 C20 27 27 22 36 22 C45 22 52 27 52 36 C52 41 45 44 36 44 C27 44 20 41 20 36 Z" />
+        <path d="M30 24 V16" />
+        <path d="M42 24 V16" />
+        <circle cx="30" cy="14" r="2.4" />
+        <circle cx="42" cy="14" r="2.4" />
+        <path d="M29 34 H33" />
+        <path d="M39 34 H43" />
+        <g className={styles.figClawLeft}>
+          <path d="M20 32 L12 26" />
+          <path d="M12 26 L7 23 L10 29 Z" />
+        </g>
+        <g className={styles.figClawRight}>
+          <path d="M52 32 L60 26" />
+          <path d="M60 26 L65 23 L62 29 Z" />
+        </g>
+        <path className={styles.figLegA} d="M24 42 L19 50" />
+        <path className={styles.figLegB} d="M31 44 L29 52" />
+        <path className={styles.figLegA} d="M41 44 L43 52" />
+        <path className={styles.figLegB} d="M48 42 L53 50" />
       </g>
     </svg>
   );
-}
-
-function bucketTitle(bucket: PlaceraEntity["sentiment_bucket"], isSv: boolean): string {
-  if (bucket === "positive") return isSv ? "Positiv" : "Positive";
-  if (bucket === "negative") return isSv ? "Negativ" : "Negative";
-  return isSv ? "Neutral" : "Neutral";
 }
 
 export default function PlaceraPage() {
@@ -161,6 +270,43 @@ export default function PlaceraPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<PlaceraPayload | null>(null);
+  const [profile, setProfile] = useState<TickerProfile | null>(null);
+  // The ticker the lookup actually resolved to — the chart needs a symbol, not a company name.
+  const [resolvedSymbol, setResolvedSymbol] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ bucket: string; entity: PlaceraEntity } | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  // The pick cluster greets you once per visit, then clears out on the first lookup.
+  const [picksPhase, setPicksPhase] = useState<"visible" | "leaving" | "gone">("visible");
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const savedTicker = window.localStorage.getItem(SENTIMENT_TICKER_PREF_KEY);
+    if (savedTicker) {
+      setCompanyLookup(savedTicker);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const trimmed = companyLookup.trim().toUpperCase();
+    if (trimmed) {
+      window.localStorage.setItem(SENTIMENT_TICKER_PREF_KEY, trimmed);
+      return;
+    }
+    window.localStorage.removeItem(SENTIMENT_TICKER_PREF_KEY);
+  }, [companyLookup]);
+
+  useEffect(() => {
+    if (picksPhase !== "leaving") {
+      return;
+    }
+    const timer = window.setTimeout(() => setPicksPhase("gone"), CLUSTER_EXIT_MS);
+    return () => window.clearTimeout(timer);
+  }, [picksPhase]);
 
   const companyDisplay = useMemo(() => {
     if (!data) {
@@ -184,18 +330,29 @@ export default function PlaceraPage() {
     };
   }, [data]);
 
-  const repliesCount = useMemo(
-    () => data?.entities.filter((entity) => entity.entity_type === "reply").length ?? 0,
-    [data]
+  const summary = useMemo(
+    () => (data ? buildForumSummary(data, isSv, profile?.name ?? companyDisplay) : null),
+    [companyDisplay, data, isSv, profile]
   );
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function loadProfile(symbol: string) {
+    try {
+      const response = await fetch(`/api/tickers/profile?symbol=${encodeURIComponent(symbol)}`);
+      const payload = (await response.json()) as { ok: boolean; profile?: TickerProfile | null };
+      setProfile(payload.ok ? payload.profile ?? null : null);
+    } catch {
+      setProfile(null);
+    }
+  }
+
+  async function runLookup(rawInput: string) {
     setLoading(true);
     setError(null);
+    setPreview(null);
+    setSummaryExpanded(false);
 
     try {
       const params = new URLSearchParams();
-      const lookupRaw = companyLookup.trim();
+      const lookupRaw = rawInput.trim();
       let lookup = (resolveTickerSymbol(lookupRaw) ?? lookupRaw).trim();
       if (!/^[A-Z0-9.\-]{1,12}$/i.test(lookup) && lookupRaw.length >= 2) {
         try {
@@ -224,13 +381,34 @@ export default function PlaceraPage() {
       }
 
       setData(json as PlaceraPayload);
+      setProfile(null);
+      setResolvedSymbol(lookup.toUpperCase());
+      void loadProfile(lookup.toUpperCase());
     } catch (err) {
       const message = err instanceof Error ? err.message : isSv ? "Okänt fel" : "Unknown error";
       setError(message);
       setData(null);
+      setProfile(null);
+      setResolvedSymbol(null);
     } finally {
       setLoading(false);
     }
+  }
+
+  function dismissPicks() {
+    setPicksPhase((current) => (current === "visible" ? "leaving" : current));
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    dismissPicks();
+    await runLookup(companyLookup);
+  }
+
+  async function onQuickPick(symbol: string) {
+    dismissPicks();
+    setCompanyLookup(symbol);
+    await runLookup(symbol);
   }
 
   return (
@@ -239,125 +417,219 @@ export default function PlaceraPage() {
         title={isSv ? "Sentiment" : "Sentiment"}
         subtitle={isSv ? "Se hur marknadens samtal om ett bolag utvecklas." : "See how market conversations around a company are trending."}
       >
-        <form className={`${styles.form} appForm appSection`} onSubmit={onSubmit}>
-          <div className={`${styles.field} appField`}>
-            <label htmlFor="companyLookup">{isSv ? "Ticker" : "Ticker"}</label>
-            <TickerAutocomplete
-              id="companyLookup"
-              className="appInput"
-              value={companyLookup}
-              onChange={setCompanyLookup}
-              placeholder={isSv ? "AAPL eller Apple" : "AAPL or Apple"}
-              required
-            />
+        <form className={styles.form} onSubmit={onSubmit}>
+          <div className={styles.searchRow}>
+            <div className={styles.searchField}>
+              <label className={styles.srOnly} htmlFor="companyLookup">
+                {isSv ? "Ticker" : "Ticker"}
+              </label>
+              <input
+                id="companyLookup"
+                className={styles.searchInput}
+                value={companyLookup}
+                onChange={(event) => setCompanyLookup(event.target.value)}
+                autoComplete="off"
+                required
+              />
+            </div>
+
+            <button className={styles.runButton} type="submit" disabled={loading}>
+              <svg viewBox="0 0 24 24" className={styles.runIcon} aria-hidden="true">
+                <circle cx="11" cy="11" r="6.5" />
+                <path d="M16 16 L21 21" />
+              </svg>
+              {loading ? (isSv ? "Laddar..." : "Loading...") : isSv ? "Kör" : "Run"}
+            </button>
           </div>
 
-          <button className={`${styles.button} appButton`} type="submit" disabled={loading}>
-            {loading ? (isSv ? "Laddar..." : "Loading...") : isSv ? "Kör" : "Run"}
-          </button>
+          {picksPhase === "gone" ? null : (
+          <div className={`${styles.quickPicks} ${picksPhase === "leaving" ? styles.quickPicksLeaving : ""}`}>
+            <div className={styles.quickCluster}>
+              {QUICK_PICKS.map((pick, index) => (
+                <span key={pick.symbol} className={styles.quickSlot} style={blipStyle(index)}>
+                  <button
+                    type="button"
+                    className={`${styles.quickPick} ${
+                      companyLookup.trim().toUpperCase() === pick.symbol ? styles.quickPickActive : ""
+                    }`}
+                    onClick={() => void onQuickPick(pick.symbol)}
+                    disabled={loading}
+                    title={pick.name}
+                  >
+                    <span className={styles.quickFlag} aria-hidden="true">
+                      {pick.flag}
+                    </span>
+                    {pick.symbol}
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+          )}
         </form>
 
-        <p className={styles.windowHint}>
-          {isSv ? "Fast fönster: senaste 90 dagarna av inlägg och svar." : "Fixed window: last 90 days of posts and replies."}
-        </p>
-
-        {error ? <div className={`${styles.error} appError`}>{error}</div> : null}
+        {error ? <UiState kind="error" message={error} className={styles.error} /> : null}
 
         {data ? (
           <>
-            <section className={styles.overview}>
-              <article className={styles.badgeCard}>
-                <div className={styles.badgeArtWrap}>
-                  <BadgeIcon figure={badgeFigure(data.sentiment.badge)} />
-                </div>
-                <div className={styles.badgeMeta}>
-                  <p className={styles.badgeTitle}>{isSv ? "Marknadsläge" : "Market Mood"}</p>
-                  <h3>{badgeLabel(data.sentiment.badge, isSv)}</h3>
-                  <p className={styles.badgeSubline}>{isSv ? "Poäng" : "Score"} {data.sentiment.score}</p>
-                </div>
-              </article>
-
-              <article className={styles.kpiGrid}>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Bolag" : "Company"}</span>
-                  <strong>{companyDisplay}</strong>
-                </div>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Urvalsstorlek" : "Sample Size"}</span>
-                  <strong>{data.sentiment.total_entities}</strong>
-                </div>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Inlägg" : "Posts"}</span>
-                  <strong>{data.posts.length}</strong>
-                </div>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Svar" : "Replies"}</span>
-                  <strong>{repliesCount}</strong>
-                </div>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Säkerhet" : "Confidence"}</span>
-                  <strong className={styles[`confidence_${data.sentiment.confidence.level}`]}>
-                    {data.sentiment.confidence.level} ({data.sentiment.confidence.score})
-                  </strong>
-                </div>
-                <div className={styles.kpi}>
-                  <span className={styles.metricLabel}>{isSv ? "Fönster" : "Window"}</span>
-                  <strong>{data.lookback_days} {isSv ? "dagar" : "days"}</strong>
-                </div>
-              </article>
-            </section>
-
-            <section className={styles.distributionPanel}>
-              <div className={styles.distributionTrack} aria-hidden="true">
-                <div
-                  className={styles.distributionPositive}
-                  style={{ width: `${data.sentiment.distribution.positive.percent}%` }}
-                />
-                <div
-                  className={styles.distributionNeutral}
-                  style={{ width: `${data.sentiment.distribution.neutral.percent}%` }}
-                />
-                <div
-                  className={styles.distributionNegative}
-                  style={{ width: `${data.sentiment.distribution.negative.percent}%` }}
-                />
-              </div>
-              <div className={styles.distributionLabels}>
-                <span>{isSv ? "Positiv" : "Positive"} {data.sentiment.distribution.positive.percent}%</span>
-                <span>{isSv ? "Neutral" : "Neutral"} {data.sentiment.distribution.neutral.percent}%</span>
-                <span>{isSv ? "Negativ" : "Negative"} {data.sentiment.distribution.negative.percent}%</span>
-              </div>
-            </section>
-
-            <section className={styles.lanes}>
-              {(["positive", "neutral", "negative"] as const).map((bucket) => (
-                <article key={bucket} className={`${styles.lane} ${styles[`lane_${bucket}`]}`}>
-                  <header className={styles.laneHeader}>
-                    <h3>{bucketTitle(bucket, isSv)}</h3>
-                    <span>{grouped[bucket].length}</span>
-                  </header>
-                  <div className={styles.laneBody}>
-                    {grouped[bucket].length === 0 ? (
-                      <p className={styles.emptyLane}>{isSv ? "Inga kommentarer i denna kategori." : "No comments in this bucket."}</p>
-                    ) : (
-                      grouped[bucket].map((entity) => (
-                        <article className={styles.entityCard} key={`${entity.entity_type}-${entity.id}`}>
-                          <div className={styles.entityHeader}>
-                            <span className={entity.entity_type === "post" ? styles.badgePost : styles.badgeReply}>
-                              {entity.entity_type === "post" ? (isSv ? "inlägg" : "post") : isSv ? "svar" : "reply"}
-                            </span>
-                            <span>{formatDate(entity.created, isSv)}</span>
-                            <span className={styles.entityScore}>{entity.sentiment_score}</span>
-                          </div>
-                          {entity.author_name ? <div className={styles.entityAuthor}>{entity.author_name}</div> : null}
-                          <p className={styles.entityContent}>{entity.content || (isSv ? "(Inget innehåll)" : "(No content)")}</p>
-                        </article>
-                      ))
-                    )}
+            <section className={styles.deck}>
+              <article className={`${styles.deckCard} ${styles.mainCard} ${styles[`mainCard_${data.sentiment.label}`]}`}>
+                <div className={styles.mainTop}>
+                  <div className={styles.moodStage}>
+                    <MoodFigure mood={data.sentiment.label} />
                   </div>
-                </article>
-              ))}
+                  <div className={styles.mainIdentity}>
+                    <p className={styles.mainEyebrow}>{isSv ? "Marknadsläge" : "Market mood"}</p>
+                    <h3 className={styles.mainMood}>{badgeLabel(data.sentiment.badge, isSv)}</h3>
+                    <p className={styles.mainScore}>
+                      {isSv ? "Poäng" : "Score"} {data.sentiment.score}
+                      <span className={styles[`confidence_${data.sentiment.confidence.level}`]}>
+                        {" · "}
+                        {data.sentiment.confidence.level} ({data.sentiment.confidence.score})
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.mainCompany}>
+                  <strong className={styles.mainCompanyName}>{profile?.name ?? companyDisplay}</strong>
+                  <span className={styles.mainCompanyMeta}>
+                    {profile?.symbol ?? companyDisplay.toUpperCase()}
+                    {profile?.exchange ? ` · ${profile.exchange}` : ""}
+                  </span>
+                </div>
+
+                <dl className={styles.mainStats}>
+                  <div className={styles.mainStat}>
+                    <dt>{isSv ? "Börsvärde" : "Market cap"}</dt>
+                    <dd>{formatMarketCap(profile?.marketCap ?? null, isSv)}</dd>
+                  </div>
+                  <div className={styles.mainStat}>
+                    <dt>{isSv ? "Kurs" : "Price"}</dt>
+                    <dd>
+                      {formatPrice(profile?.price ?? null, profile?.currency ?? null, isSv)}
+                      {profile?.changePercent !== null && profile?.changePercent !== undefined ? (
+                        <span className={profile.changePercent >= 0 ? styles.deltaUp : styles.deltaDown}>
+                          {profile.changePercent >= 0 ? "+" : ""}
+                          {profile.changePercent.toFixed(2)}%
+                        </span>
+                      ) : null}
+                    </dd>
+                  </div>
+                  <div className={styles.mainStat}>
+                    <dt>{isSv ? "P/E-tal" : "P/E ratio"}</dt>
+                    <dd>{formatRatio(profile?.peRatio ?? null, isSv)}</dd>
+                  </div>
+                  <div className={styles.mainStat}>
+                    <dt>{isSv ? "Volym" : "Volume"}</dt>
+                    <dd>{formatVolume(profile?.volume ?? null, isSv)}</dd>
+                  </div>
+                </dl>
+              </article>
+
+              {(["negative", "neutral", "positive"] as const).map((bucket) => {
+                const items = grouped[bucket];
+                const active = preview?.bucket === bucket ? preview.entity : null;
+                // Duration scales with volume so the pass rate stays readable; the card box never moves.
+                const duration = Math.max(24, Math.min(180, items.length * 5));
+
+                return (
+                  <article
+                    key={bucket}
+                    className={`${styles.deckCard} ${styles.laneCard} ${styles[`lane_${bucket}`]}`}
+                    onMouseLeave={() => setPreview(null)}
+                  >
+                    <header className={styles.laneHeader}>
+                      <h3>{bucketTitle(bucket, isSv)}</h3>
+                    </header>
+
+                    <div className={styles.laneViewport}>
+                      {items.length === 0 ? (
+                        <p className={styles.emptyLane}>
+                          {isSv ? "Inga kommentarer i denna kategori." : "No comments in this bucket."}
+                        </p>
+                      ) : (
+                        <div className={styles.laneTrack} style={{ animationDuration: `${duration}s` }}>
+                          {/* Two identical passes so the vertical scroll loops seamlessly. */}
+                          {[0, 1].map((pass) =>
+                            items.map((entity) => (
+                              <button
+                                type="button"
+                                key={`${pass}-${entity.entity_type}-${entity.id}`}
+                                className={styles.commentCard}
+                                onMouseEnter={() => setPreview({ bucket, entity })}
+                                onFocus={() => setPreview({ bucket, entity })}
+                                aria-hidden={pass === 1 ? true : undefined}
+                                tabIndex={pass === 1 ? -1 : undefined}
+                              >
+                                <span className={styles.commentMeta}>
+                                  <span className={entity.entity_type === "post" ? styles.badgePost : styles.badgeReply}>
+                                    {entity.entity_type === "post" ? (isSv ? "inlägg" : "post") : isSv ? "svar" : "reply"}
+                                  </span>
+                                </span>
+                                <span className={styles.commentText}>
+                                  {entity.content || (isSv ? "(Inget innehåll)" : "(No content)")}
+                                </span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {active ? (
+                        <div className={styles.commentPreview}>
+                          <div className={styles.commentPreviewHead}>
+                            <span className={active.entity_type === "post" ? styles.badgePost : styles.badgeReply}>
+                              {active.entity_type === "post" ? (isSv ? "inlägg" : "post") : isSv ? "svar" : "reply"}
+                            </span>
+                          </div>
+                          <p className={styles.commentPreviewMeta}>
+                            {active.author_name ? `${active.author_name} · ` : ""}
+                            {formatDate(active.created, isSv)}
+                          </p>
+                          <p className={styles.commentPreviewBody}>
+                            {active.content || (isSv ? "(Inget innehåll)" : "(No content)")}
+                          </p>
+                        </div>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })}
             </section>
+
+            {resolvedSymbol ? <StockChart symbol={resolvedSymbol} name={profile?.name ?? null} /> : null}
+
+            {summary ? (
+              <section className={styles.summaryCard}>
+                <div className={styles.summaryInner}>
+                  <div className={styles.summaryHead}>
+                    <span className={styles.summaryMark} aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M12 2.5 L14.6 9.4 L21.5 12 L14.6 14.6 L12 21.5 L9.4 14.6 L2.5 12 L9.4 9.4 Z" />
+                      </svg>
+                    </span>
+                    <h3>{isSv ? "Sammanfattning" : "Summary"}</h3>
+                  </div>
+                  <p className={styles.summaryText}>{summaryExpanded ? summary.full : summary.short}</p>
+                  <div className={styles.summaryFoot}>
+                    <span>
+                      {isSv
+                        ? `Baserat på ${summary.entityCount} kommentarer · ${data.lookback_days} dagar`
+                        : `Based on ${summary.entityCount} comments · ${data.lookback_days} days`}
+                    </span>
+                    <button
+                      type="button"
+                      className={styles.summaryToggle}
+                      onClick={() => setSummaryExpanded((current) => !current)}
+                    >
+                      {summaryExpanded ? (isSv ? "Visa mindre" : "View less") : isSv ? "Visa mer" : "View more"}
+                    </button>
+                  </div>
+                </div>
+              </section>
+            ) : null}
+
           </>
         ) : null}
       </Workspace>

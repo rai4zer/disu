@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { useLanguage } from "@/app/i18n/language";
 import { getUiCopy } from "@/app/i18n/ui-copy";
 import styles from "./top-nav.module.css";
@@ -14,6 +15,7 @@ export default function TopNav() {
   const pathname = usePathname();
   const { language } = useLanguage();
   const copy = getUiCopy(language);
+  const [openMenu, setOpenMenu] = useState<"learn" | "help" | null>(null);
 
   const learnSections = [
     {
@@ -43,6 +45,16 @@ export default function TopNav() {
     { href: "/help/release-notes", label: copy.topNav.helpMenu.releaseNotes }
   ];
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMenu(null);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   return (
     <div className={styles.wrap}>
       <div className={styles.inner}>
@@ -59,15 +71,28 @@ export default function TopNav() {
               {copy.topNav.overview}
             </Link>
 
-            <Link href="/sentiment" className={isActive(pathname, "/sentiment") || isActive(pathname, "/placera") ? `${styles.item} ${styles.itemActive}` : styles.item}>
+            <Link href="/sentiment" className={isActive(pathname, "/sentiment") ? `${styles.item} ${styles.itemActive}` : styles.item}>
               {copy.topNav.marketDesk}
             </Link>
 
-            <div className={styles.dropdown}>
+            <div
+              className={styles.dropdown}
+              onMouseEnter={() => setOpenMenu("learn")}
+              onMouseLeave={() => setOpenMenu((current) => (current === "learn" ? null : current))}
+            >
               <button
                 type="button"
                 className={isActive(pathname, "/learn") ? `${styles.item} ${styles.itemActive}` : styles.item}
                 aria-haspopup="menu"
+                aria-expanded={openMenu === "learn"}
+                onFocus={() => setOpenMenu("learn")}
+                onClick={() => setOpenMenu((current) => (current === "learn" ? null : "learn"))}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setOpenMenu("learn");
+                  }
+                }}
               >
                 {copy.topNav.learnMore}
                 <span aria-hidden="true" className={styles.caret}>
@@ -75,7 +100,11 @@ export default function TopNav() {
                 </span>
               </button>
 
-              <div className={styles.panel} role="menu" aria-label={copy.topNav.learnMore}>
+              <div
+                className={`${styles.panel} ${openMenu === "learn" ? styles.panelOpen : ""}`}
+                role="menu"
+                aria-label={copy.topNav.learnMore}
+              >
                 {learnSections.map((section) => (
                   <div key={section.title} className={styles.panelGroup}>
                     <p className={styles.panelTitle}>{section.title}</p>
@@ -94,11 +123,24 @@ export default function TopNav() {
               </div>
             </div>
 
-            <div className={styles.dropdown}>
+            <div
+              className={styles.dropdown}
+              onMouseEnter={() => setOpenMenu("help")}
+              onMouseLeave={() => setOpenMenu((current) => (current === "help" ? null : current))}
+            >
               <button
                 type="button"
                 className={isActive(pathname, "/help") ? `${styles.item} ${styles.itemActive}` : styles.item}
                 aria-haspopup="menu"
+                aria-expanded={openMenu === "help"}
+                onFocus={() => setOpenMenu("help")}
+                onClick={() => setOpenMenu((current) => (current === "help" ? null : "help"))}
+                onKeyDown={(event) => {
+                  if (event.key === "ArrowDown") {
+                    event.preventDefault();
+                    setOpenMenu("help");
+                  }
+                }}
               >
                 {copy.topNav.help}
                 <span aria-hidden="true" className={styles.caret}>
@@ -106,7 +148,7 @@ export default function TopNav() {
                 </span>
               </button>
 
-              <div className={styles.panel} role="menu" aria-label={copy.topNav.help}>
+              <div className={`${styles.panel} ${openMenu === "help" ? styles.panelOpen : ""}`} role="menu" aria-label={copy.topNav.help}>
                 {helpItems.map((item) => (
                   <Link
                     key={item.href}

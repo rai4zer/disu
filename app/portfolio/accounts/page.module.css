@@ -1,0 +1,73 @@
+.page {
+  width: 100%;
+}
+
+.card {
+  display: grid;
+  gap: 14px;
+}
+
+.kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--muted-text);
+}
+
+.note {
+  margin: 0;
+  color: var(--muted-text);
+}
+
+.scopeGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.scopeOption {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--surface-soft);
+}
+
+.scopeOption span {
+  display: grid;
+  gap: 2px;
+}
+
+.scopeOption small {
+  color: var(--muted-text);
+}
+
+.accounts {
+  display: grid;
+  gap: 10px;
+}
+
+.accountRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.accountText {
+  display: grid;
+  gap: 2px;
+}
+
+.accountText small {
+  color: var(--muted-text);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

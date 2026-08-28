@@ -21,3 +21,16 @@ export function computeRetryDelayMs(attempts: number): number {
 export function nextStageForTerminalStatus(status: "succeeded" | "failed"): "done" | "failed" {
   return status === "succeeded" ? "done" : "failed";
 }
+
+export function isWithinIdempotencyWindow(input: {
+  createdAt: string | null | undefined;
+  nowMs: number;
+  windowHours: number;
+}): boolean {
+  const createdTs = Date.parse(input.createdAt ?? "");
+  if (!Number.isFinite(createdTs)) {
+    return false;
+  }
+  const maxAgeMs = Math.max(0, input.windowHours) * 60 * 60 * 1000;
+  return input.nowMs - createdTs <= maxAgeMs;
+}

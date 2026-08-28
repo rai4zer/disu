@@ -8,6 +8,7 @@ type ApiSuggestion = {
   symbol: string;
   name: string;
   label: string;
+  currency?: string;
 };
 
 type Props = {
@@ -15,6 +16,7 @@ type Props = {
   value: string;
   onChange: (next: string) => void;
   onPickSymbol?: (symbol: string) => void;
+  onPickSuggestion?: (suggestion: ApiSuggestion) => void;
   placeholder?: string;
   required?: boolean;
   maxLength?: number;
@@ -32,6 +34,7 @@ export default function TickerAutocomplete({
   value,
   onChange,
   onPickSymbol,
+  onPickSuggestion,
   placeholder,
   required,
   maxLength,
@@ -40,7 +43,9 @@ export default function TickerAutocomplete({
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [remoteSuggestions, setRemoteSuggestions] = useState<ApiSuggestion[]>([]);
+  const [menuPlacement, setMenuPlacement] = useState<"up" | "down">("down");
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
   const localSuggestions = useMemo(() => buildTickerSuggestions(value, 8), [value]);
 
   useEffect(() => {
@@ -78,15 +83,38 @@ export default function TickerAutocomplete({
     remoteSuggestions
   ]);
 
+  useEffect(() => {
+    if (!open || !wrapRef.current) {
+      return;
+    }
+    const updatePlacement = () => {
+      const rect = wrapRef.current?.getBoundingClientRect();
+      if (!rect) {
+        return;
+      }
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setMenuPlacement(spaceBelow < 220 && spaceAbove > spaceBelow ? "up" : "down");
+    };
+    updatePlacement();
+    window.addEventListener("resize", updatePlacement);
+    window.addEventListener("scroll", updatePlacement, true);
+    return () => {
+      window.removeEventListener("resize", updatePlacement);
+      window.removeEventListener("scroll", updatePlacement, true);
+    };
+  }, [open]);
+
   function applySuggestion(item: ApiSuggestion) {
     onChange(item.symbol);
     onPickSymbol?.(item.symbol);
+    onPickSuggestion?.(item);
     setOpen(false);
     setActiveIndex(-1);
   }
 
   return (
-    <div className={styles.wrap}>
+    <div ref={wrapRef} className={styles.wrap}>
       <input
         ref={inputRef}
         id={id}
@@ -100,6 +128,8 @@ export default function TickerAutocomplete({
         onBlur={() => {
           window.setTimeout(() => setOpen(false), 120);
         }}
+        aria-controls={`${id}-suggestions`}
+        aria-activedescendant={activeIndex >= 0 ? `${id}-suggestion-${activeIndex}` : undefined}
         onKeyDown={(event) => {
           if (!open || suggestions.length === 0) {
             return;
@@ -114,6 +144,7 @@ export default function TickerAutocomplete({
             event.preventDefault();
             applySuggestion(suggestions[activeIndex]);
           } else if (event.key === "Escape") {
+            event.preventDefault();
             setOpen(false);
             setActiveIndex(-1);
           }
@@ -125,9 +156,15 @@ export default function TickerAutocomplete({
       />
 
       {open && suggestions.length > 0 ? (
-        <div className={styles.menu} role="listbox" aria-label="Ticker suggestions">
+        <div
+          id={`${id}-suggestions`}
+          className={`${styles.menu} ${menuPlacement === "up" ? styles.menuUp : styles.menuDown}`}
+          role="listbox"
+          aria-label="Ticker suggestions"
+        >
           {suggestions.map((item, idx) => (
             <button
+              id={`${id}-suggestion-${idx}`}
               key={item.symbol}
               type="button"
               className={`${styles.item} ${idx === activeIndex ? styles.itemActive : ""}`}

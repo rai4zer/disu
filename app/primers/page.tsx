@@ -1,17 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import Workspace from "@/app/components/workspace";
+import { useSignedIn } from "@/app/components/session-context";
 import { resolveTickerSymbol } from "@/app/lib/ticker-suggestions";
 import TickerAutocomplete from "@/app/components/ticker-autocomplete";
 import {
   cancelJob,
+  dismissJob,
   getRecentJobs,
   pollJobResultWithProgress,
   retryJob
 } from "@/app/lib/jobs/client";
 import { useLanguage } from "@/app/i18n/language";
+import UiState from "@/app/components/ui-state";
 
 type PrimerSuccess = {
   ok: true;
@@ -22,6 +26,12 @@ type PrimerSuccess = {
   filing_date: string | null;
   cache_dir: string;
   primer_text: string;
+  meta?: {
+    pipelineVersion: string;
+    llmProvider: "openai_compatible" | "none";
+    llmModel: string;
+    fallbackMode: "none" | "offline";
+  };
 };
 
 type PrimerFailure = {
@@ -51,6 +61,7 @@ type ResumablePrimerJob = {
 };
 
 const ACTIVE_PRIMER_JOB_KEY = "disu.jobs.primer.active";
+const PRIMERS_TICKER_PREF_KEY = "pref.primers.ticker";
 
 function createIdempotencyKey(kind: "primer", ticker: string): string {
   const randomPart =
@@ -63,6 +74,11 @@ function createIdempotencyKey(kind: "primer", ticker: string): string {
 export default function PrimersPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
+  // The page is public (ROADMAP §9.1) so a visitor can see what a primer is
+  // before signing up. Running one still costs a filing fetch and an LLM call
+  // per request, so the run itself needs an account — say so up front rather
+  // than letting the button fail with a 401.
+  const signedIn = useSignedIn();
   const [ticker, setTicker] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +86,26 @@ export default function PrimersPage() {
   const [typedPrimer, setTypedPrimer] = useState("");
   const [resumableJob, setResumableJob] = useState<ResumablePrimerJob | null>(null);
   const [jobStage, setJobStage] = useState<"queued" | "fetching" | "running" | "done" | "failed">("queued");
+  const [signInPrompted, setSignInPrompted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const savedTicker = window.localStorage.getItem(PRIMERS_TICKER_PREF_KEY);
+    if (savedTicker) {
+      setTicker(savedTicker);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (ticker.trim()) {
+      window.localStorage.setItem(PRIMERS_TICKER_PREF_KEY, ticker.trim().toUpperCase());
+    }
+  }, [ticker]);
 
   function readActiveJobId(): string {
     if (typeof window === "undefined") {
@@ -191,6 +227,12 @@ export default function PrimersPage() {
   useEffect(() => {
     let cancelled = false;
 
+    // /api/jobs stays gated, and a signed-out visitor has no jobs to resume.
+    if (!signedIn) {
+      setResumableJob(null);
+      return;
+    }
+
     async function loadResumableJob(): Promise<void> {
       try {
         const jobs = await getRecentJobs("primer", 8);
@@ -224,10 +266,14 @@ export default function PrimersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [signedIn]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!signedIn) {
+      setSignInPrompted(true);
+      return;
+    }
     const typed = ticker.trim();
     let requestedTicker = (resolveTickerSymbol(typed) ?? typed.toUpperCase()).trim().toUpperCase();
     if (!/^[A-Z0-9.\-]{1,12}$/.test(requestedTicker) && typed.length >= 2) {
@@ -354,6 +400,28 @@ export default function PrimersPage() {
           </button>
         </form>
 
+        {signedIn ? null : (
+          <section className={`${styles.gateCard} appSection`} aria-live="polite">
+            <p className={styles.gateText}>
+              {signInPrompted
+                ? isSv
+                  ? "Skapa ett konto för att köra primern — den hämtar bolagets senaste rapport och sammanfattar den åt dig. Din ticker är kvar när du kommer tillbaka."
+                  : "Create an account to run the primer — it fetches the company's latest filing and summarises it for you. Your ticker is kept for when you come back."
+                : isSv
+                  ? "En primer läser bolagets senaste rapport och ger dig en kort, tydlig sammanfattning. Skapa ett konto för att köra en — det tar under en minut."
+                  : "A primer reads a company's latest filing and gives you a short, clear brief. Create an account to run one — it takes under a minute."}
+            </p>
+            <div className={styles.gateActions}>
+              <Link className="appButton" href="/auth/login?mode=register&next=%2Fprimers">
+                {isSv ? "Skapa konto" : "Create account"}
+              </Link>
+              <Link className={styles.gateLink} href="/auth/login?next=%2Fprimers">
+                {isSv ? "Har du konto? Logga in" : "Have an account? Sign in"}
+              </Link>
+            </div>
+          </section>
+        )}
+
         {resumableJob ? (
           <section className={`${styles.resumeCard} appSection`} aria-live="polite">
             <p className={styles.resumeText}>
@@ -389,10 +457,19 @@ export default function PrimersPage() {
               <button
                 type="button"
                 className="appButtonSecondary"
-                onClick={() => {
-                  clearActiveJobId(resumableJob.id);
-                  setResumableJob(null);
-                }}
+                onClick={() =>
+                  void (async () => {
+                    try {
+                      if (resumableJob.status === "failed") {
+                        await dismissJob(resumableJob.id);
+                      }
+                      clearActiveJobId(resumableJob.id);
+                      setResumableJob(null);
+                    } catch (dismissError) {
+                      setError(dismissError instanceof Error ? dismissError.message : isSv ? "Kunde inte dölja jobb" : "Could not dismiss job");
+                    }
+                  })()
+                }
                 disabled={loading}
               >
                 {isSv ? "Stäng" : "Dismiss"}
@@ -418,7 +495,7 @@ export default function PrimersPage() {
           </section>
         ) : null}
 
-        {error ? <p className={`${styles.error} appError`}>{error}</p> : null}
+        {error ? <UiState kind="error" message={error} className={styles.error} /> : null}
 
         {result ? (
           <section className={`${styles.results} appSection`}>
@@ -436,6 +513,7 @@ export default function PrimersPage() {
                   | {isSv ? "Rapportdatum" : "Filing date"}: <strong>{result.filing_date}</strong>
                 </>
               ) : null}
+              {result.meta?.fallbackMode === "offline" ? ` | ${isSv ? "Offline-läge" : "Offline mode"}` : ""}
             </p>
             {pdfUrl ? (
               <div className={styles.linkWrap}>

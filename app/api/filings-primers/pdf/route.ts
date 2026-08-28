@@ -1,13 +1,13 @@
 import path from "node:path";
 import { readFile } from "node:fs/promises";
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }

@@ -80,5 +80,5 @@
 
 .error {
   margin: 0;
-  color: #b63f2c;
+  color: var(--danger-ink);
 }

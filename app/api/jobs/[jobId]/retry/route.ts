@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { initJobWorker, scheduleJobProcessing } from "@/app/lib/jobs/processor";
-import { getJobForUser, updateJob } from "@/app/lib/jobs/store";
+import { getJobForUser, updateJobForUser } from "@/app/lib/jobs/store";
 
 export async function POST(
   request: NextRequest,
@@ -9,7 +9,7 @@ export async function POST(
 ) {
   initJobWorker();
 
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
@@ -34,7 +34,7 @@ export async function POST(
     return NextResponse.json({ ok: false, error: "Completed jobs cannot be retried." }, { status: 409 });
   }
 
-  const updated = await updateJob(job.id, {
+  const updated = await updateJobForUser(job.id, session.userId, {
     status: "queued",
     stage: "queued",
     error: null,
@@ -46,8 +46,14 @@ export async function POST(
     started_at: null,
     finished_at: null,
     result: null,
-    attempts: 0
+    attempts: 0,
+    dismissed_at: null
   });
+
+  if (!updated) {
+    // Only reachable if the job vanished between the read and the write.
+    return NextResponse.json({ ok: false, error: "Job not found" }, { status: 404 });
+  }
 
   scheduleJobProcessing(updated.id);
 

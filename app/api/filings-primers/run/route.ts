@@ -1,56 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
+import { isWithinIdempotencyWindow } from "@/app/lib/jobs/lifecycle";
+import { parsePrimerRunRequest } from "@/app/lib/jobs/request-schemas";
 import { enqueueJob, findActiveJobForUserKindTicker, findJobForUserByIdempotency } from "@/app/lib/jobs/store";
 import { initJobWorker, scheduleJobProcessing } from "@/app/lib/jobs/processor";
+import { recordFunnelEvent } from "@/app/lib/analytics/funnel-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type RunPrimersRequest = {
-  ticker?: string;
-  llmProvider?: "none" | "openai_compatible";
-  idempotencyKey?: string;
-};
-
-function normalizeTicker(input: string): string {
-  return input.trim().toUpperCase();
-}
-
-function isValidTicker(ticker: string): boolean {
-  return /^[A-Z0-9.\-]{1,12}$/.test(ticker);
-}
-
 export async function POST(request: NextRequest) {
   initJobWorker();
 
-  const session = getSessionFromRequest(request);
+  const session = await getAuthenticatedSession(request);
   if (!session) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => ({}))) as RunPrimersRequest;
-  const ticker = normalizeTicker(body.ticker ?? "");
-  const llmProvider = "openai_compatible" as const;
-  const idempotencyKeyRaw = body.idempotencyKey ?? request.headers.get("x-idempotency-key") ?? "";
-  const idempotencyKey = String(idempotencyKeyRaw).trim().slice(0, 128);
+  const defaultProviderRaw = (process.env.PRIMER_LLM_PROVIDER_DEFAULT ?? "openai_compatible").trim().toLowerCase();
+  const defaultLlmProvider: "openai_compatible" | "none" =
+    defaultProviderRaw === "none" ? "none" : "openai_compatible";
+  const allowProviderOverride = (process.env.PRIMER_LLM_PROVIDER_ALLOW_OVERRIDE ?? "0").trim() === "1";
 
-  if (!ticker || !isValidTicker(ticker)) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "Invalid ticker. Use 1-12 chars: letters, numbers, dot, hyphen."
-      },
-      { status: 400 }
-    );
+  const body = await request.json().catch(() => ({}));
+  const parsed = parsePrimerRunRequest(body, request.headers.get("x-idempotency-key"), {
+    defaultLlmProvider,
+    allowProviderOverride
+  });
+  if (!parsed.ok) {
+    return NextResponse.json({ ok: false, error: parsed.error }, { status: 400 });
   }
+  const { ticker, llmProvider, idempotencyKey } = parsed.value;
 
   if (idempotencyKey) {
+    const windowHoursRaw = Number(process.env.JOB_IDEMPOTENCY_WINDOW_HOURS ?? "24");
+    const windowHours = Number.isFinite(windowHoursRaw) && windowHoursRaw > 0 ? windowHoursRaw : 24;
     const existingByKey = await findJobForUserByIdempotency({
       userId: session.userId,
       kind: "primer",
       idempotencyKey
     });
     if (existingByKey) {
+      const fresh = isWithinIdempotencyWindow({
+        createdAt: existingByKey.created_at,
+        nowMs: Date.now(),
+        windowHours
+      });
+      if (!fresh) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Idempotency key replay window expired (${windowHours}h). Submit with a new idempotency key.`
+          },
+          { status: 409 }
+        );
+      }
       scheduleJobProcessing(existingByKey.id);
       return NextResponse.json({
         ok: true,
@@ -87,6 +91,12 @@ export async function POST(request: NextRequest) {
   });
 
   scheduleJobProcessing(job.id);
+
+  // At enqueue, for the reasons spelled out in app/api/quant/infer/route.ts.
+  void recordFunnelEvent(request, "primer_run", {
+    userId: session.userId,
+    path: "/filings-primers"
+  });
 
   return NextResponse.json({
     ok: true,

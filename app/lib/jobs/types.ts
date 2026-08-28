@@ -32,6 +32,7 @@ export type JobRow = {
   fetch_ms: number | null;
   run_ms: number | null;
   run_after: string;
+  dismissed_at: string | null;
   started_at: string | null;
   finished_at: string | null;
   created_at: string;

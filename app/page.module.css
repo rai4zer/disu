@@ -1,413 +1,333 @@
 .page {
   min-height: 100vh;
-  padding: 0;
-}
-
-.pageBody {
-  padding: clamp(16px, 2.8vw, 32px);
-}
-
-.shell {
-  max-width: 980px;
-  margin: 0 auto;
-  border: 1px solid var(--border);
-  border-radius: 26px;
-  padding: clamp(18px, 2.8vw, 34px);
-  background: linear-gradient(160deg, var(--surface), var(--surface-soft));
-  box-shadow: var(--shadow-soft);
-  animation: rise 520ms ease-out;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.brandLogo {
-  display: block;
-  height: 40px;
-  width: auto;
-  color: var(--ink);
-}
-
-.topControls {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.languageToggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-elevated);
-}
-
-.langButton,
-.langActive {
-  border: 0;
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 0.72rem;
-  font-weight: 560;
-  cursor: pointer;
-  background: transparent;
-  color: var(--muted);
-  transition: background-color 180ms ease, color 180ms ease;
-}
-
-.langActive {
-  color: #f8f4eb;
-  background: var(--navy);
-}
-
-.loginButton {
-  text-decoration: none;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 0.85rem;
-  font-weight: 560;
-  color: var(--ink);
-  background: var(--surface-elevated-strong);
-  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease;
-}
-
-.loginButton:hover {
-  transform: translateY(-1px);
-  border-color: var(--navy);
-  background: color-mix(in srgb, var(--navy) 10%, var(--surface-elevated-strong));
+  /* Landing-only container width — wider than the app shell's --content-max-width,
+     which stays at 1080px for the signed-in views. */
+  --landing-max: 1280px;
+  --landing-gutter: clamp(20px, 5vw, 48px);
 }
 
 .hero {
-  margin: clamp(22px, 4vw, 44px) auto 0;
-  max-width: 740px;
-  text-align: center;
-  display: grid;
-  justify-items: center;
-  gap: 8px;
-}
-
-.kicker {
-  margin: 0;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 0.69rem;
-  font-weight: 560;
-}
-
-.title {
-  margin: 4px 0 2px;
-  font-size: clamp(1.72rem, 5.2vw, 3rem);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  max-width: 21ch;
-  font-weight: 610;
-}
-
-.subtitle {
-  margin: 0;
-  font-size: clamp(0.94rem, 1.7vw, 1.02rem);
-  line-height: 1.58;
-  color: var(--muted);
-  max-width: 62ch;
-  font-weight: 390;
-}
-
-.heroSvg {
-  margin-top: 10px;
-  width: min(100%, 620px);
-  height: auto;
-}
-
-.ringOne,
-.ringTwo {
-  fill: color-mix(in srgb, var(--navy) 10%, transparent);
-  stroke: color-mix(in srgb, var(--navy) 45%, transparent);
-  stroke-width: 1;
-  animation: floatRing 4.8s ease-in-out infinite;
-}
-
-.ringTwo {
-  animation-delay: 620ms;
-}
-
-.trendPath {
-  fill: none;
-  stroke: url(#lineGradient);
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 550;
-  stroke-dashoffset: 550;
-  animation: drawLine 2.8s ease forwards;
-}
-
-.pulseDot,
-.pulseDotDelayed {
-  fill: var(--navy);
-  opacity: 0.72;
-  transform-origin: center;
-  animation: pulseDot 2s ease-in-out infinite;
-}
-
-.pulseDotDelayed {
-  animation-delay: 800ms;
-}
-
-.sections {
-  margin: clamp(26px, 3.6vw, 40px) auto 0;
-  max-width: 760px;
-  display: grid;
-  gap: 14px;
-}
-
-.featureStack {
-  display: grid;
-  gap: 14px;
-}
-
-.featureCard,
-.demoCard {
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: clamp(14px, 2.2vw, 20px);
-  background: var(--surface-elevated);
-  text-align: center;
-}
-
-.featureHeading {
-  display: grid;
-  justify-items: center;
-}
-
-.conceptSvg {
-  width: min(100%, 560px);
-  height: auto;
-}
-
-.conceptPanel {
-  fill: color-mix(in srgb, var(--navy) 7%, var(--surface-elevated));
-  stroke: color-mix(in srgb, var(--navy) 28%, transparent);
-  stroke-width: 1.2;
-}
-
-.conceptChip,
-.conceptBarA,
-.conceptBarB,
-.conceptBarC,
-.primerTitle,
-.primerLineOne,
-.primerLineTwo,
-.primerLineThree,
-.primerLineFour {
-  fill: color-mix(in srgb, var(--navy) 17%, transparent);
-  animation: shimmer 3s ease-in-out infinite;
-}
-
-.conceptBarB,
-.primerLineTwo {
-  animation-delay: 250ms;
-}
-
-.conceptBarC,
-.primerLineThree {
-  animation-delay: 420ms;
-}
-
-.primerLineFour {
-  animation-delay: 560ms;
-}
-
-.conceptGauge {
-  fill: color-mix(in srgb, var(--navy) 18%, transparent);
-  stroke: color-mix(in srgb, var(--navy) 44%, transparent);
-  stroke-width: 1.3;
-}
-
-.conceptCheck {
-  fill: none;
-  stroke: var(--navy);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 52;
-  stroke-dashoffset: 52;
-  animation: drawMini 1.8s ease forwards;
-}
-
-.conceptTrend {
-  fill: none;
-  stroke: var(--navy);
-  stroke-width: 3.1;
-  stroke-linecap: round;
-  stroke-dasharray: 340;
-  stroke-dashoffset: 340;
-  animation: drawTrend 2.2s ease forwards;
-}
-
-.conceptDot,
-.conceptDotDelayed {
-  fill: var(--navy);
-  opacity: 0.78;
-  animation: pulseDot 2s ease-in-out infinite;
-}
-
-.conceptDotDelayed {
-  animation-delay: 760ms;
-}
-
-.sentimentPositive {
-  fill: rgba(72, 163, 114, 0.9);
-}
-
-.sentimentNeutral {
-  fill: rgba(174, 146, 87, 0.9);
-}
-
-.sentimentNegative {
-  fill: rgba(169, 80, 90, 0.9);
-}
-
-.axisLine {
-  stroke: color-mix(in srgb, var(--navy) 35%, transparent);
-  stroke-width: 1.5;
-}
-
-.candleOne,
-.candleTwo,
-.candleThree,
-.candleFour,
-.candleFive,
-.candleSix {
-  fill: color-mix(in srgb, var(--navy) 24%, transparent);
-  animation: candleShift 2.6s ease-in-out infinite;
-}
-
-.candleTwo {
-  animation-delay: 120ms;
-}
-
-.candleThree {
-  animation-delay: 220ms;
-}
-
-.candleFour {
-  animation-delay: 320ms;
-}
-
-.candleFive {
-  animation-delay: 420ms;
-}
-
-.candleSix {
-  animation-delay: 520ms;
-}
-
-.featureCard h2 {
-  margin: 12px auto 0;
-  font-size: clamp(1.02rem, 2.5vw, 1.22rem);
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-  font-weight: 580;
-  max-width: 36ch;
-}
-
-.featureCard p:last-child {
-  margin: 8px auto 0;
-  color: var(--muted);
-  line-height: 1.5;
-  font-size: 0.92rem;
-  font-weight: 390;
-  max-width: 52ch;
-}
-
-.demoCard {
-  display: grid;
-  gap: 10px;
-  background: color-mix(in srgb, var(--navy) 8%, var(--surface-elevated));
-}
-
-.demoRow {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: clamp(40px, 9vh, 104px) var(--landing-gutter) 68px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: min(100%, 560px);
+  text-align: center;
+  gap: clamp(20px, 3.6vh, 38px);
+  animation: rise 640ms ease-out;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(5px, 1.1vh, 9px);
+}
+
+.mark {
+  margin: 0;
+  /* trailing letter-spacing pads the right edge; indent pulls the block back
+     so the glyphs sit optically centered over the mark below */
+  text-indent: 0.2em;
+  font-size: clamp(2.1rem, 7vw, 3.5rem);
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.cuneiform {
+  font-family: "Noto Sans Cuneiform", serif;
+  font-size: clamp(1.15rem, 3.2vw, 1.6rem);
+  line-height: 1;
+  color: var(--muted);
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(14px, 2.4vh, 23px);
+  max-width: 60ch;
+}
+
+.lead {
+  margin: 0;
+  font-size: clamp(0.94rem, 1.9vw, 1.08rem);
+  line-height: 1.62;
+  font-weight: 440;
+  color: var(--ink);
+  text-wrap: balance;
+  white-space: pre-line;
+}
+
+.body {
+  margin: 0;
+  font-size: clamp(0.9rem, 1.7vw, 1rem);
+  line-height: 1.74;
+  font-weight: 400;
+  color: var(--muted);
+  max-width: 56ch;
+  text-wrap: pretty;
+}
+
+/* Hero sign-up CTA: filled pill with the log-in link beside it. */
+.ctaRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2.2vw, 20px);
+  flex-wrap: wrap;
+}
+
+/* Deliberately NOT --cta-* : those resolve to the blue accent. This pill inverts
+   per theme — ink-on-light, light-on-ink — so it keeps its contrast instead of
+   disappearing into the dark background. --ink/--surface already swap per theme,
+   so the inversion needs no dark-mode override. */
+.ctaPrimary {
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--ink);
+  color: var(--surface);
+  padding: 9px clamp(15px, 2.4vw, 21px);
+  font-size: clamp(0.8rem, 1.3vw, 0.86rem);
+  font-weight: 650;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.ctaPrimary:hover {
+  background: var(--ink-soft);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.ctaSecondary {
+  color: var(--navy);
+  font-size: clamp(0.78rem, 1.2vw, 0.83rem);
+  font-weight: 560;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ctaSecondary:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 520px) {
+  .ctaRow {
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .ctaPrimary {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+/* Module feature rows */
+.modules {
+  max-width: var(--landing-max);
+  margin: 0 auto;
+  padding: clamp(16px, 4.5vh, 44px) var(--landing-gutter) clamp(56px, 10vh, 112px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(52px, 10vh, 104px);
+}
+
+.module {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(24px, 5vw, 56px);
+}
+
+.moduleMedia {
+  grid-column: 1;
+}
+
+.moduleText {
+  grid-column: 2;
+  text-align: left;
+}
+
+/* Alternating layout: image on the right, text on the left */
+.imageRight .moduleMedia {
+  grid-column: 2;
+}
+
+.imageRight .moduleText {
+  grid-column: 1;
+  grid-row: 1;
+  text-align: right;
+}
+
+.moduleImage {
+  display: block;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: cover;
   margin: 0 auto;
 }
 
-.demoButton {
-  border: 0;
-  border-radius: 10px;
-  padding: 9px 14px;
-  font-size: 0.88rem;
-  font-weight: 570;
-  background: var(--navy);
-  color: #f8f4eb;
-  cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease;
-  box-shadow: var(--shadow-cta);
-  white-space: nowrap;
-}
-
-.demoButton:hover {
-  transform: translateY(-1px);
-}
-
-.emailInput {
-  width: 100%;
-  border-radius: 10px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface-elevated-strong);
-  padding: 9px 11px;
+.moduleTitle {
+  margin: 0 0 clamp(9px, 1.6vh, 14px);
+  font-size: clamp(1.25rem, 2.8vw, 1.8rem);
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
   color: var(--ink);
-  font: inherit;
-  font-size: 0.9rem;
 }
 
-.emailInput:focus {
-  outline: 2px solid color-mix(in srgb, var(--navy) 45%, transparent);
-  outline-offset: 1px;
-  border-color: var(--navy);
+.moduleBody {
+  margin: 0;
+  font-size: clamp(0.92rem, 1.6vw, 1.04rem);
+  line-height: 1.6;
+  font-weight: 420;
+  color: var(--muted);
+  max-width: 42ch;
 }
 
-.emailInput::placeholder {
-  color: color-mix(in srgb, var(--muted) 75%, transparent);
+.imageRight .moduleBody {
+  margin-left: auto;
 }
 
-.srOnly {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
+/* Quiet per-module sign-up prompt. Outlined by default so it reads as a nudge
+   rather than a second hero button; fills with ink on hover. */
+.moduleCta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: clamp(15px, 2.6vh, 23px);
+  padding: 8px clamp(14px, 2vw, 17px);
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--ink);
+  font-size: clamp(0.78rem, 1.2vw, 0.84rem);
+  font-weight: 560;
+  line-height: 1;
+  text-decoration: none;
   white-space: nowrap;
-  border: 0;
+  transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease,
+    transform 200ms ease, box-shadow 200ms ease;
 }
 
-.reveal {
-  opacity: 0;
-  transform: translateY(18px);
-  transition: opacity 540ms ease, transform 540ms ease;
+.moduleCtaArrow {
+  font-size: 0.95em;
+  transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.revealed {
-  opacity: 1;
-  transform: translateY(0);
+.moduleCta:hover {
+  background: var(--ink);
+  border-color: transparent;
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+.moduleCta:hover .moduleCtaArrow {
+  transform: translateX(3px);
+}
+
+@media (max-width: 720px) {
+  .module,
+  .imageRight {
+    grid-template-columns: 1fr;
+    gap: clamp(16px, 4vh, 26px);
+  }
+
+  .module .moduleMedia,
+  .imageRight .moduleMedia {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .module .moduleText,
+  .imageRight .moduleText {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: center;
+  }
+
+  .moduleBody,
+  .imageRight .moduleBody {
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .moduleImage {
+    max-width: 260px;
+  }
+}
+
+/* Closing sign-up band, below the last feature row */
+.ctaBand {
+  max-width: var(--landing-max);
+  margin: 0 auto;
+  padding: 0 var(--landing-gutter) clamp(56px, 10vh, 112px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.ctaBand::before {
+  content: "";
+  width: min(260px, 55%);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border-strong), transparent);
+  margin-bottom: clamp(28px, 5vh, 46px);
+}
+
+.ctaBandButton {
+  max-width: 100%;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--ink);
+  color: var(--surface);
+  padding: clamp(11px, 1.6vh, 14px) clamp(20px, 3.2vw, 32px);
+  font-size: clamp(0.86rem, 1.5vw, 0.94rem);
+  font-weight: 620;
+  line-height: 1.3;
+  text-decoration: none;
+  text-wrap: balance;
+  box-shadow: var(--shadow-soft);
+  transition: background-color 200ms ease, transform 200ms ease, box-shadow 200ms ease;
+}
+
+.ctaBandButton:hover {
+  background: var(--ink-soft);
+  color: var(--surface);
+  transform: translateY(-2px);
+  box-shadow: 0 16px 38px rgba(8, 15, 28, 0.14);
+}
+
+.ctaBandNote {
+  margin: clamp(11px, 1.6vh, 14px) 0 0;
+  font-size: clamp(0.75rem, 1.15vw, 0.8rem);
+  font-weight: 420;
+  color: var(--muted);
+}
+
+/* Compound calculator sits below the last feature row */
+.calculator {
+  max-width: var(--landing-max);
+  margin: 0 auto;
+  padding: 0 var(--landing-gutter) clamp(56px, 10vh, 112px);
 }
 
 @keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px);
   }
 
   to {
@@ -416,116 +336,81 @@
   }
 }
 
-@keyframes drawLine {
-  to {
-    stroke-dashoffset: 0;
-  }
+/* Scroll-reveal: media and text slide in from their respective sides */
+.reveal {
+  opacity: 0;
+  transition: opacity 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes drawTrend {
-  to {
-    stroke-dashoffset: 0;
-  }
+.reveal .moduleMedia,
+.reveal .moduleText {
+  opacity: 0;
+  transition: opacity 720ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@keyframes drawMini {
-  to {
-    stroke-dashoffset: 0;
-  }
+.reveal .moduleMedia {
+  transform: translateX(-34px);
 }
 
-@keyframes pulseDot {
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.66;
-  }
-
-  50% {
-    transform: scale(1.35);
-    opacity: 1;
-  }
+.reveal .moduleText {
+  transform: translateX(34px);
+  transition-delay: 90ms;
 }
 
-@keyframes floatRing {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-7px);
-  }
+.imageRight.reveal .moduleMedia {
+  transform: translateX(34px);
 }
 
-@keyframes shimmer {
-  0%,
-  100% {
-    opacity: 0.64;
-  }
-
-  50% {
-    opacity: 1;
-  }
+.imageRight.reveal .moduleText {
+  transform: translateX(-34px);
 }
 
-@keyframes candleShift {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-4px);
-  }
+.revealed,
+.revealed .moduleMedia,
+.revealed .moduleText {
+  opacity: 1;
+  transform: none;
 }
 
-@media (max-width: 780px) {
-  .shell {
-    border-radius: 20px;
-  }
+/* The sign-up prompt trails the copy in, so it lands as the row settles. */
+.reveal .moduleCtaWrap {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
 
-  .header {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
+.revealed .moduleCtaWrap {
+  opacity: 1;
+  transform: none;
+  transition-delay: 260ms;
+}
 
-  .demoRow {
-    grid-template-columns: 1fr;
-  }
+.ctaBand.reveal {
+  transform: translateY(22px);
+}
+
+.ctaBand.revealed {
+  transform: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shell,
-  .ringOne,
-  .ringTwo,
-  .trendPath,
-  .pulseDot,
-  .pulseDotDelayed,
-  .conceptChip,
-  .conceptBarA,
-  .conceptBarB,
-  .conceptBarC,
-  .conceptCheck,
-  .conceptTrend,
-  .conceptDot,
-  .conceptDotDelayed,
-  .primerTitle,
-  .primerLineOne,
-  .primerLineTwo,
-  .primerLineThree,
-  .primerLineFour,
-  .candleOne,
-  .candleTwo,
-  .candleThree,
-  .candleFour,
-  .candleFive,
-  .candleSix {
-    animation: none !important;
+  .hero {
+    animation: none;
   }
 
   .reveal,
-  .revealed {
+  .reveal .moduleMedia,
+  .reveal .moduleText,
+  .reveal .moduleCtaWrap,
+  .ctaBand.reveal,
+  .revealed,
+  .revealed .moduleMedia,
+  .revealed .moduleText,
+  .revealed .moduleCtaWrap,
+  .ctaBand.revealed {
     opacity: 1;
     transform: none;
     transition: none;

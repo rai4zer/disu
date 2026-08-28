@@ -21,12 +21,12 @@ export class SupabaseRequestError extends Error {
 
 function getBaseUrl(): string {
   ensureRuntimeEnv();
-  return process.env.SUPABASE_URL!.replace(/\/$/, "");
+  return (process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL!).replace(/\/$/, "");
 }
 
 function getApiKey(): string {
   ensureRuntimeEnv();
-  return process.env.SUPABASE_KEY!;
+  return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || process.env.SUPABASE_KEY!;
 }
 
 function toQueryString(query: Record<string, string> | undefined): string {
@@ -55,17 +55,23 @@ export async function supabaseRequest<T>(table: string, options: RequestOptions 
   const method = options.method ?? "GET";
   const url = `${getBaseUrl()}/rest/v1/${table}${toQueryString(options.query)}`;
 
-  const response = await fetch(url, {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      apikey: getApiKey(),
-      Authorization: `Bearer ${getApiKey()}`,
-      Prefer: options.prefer ?? "return=representation"
-    },
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
-    cache: "no-store"
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method,
+      headers: {
+        "Content-Type": "application/json",
+        apikey: getApiKey(),
+        Authorization: `Bearer ${getApiKey()}`,
+        Prefer: options.prefer ?? "return=representation"
+      },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body),
+      cache: "no-store"
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown network error";
+    throw new SupabaseRequestError(`Supabase network request failed: ${message}`, 503);
+  }
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as

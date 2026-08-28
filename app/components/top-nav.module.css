@@ -15,14 +15,18 @@
   align-items: center;
 }
 
+/* Overhangs the narrow icon-rail column so it clears the window edge without
+   pushing the nav rail inward. */
 .brand {
   grid-column: 1;
-  width: var(--sidebar-width);
+  width: auto;
   min-height: var(--top-nav-height);
+  padding-left: 18px;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 10px;
+  white-space: nowrap;
   text-decoration: none;
   color: var(--ink);
 }
@@ -108,8 +112,11 @@
   gap: 2px;
 }
 
-.dropdown:hover .panel,
 .dropdown:focus-within .panel {
+  display: grid;
+}
+
+.panelOpen {
   display: grid;
 }
 

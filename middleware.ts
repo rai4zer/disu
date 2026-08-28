@@ -1,15 +1,20 @@
-import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-
-const SESSION_COOKIE_NAME = "disu_session";
+import { NextResponse } from "next/server";
+import { SESSION_COOKIE_NAME, verifySessionTokenEdge } from "@/app/lib/auth/session-edge";
 
 function isApiPath(pathname: string): boolean {
   return pathname.startsWith("/api/");
 }
 
-export function middleware(request: NextRequest) {
-  const hasSession = Boolean(request.cookies.get(SESSION_COOKIE_NAME)?.value);
-  if (hasSession) {
+export async function middleware(request: NextRequest) {
+  // Verify the signature, do not just look for the cookie: a hand-written
+  // disu_session value would otherwise walk straight past this gate and render
+  // the signed-in shell (the API handlers would still 401, but the app frame
+  // should never have been served in the first place).
+  const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+  const secret = process.env.DISU_SESSION_SECRET;
+  const session = token && secret ? await verifySessionTokenEdge(token, secret) : null;
+  if (session) {
     return NextResponse.next();
   }
 
@@ -24,17 +29,33 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+  // Not the same list as PROTECTED_PREFIXES in app/components/app-shell.tsx:
+  // that one decides which routes render inside the app frame, this one decides
+  // which routes require a session. Several routes are in the first list and not
+  // in this one, and they render the signed-out chrome.
+  //
+  // Public on purpose (ROADMAP §9.1, §9.8 — value before account):
+  //   /help, /help/faq, /help/docs  — linked from the footer on signed-out pages
+  //   /legal/*                      — must be readable before signing up
+  //   /learn/*                      — static education pages, nothing user-specific
+  //   /primers                      — browsable logged out; the run itself still
+  //                                   needs an account, and the page says so
+  // Only /help/release-notes is gated inside /help.
   matcher: [
+    "/account/:path*",
     "/dashboard/:path*",
     "/portfolio/:path*",
     "/quant/:path*",
     "/filings-primers/:path*",
     "/sentiment/:path*",
     "/placera/:path*",
+    "/help/release-notes/:path*",
     "/api/brokers/:path*",
     "/api/portfolio/:path*",
     "/api/quant/:path*",
     "/api/filings-primers/:path*",
-    "/api/jobs/:path*"
+    "/api/jobs/:path*",
+    "/api/account/:path*",
+    "/api/release-notes/:path*"
   ]
 };

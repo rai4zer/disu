@@ -62,21 +62,6 @@ export async function getJobStatus(jobId: string): Promise<JobStatusRecord> {
   return payload.job;
 }
 
-export async function pollJobResult<T>(jobId: string, attempts = 120, intervalMs = 2000): Promise<T> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    await sleep(intervalMs);
-    const job = await getJobStatus(jobId);
-    if (job.status === "queued" || job.status === "running") {
-      continue;
-    }
-    if (job.status === "failed") {
-      throw new Error(job.error ?? "Job failed");
-    }
-    return job.result as T;
-  }
-  throw new Error("Job timed out while polling status.");
-}
-
 export async function pollJobResultWithProgress<T>(
   jobId: string,
   options?: {
@@ -138,26 +123,13 @@ export async function retryJob(jobId: string): Promise<{ jobId: string }> {
   return { jobId: payload.jobId };
 }
 
-export type JobArtifact = {
-  id: string;
-  kind: JobKind;
-  artifactType: string;
-  artifactPath: string;
-  contentHash: string | null;
-  metadata: Record<string, unknown>;
-  createdAt: string;
-};
-
-export async function getJobArtifacts(jobId: string): Promise<JobArtifact[]> {
-  const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/artifacts`, {
-    method: "GET",
-    cache: "no-store"
+export async function dismissJob(jobId: string): Promise<void> {
+  const response = await fetch(`/api/jobs/${encodeURIComponent(jobId)}/dismiss`, {
+    method: "POST"
   });
-  const payload = (await response.json()) as
-    | { ok: true; artifacts: JobArtifact[] }
-    | { ok: false; error: string };
+  const payload = (await response.json()) as { ok?: boolean; error?: string };
   if (!payload.ok) {
-    throw new Error(payload.error);
+    throw new Error(payload.error ?? "Could not dismiss job.");
   }
-  return payload.artifacts;
 }
+

@@ -1,0 +1,174 @@
+/* Slim header for the signed-out, open-facing pages. Mirrors top-nav's visual
+   language, but the content beside it is centred on the window rather than
+   offset by a sidebar, so the geometry is worked out here rather than borrowed.
+
+   Below --public-align-width the header is an ordinary flex row: the content
+   column spans the full window there, so there is no way to sit the brand at
+   the window edge AND the nav under the headline. Above it, the brand and CTA
+   are lifted out of flow so the nav can centre on the window exactly as the
+   page content does. */
+.wrap {
+  /* Column edge -> text inside a page: this header's own gutter plus the one
+     .appPage adds on every page. Derived, so it tracks --content-gutter. */
+  --public-text-inset: calc(var(--content-gutter) * 2);
+  /* Matches .item's horizontal padding below. */
+  --public-item-padding: 12px;
+  --public-brand-inset: 18px;
+
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  background: var(--surface);
+  position: sticky;
+  top: var(--market-strip-height);
+  z-index: 3;
+}
+
+.inner {
+  position: relative;
+  min-height: var(--top-nav-height);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-left: var(--public-brand-inset);
+  padding-right: var(--content-gutter);
+}
+
+/* Same window-edge position as the signed-in top nav's brand. */
+.brand {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.brandWord {
+  font-size: 1.06rem;
+  letter-spacing: 0.04em;
+  font-weight: 560;
+}
+
+.brandGlyph {
+  font-family: "Noto Sans Cuneiform", serif;
+  font-size: 1.02rem;
+  line-height: 1;
+  transform: translateY(-1px);
+  color: color-mix(in srgb, var(--muted) 80%, var(--ink));
+}
+
+.navRail {
+  flex: 1;
+  min-width: 0;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.item {
+  text-decoration: none;
+  color: var(--muted);
+  border-radius: 10px;
+  padding: 9px var(--public-item-padding);
+  font-size: 0.88rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 140ms ease, background-color 140ms ease;
+}
+
+.item:hover {
+  color: var(--ink);
+  background: var(--surface-elevated);
+}
+
+.itemActive {
+  color: var(--ink);
+  background: var(--surface-elevated);
+}
+
+/* Same inverted pill as the landing hero, so the sign-up path looks identical
+   wherever a signed-out visitor meets it. */
+.cta {
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--ink);
+  color: var(--surface);
+  padding: 8px 16px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+}
+
+.cta:hover {
+  background: var(--ink-soft);
+  color: var(--surface);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
+}
+
+/* Wide enough that a window-centred nav column clears the brand on its left.
+   1280 = --content-max-width (1080) + room for the brand on both sides. */
+@media (min-width: 1280px) {
+  .inner {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .brand,
+  .cta {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .brand {
+    left: var(--public-brand-inset);
+  }
+
+  /* Lines up with the right edge of the page content, not the window. */
+  .cta {
+    right: calc((100% - var(--content-max-width)) / 2 + var(--public-text-inset));
+  }
+
+  .cta:hover {
+    transform: translateY(calc(-50% - 1px));
+  }
+
+  /* The same centred column the page content uses ... */
+  .navRail {
+    flex: none;
+    width: var(--content-max-width);
+    margin: 0 auto;
+    padding-inline: var(--public-text-inset);
+  }
+
+  /* ... shifted left by the first item's own padding, so its *text* — not its
+     button box — starts on the column edge, level with the page headline. */
+  .nav {
+    transform: translateX(calc(-1 * var(--public-item-padding)));
+    overflow-x: visible;
+  }
+}
+
+@media (max-width: 640px) {
+  .inner {
+    gap: 12px;
+  }
+
+  .brandGlyph {
+    display: none;
+  }
+}

@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export type AppLanguage = "en" | "sv";
 
@@ -39,9 +41,12 @@ function resolveInitialLanguage(): AppLanguage {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("en");
 
-  useEffect(() => {
+  // Sync from storage as soon as we're on the client. Runs before paint via
+  // useLayoutEffect on the client; falls back to useEffect during SSR to avoid
+  // a hydration warning.
+  useIsomorphicLayoutEffect(() => {
     const initial = resolveInitialLanguage();
-    setLanguageState(initial);
+    setLanguageState((current) => (current === initial ? current : initial));
   }, []);
 
   useEffect(() => {

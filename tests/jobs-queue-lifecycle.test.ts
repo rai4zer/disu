@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { computeRetryDelayMs, nextStageForTerminalStatus, shouldRequeueRunningJob } from "../app/lib/jobs/lifecycle.ts";
+import {
+  computeRetryDelayMs,
+  isWithinIdempotencyWindow,
+  nextStageForTerminalStatus,
+  shouldRequeueRunningJob
+} from "../app/lib/jobs/lifecycle.ts";
 
 test("retry delay increases with attempts and caps at 10s", () => {
   assert.equal(computeRetryDelayMs(0), 2000);
@@ -57,4 +62,32 @@ test("recovery requeues invalid timestamps and forced mode", () => {
 test("terminal statuses map to lifecycle stages", () => {
   assert.equal(nextStageForTerminalStatus("succeeded"), "done");
   assert.equal(nextStageForTerminalStatus("failed"), "failed");
+});
+
+test("idempotency replay window accepts fresh keys and rejects stale/invalid timestamps", () => {
+  const nowMs = Date.parse("2026-03-02T10:00:00.000Z");
+  assert.equal(
+    isWithinIdempotencyWindow({
+      createdAt: "2026-03-02T09:30:00.000Z",
+      nowMs,
+      windowHours: 2
+    }),
+    true
+  );
+  assert.equal(
+    isWithinIdempotencyWindow({
+      createdAt: "2026-03-01T22:30:00.000Z",
+      nowMs,
+      windowHours: 2
+    }),
+    false
+  );
+  assert.equal(
+    isWithinIdempotencyWindow({
+      createdAt: null,
+      nowMs,
+      windowHours: 2
+    }),
+    false
+  );
 });

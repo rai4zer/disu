@@ -34,6 +34,9 @@ export function deriveArtifactsFromResult(input: {
     const firstRow = asRecord(rows[0]);
     const modelPath = typeof firstRow.model_path === "string" ? firstRow.model_path : "unknown";
     const ticker = typeof resultObj.ticker === "string" ? resultObj.ticker : String(firstRow.ticker ?? "UNKNOWN");
+    const meta = asRecord(resultObj.meta);
+    const modelVersion = typeof meta.modelVersion === "string" ? meta.modelVersion : "unknown";
+    const bridgeVersion = typeof meta.bridgeVersion === "string" ? meta.bridgeVersion : "unknown";
 
     return [
       {
@@ -43,7 +46,7 @@ export function deriveArtifactsFromResult(input: {
         artifactType: "quant_model",
         artifactPath: modelPath,
         contentHash: hashValue(`model:${modelPath}`),
-        metadata: { ticker }
+        metadata: { ticker, modelVersion, bridgeVersion }
       },
       {
         jobId: input.jobId,
@@ -52,7 +55,7 @@ export function deriveArtifactsFromResult(input: {
         artifactType: "quant_forecast_snapshot",
         artifactPath: `job://${input.jobId}/quant/forecast`,
         contentHash: hashValue(JSON.stringify(rows).slice(0, 16000)),
-        metadata: { ticker, rowCount: rows.length }
+        metadata: { ticker, rowCount: rows.length, modelVersion, bridgeVersion }
       },
       {
         jobId: input.jobId,
@@ -61,12 +64,16 @@ export function deriveArtifactsFromResult(input: {
         artifactType: "quant_history_snapshot",
         artifactPath: `job://${input.jobId}/quant/history`,
         contentHash: hashValue(JSON.stringify(history).slice(0, 16000)),
-        metadata: { ticker, pointCount: history.length }
+        metadata: { ticker, pointCount: history.length, modelVersion, bridgeVersion }
       }
     ];
   }
 
   const ticker = typeof resultObj.ticker === "string" ? resultObj.ticker : "UNKNOWN";
+  const meta = asRecord(resultObj.meta);
+  const pipelineVersion = typeof meta.pipelineVersion === "string" ? meta.pipelineVersion : "unknown";
+  const llmProvider = typeof meta.llmProvider === "string" ? meta.llmProvider : "unknown";
+  const llmModel = typeof meta.llmModel === "string" ? meta.llmModel : "unknown";
   const pdfPath = typeof resultObj.pdf_path === "string" ? resultObj.pdf_path : "";
   const primerText = typeof resultObj.primer_text === "string" ? resultObj.primer_text : "";
   const artifacts: Array<{
@@ -87,7 +94,7 @@ export function deriveArtifactsFromResult(input: {
       artifactType: "primer_pdf",
       artifactPath: pdfPath,
       contentHash: hashValue(`pdf:${pdfPath}`),
-      metadata: { ticker, form: resultObj.form ?? null, filingDate: resultObj.filing_date ?? null }
+      metadata: { ticker, form: resultObj.form ?? null, filingDate: resultObj.filing_date ?? null, pipelineVersion, llmProvider, llmModel }
     });
   }
 
@@ -98,7 +105,7 @@ export function deriveArtifactsFromResult(input: {
     artifactType: "primer_text",
     artifactPath: `job://${input.jobId}/primer/text`,
     contentHash: hashValue(primerText.slice(0, 20000)),
-    metadata: { ticker, textLength: primerText.length }
+    metadata: { ticker, textLength: primerText.length, pipelineVersion, llmProvider, llmModel }
   });
 
   return artifacts;

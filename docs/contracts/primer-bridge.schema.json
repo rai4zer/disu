@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://disu.local/contracts/primer-bridge.schema.json",
+  "title": "Primer Bridge Payload",
+  "description": "Payload emitted by python/src/filings/web_primer.py and consumed by app/lib/primers/executor.ts",
+  "type": "object",
+  "required": ["ok"],
+  "oneOf": [
+    {
+      "properties": {
+        "ok": { "const": true },
+        "ticker": { "type": "string", "minLength": 1 },
+        "pdf_path": { "type": "string" },
+        "pdf_abspath": { "type": "string" },
+        "form": { "type": ["string", "null"] },
+        "filing_date": { "type": ["string", "null"] },
+        "cache_dir": { "type": "string" },
+        "primer_text": { "type": "string" },
+        "cached": { "type": "boolean" }
+      },
+      "required": ["ok", "ticker", "pdf_path", "pdf_abspath", "cache_dir", "primer_text"],
+      "additionalProperties": true
+    },
+    {
+      "properties": {
+        "ok": { "const": false },
+        "error": { "type": "string", "minLength": 1 },
+        "traceback": { "type": "string" }
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": true
+    }
+  ],
+  "additionalProperties": true
+}

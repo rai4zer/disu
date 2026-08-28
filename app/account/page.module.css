@@ -1,0 +1,152 @@
+.page {
+  width: 100%;
+}
+
+.card {
+  display: grid;
+  gap: 8px;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.summary {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.summary dt {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+
+.summary dd {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.warn {
+  color: var(--warning-ink);
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+  max-width: 380px;
+}
+
+.field {
+  display: grid;
+  gap: 4px;
+}
+
+.field > span {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+
+.input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--navy) 24%, transparent);
+  outline-offset: 1px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.button,
+.dangerButton,
+.ghostButton {
+  border-radius: 999px;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  font-family: inherit;
+}
+
+.button {
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+}
+
+.button:hover {
+  border-color: color-mix(in srgb, var(--navy) 34%, var(--border-strong));
+}
+
+.dangerButton {
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border-strong));
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--ink);
+}
+
+.ghostButton {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink-soft);
+}
+
+.ghostButton:hover {
+  border-color: var(--border-strong);
+}
+
+.button:disabled,
+.dangerButton:disabled,
+.ghostButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger-ink);
+  font-size: 0.84rem;
+}
+
+.notice {
+  margin: 0;
+  color: var(--success-ink);
+  font-size: 0.84rem;
+}
+
+@media (max-width: 700px) {
+  .summary > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

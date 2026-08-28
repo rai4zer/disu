@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionFromRequest } from "@/app/lib/auth/session";
+import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { completeConnection } from "@/app/lib/brokers/store";
+import { recordFunnelEvent } from "@/app/lib/analytics/funnel-store";
 
 export async function POST(
   request: NextRequest,
   context: { params: { connectionId: string } }
 ) {
   try {
-    const session = getSessionFromRequest(request);
+    const session = await getAuthenticatedSession(request);
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -25,6 +26,12 @@ export async function POST(
     const connection = await completeConnection(session.userId, context.params.connectionId, {
       externalAccountId,
       consentExpiresAt: body.consentExpiresAt ?? null
+    });
+
+    void recordFunnelEvent(request, "broker_connect_complete", {
+      userId: session.userId,
+      path: "/portfolio",
+      properties: { broker: connection.broker, provider: "manual" }
     });
 
     return NextResponse.json({ connection });
