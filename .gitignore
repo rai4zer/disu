@@ -9,6 +9,8 @@ __pycache__/
 # Virtual environments
 .env
 .env.*
+# ...but the key-name-only template belongs in the repo.
+!.env.example
 .venv/
 venv/
 env/
