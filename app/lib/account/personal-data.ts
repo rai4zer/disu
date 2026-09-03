@@ -185,6 +185,20 @@ export const PERSONAL_DATA_TABLES: PersonalDataTable[] = [
       "`on delete restrict` — the database refuses to delete an admin who authored a release " +
       "note. Deliberate: company content must not vanish because a colleague left. Reassign " +
       "authorship first, then erase. Reported to the caller rather than silently failing."
+  },
+  {
+    table: "trading_accounts",
+    column: "user_id",
+    erasure: "blocks",
+    exportColumns: "id,account_type,currency,status,opened_at,closed_at",
+    note:
+      "A financial record cannot be erased on request. Swedish bokföringslag requires seven " +
+      "years of retention and MiFID II five on order records, and GDPR Art. 17(3)(b) is the " +
+      "exemption that permits keeping them. So `0022_trading_accounts.sql` deliberately omits " +
+      "`on delete cascade` here — the delete is refused and escalated to a human, rather than " +
+      "silently cascading away a statutory record. `partner_ref` is withheld from the export: " +
+      "it is an identifier in the partner's system, not information about the person. " +
+      "Scaffolding — the migration is written but not applied (docs/trading-platform.md §5)."
   }
 ];
 

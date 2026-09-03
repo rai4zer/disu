@@ -107,10 +107,19 @@ test("the export covers every table the register declares", async () => {
     const data = await exportAccountData(ALICE);
     const exported = new Set(data.sections.map((section) => `${section.table}.${section.linkedBy}`));
 
-    // Every register entry Alice actually has rows in must appear. release_notes
-    // is the exception — she authored none, and empty sections are omitted.
+    // Every register entry Alice actually has rows in must appear. Empty
+    // sections are omitted from an export, so a table the fixture deliberately
+    // gives her no rows in cannot be asserted on — each one is named here with
+    // its reason, so the exemption stays a decision rather than a blind spot.
+    const NO_FIXTURE_ROWS: Record<string, string> = {
+      release_notes: "Alice authored none; release notes are company content.",
+      trading_accounts:
+        "Scaffolding. 0022_trading_accounts.sql is written but deliberately not applied, " +
+        "so the table does not exist for the fixture to seed (docs/trading-platform.md §5)."
+    };
+
     for (const entry of PERSONAL_DATA_TABLES) {
-      if (entry.table === "release_notes") continue;
+      if (NO_FIXTURE_ROWS[entry.table]) continue;
       assert.ok(
         exported.has(`${entry.table}.${entry.column}`),
         `export is missing ${entry.table}.${entry.column}`
