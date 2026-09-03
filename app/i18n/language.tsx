@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
@@ -41,6 +41,12 @@ function resolveInitialLanguage(): AppLanguage {
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [language, setLanguageState] = useState<AppLanguage>("en");
 
+  // The persist effect must not run before the read below has landed, or the
+  // "en" the first render starts with is written straight over the stored
+  // choice — the language then resets on every reload. It is a preference, not
+  // a per-visit setting, so the first pass only reads.
+  const restored = useRef(false);
+
   // Sync from storage as soon as we're on the client. Runs before paint via
   // useLayoutEffect on the client; falls back to useEffect during SSR to avoid
   // a hydration warning.
@@ -51,6 +57,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") {
+      return;
+    }
+
+    if (!restored.current) {
+      restored.current = true;
+      // <html lang> is already correct: the inline script in the document head
+      // sets it from the same keys before first paint.
       return;
     }
 
