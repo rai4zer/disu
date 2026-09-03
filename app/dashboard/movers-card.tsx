@@ -28,6 +28,7 @@
  * (docs/synthetic-data-policy.md).
  */
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/app/i18n/language";
 import styles from "./page.module.css";
@@ -143,10 +144,10 @@ export default function MoversCard({
         {list.map((row) => (
           <li key={row.id}>
             <div className={`dsRow ${styles.moverRow}`}>
-              <span className="dsRowLabel">
+              <Link href={`/instrument/${encodeURIComponent(row.symbol)}`} className="dsRowLabel">
                 <span className="dsRowName">{row.symbol}</span>
                 <span className="dsRowMeta">{row.name === row.symbol ? "" : row.name}</span>
-              </span>
+              </Link>
               <span className="dsRowValue">
                 <span className={`dsNum ${row.amount > 0 ? styles.up : row.amount < 0 ? styles.down : styles.flat}`}>
                   {signedMoney(row.amount)}

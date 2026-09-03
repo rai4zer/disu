@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://disu.local/contracts/instrument-profile.schema.json",
+  "title": "Instrument Profile Bridge Payload",
+  "description": "Payload emitted by python/src/market/instrument.py and consumed by app/lib/market/instrument-bridge.ts. Backs the instrument detail page's four tabs. Every section is optional and `sections` says which ones resolved: measured 2026-09-03, only EQUITY carries financials and analyst coverage, and an index returns no news either.",
+  "type": "object",
+  "required": ["ok"],
+  "oneOf": [
+    {
+      "required": ["ok", "symbol", "profile", "sections"],
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": true },
+        "symbol": { "type": "string", "minLength": 1 },
+        "profile": {
+          "type": "object",
+          "description": "The overview tab. Every field is nullable: this is a feed, not a filing, and a field it did not supply is omitted from the UI rather than guessed.",
+          "properties": {
+            "name": { "type": ["string", "null"] },
+            "quoteType": {
+              "type": ["string", "null"],
+              "description": "EQUITY | INDEX | FUTURE | CURRENCY | CRYPTOCURRENCY. The discriminator that decides which tabs can exist."
+            },
+            "exchange": { "type": ["string", "null"] },
+            "currency": { "type": ["string", "null"] },
+            "summary": {
+              "type": ["string", "null"],
+              "description": "The issuer's own business description, passed through unedited. Never paraphrased or model-generated — a plausible description nobody can audit is the failure mode docs/synthetic-data-policy.md exists to prevent."
+            },
+            "sector": { "type": ["string", "null"] },
+            "industry": { "type": ["string", "null"] },
+            "website": { "type": ["string", "null"] },
+            "country": { "type": ["string", "null"] },
+            "employees": { "type": ["number", "null"] },
+            "ceo": {
+              "type": ["string", "null"],
+              "description": "null where the feed lists no chief executive — Apple's officer list is one such case. Not inferred from seniority."
+            },
+            "marketCap": { "type": ["number", "null"] },
+            "sharesOutstanding": { "type": ["number", "null"] },
+            "peRatio": { "type": ["number", "null"] },
+            "forwardPe": { "type": ["number", "null"] },
+            "priceToBook": { "type": ["number", "null"] },
+            "eps": { "type": ["number", "null"] },
+            "dividendYield": { "type": ["number", "null"] },
+            "beta": { "type": ["number", "null"] },
+            "fiftyTwoWeekHigh": { "type": ["number", "null"] },
+            "fiftyTwoWeekLow": { "type": ["number", "null"] }
+          },
+          "additionalProperties": false
+        },
+        "financials": {
+          "type": ["object", "null"],
+          "description": "EQUITY only. Periods run oldest-first, matching the bar charts that read left to right.",
+          "properties": {
+            "income": { "$ref": "#/$defs/statement" },
+            "balance": { "$ref": "#/$defs/statement" }
+          },
+          "additionalProperties": false
+        },
+        "news": {
+          "type": "array",
+          "description": "Headline, publisher, timestamp and link only. Deliberately no summary or sentiment: characterising someone else's story next to our price chart attributes an editorial claim to us.",
+          "items": {
+            "type": "object",
+            "required": ["title"],
+            "properties": {
+              "title": { "type": "string", "minLength": 1 },
+              "publisher": { "type": ["string", "null"] },
+              "publishedAt": { "type": ["string", "null"] },
+              "link": { "type": ["string", "null"] }
+            },
+            "additionalProperties": false
+          }
+        },
+        "analysts": {
+          "type": ["object", "null"],
+          "description": "null when nobody covers the instrument — not an empty spread, which would read as unanimous indifference rather than absence of coverage.",
+          "properties": {
+            "recommendations": {
+              "type": "object",
+              "properties": {
+                "strongBuy": { "type": "integer", "minimum": 0 },
+                "buy": { "type": "integer", "minimum": 0 },
+                "hold": { "type": "integer", "minimum": 0 },
+                "sell": { "type": "integer", "minimum": 0 },
+                "strongSell": { "type": "integer", "minimum": 0 }
+              },
+              "additionalProperties": false
+            },
+            "analystCount": { "type": "integer", "minimum": 0 },
+            "priceTarget": {
+              "type": "object",
+              "description": "Present only when both `low` and `high` resolved — a lone bound is not a range and would render as a point estimate no analyst gave.",
+              "properties": {
+                "current": { "type": "number", "exclusiveMinimum": 0 },
+                "low": { "type": "number", "exclusiveMinimum": 0 },
+                "high": { "type": "number", "exclusiveMinimum": 0 },
+                "mean": { "type": "number", "exclusiveMinimum": 0 },
+                "median": { "type": "number", "exclusiveMinimum": 0 }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        },
+        "sections": {
+          "type": "object",
+          "description": "Which tabs the page may render. Decided here rather than inferred in the UI so a single rule governs it and the UI cannot disagree with the payload.",
+          "required": ["overview", "kpi", "news", "analysts"],
+          "properties": {
+            "overview": { "type": "boolean" },
+            "kpi": { "type": "boolean" },
+            "news": { "type": "boolean" },
+            "analysts": { "type": "boolean" }
+          },
+          "additionalProperties": false
+        },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "bridgeVersion": { "type": "string" },
+            "elapsedMs": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    {
+      "required": ["ok", "error"],
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": false },
+        "error": { "type": "string", "minLength": 1 },
+        "traceback": { "type": "string" }
+      }
+    }
+  ],
+  "$defs": {
+    "statement": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["period"],
+        "description": "A line the filer did not report is absent from the period rather than zero: on a bar chart a zero bar and a missing bar look identical and mean opposite things.",
+        "properties": {
+          "period": { "type": "string", "minLength": 4 },
+          "revenue": { "type": "number" },
+          "grossProfit": { "type": "number" },
+          "operatingIncome": { "type": "number" },
+          "netIncome": { "type": "number" },
+          "assets": { "type": "number" },
+          "equity": { "type": "number" },
+          "debt": { "type": "number" },
+          "liabilities": { "type": "number" }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

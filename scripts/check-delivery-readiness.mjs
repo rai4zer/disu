@@ -451,8 +451,19 @@ if (existsSync(appDir)) {
   const sources = new Map(files.map((file) => [file, readFileSync(file, 'utf8')]));
   // Comments stripped: a doc comment that *mentions* node:fs (ticker-currency.ts
   // explains this very bug) is not an import.
+  // Two things are removed before scanning. Comments, because a doc comment
+  // that *mentions* node:fs (ticker-currency.ts explains this very bug) is not
+  // an import. And `import type` / `export type` statements, because the
+  // compiler erases them entirely -- they cannot put anything in a bundle, and
+  // flagging them makes the gate cry wolf, which is how a gate gets disabled.
   const stripped = new Map(
-    [...sources].map(([file, src]) => [file, src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')])
+    [...sources].map(([file, src]) => [
+      file,
+      src
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '')
+        .replace(/\b(?:import|export)\s+type\s+[^;]*?from\s*["'][^"']+["']/g, '')
+    ])
   );
 
   const resolveSpec = (spec, from) => {

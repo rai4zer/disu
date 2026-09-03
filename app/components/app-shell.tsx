@@ -27,7 +27,7 @@ type NavItem = {
 // session" — /help, /legal, /learn and /primers are public and are deliberately
 // not in the middleware matcher, but they still get chrome (the signed-out
 // variant below) because a visitor can reach them before signing up.
-const PROTECTED_PREFIXES = ["/profile", "/account", "/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/legal", "/filings-primers", "/placera"];
+const PROTECTED_PREFIXES = ["/profile", "/account", "/instrument", "/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/legal", "/filings-primers", "/placera"];
 
 function shouldUseShell(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

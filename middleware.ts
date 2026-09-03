@@ -43,6 +43,7 @@ export const config = {
   // Only /help/release-notes is gated inside /help.
   matcher: [
     "/profile/:path*",
+    "/instrument/:path*",
     "/account/:path*",
     "/dashboard/:path*",
     "/portfolio/:path*",
@@ -52,6 +53,7 @@ export const config = {
     "/placera/:path*",
     "/help/release-notes/:path*",
     "/api/brokers/:path*",
+    "/api/instruments/:path*",
     "/api/portfolio/:path*",
     "/api/quant/:path*",
     "/api/filings-primers/:path*",

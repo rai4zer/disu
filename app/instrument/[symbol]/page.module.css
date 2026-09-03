@@ -1,0 +1,404 @@
+/* Instrument detail page.
+ *
+ * Built on the --ds-* tokens from app/design-system.css: separation comes from
+ * elevation and spacing, not outlines, and a real border is reserved for inputs
+ * and focus rings. Nothing here hardcodes a colour. */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-lg);
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-sm);
+}
+
+.crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: var(--ds-radius-pill, 999px);
+  background: var(--ds-surface-sunken);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.chartCard {
+  border-radius: var(--ds-radius-md, 18px);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-shadow-card);
+  padding: var(--ds-gap-md);
+}
+
+/* --- tabs --------------------------------------------------------------- */
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  flex: 0 0 auto;
+  padding: 10px 18px;
+  border: 0;
+  border-radius: var(--ds-radius-sm, 12px);
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: var(--ds-surface-sunken);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.tabActive {
+  background: var(--ds-surface-raised);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--ds-shadow-card);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-lg);
+  border-radius: var(--ds-radius-md, 18px);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-shadow-card);
+  padding: var(--ds-gap-lg);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-md);
+}
+
+.section h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.summary {
+  margin: 0;
+  max-width: 68ch;
+  line-height: 1.65;
+  color: var(--ink-soft);
+}
+
+.expand {
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: var(--ds-radius-pill, 999px);
+  background: var(--ds-surface-sunken);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.expand:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --- fact list ---------------------------------------------------------- */
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2px var(--ds-gap-xl);
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+}
+
+.fact + .fact {
+  box-shadow: inset 0 1px 0 var(--ds-hairline);
+}
+
+.fact dt {
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.fact dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+}
+
+.fact dd a {
+  color: var(--accent);
+}
+
+/* --- statement chart ---------------------------------------------------- */
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-md);
+}
+
+.chartPlot {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--ds-gap-md);
+  min-height: 200px;
+  overflow-x: auto;
+  padding-top: 8px;
+}
+
+.chartGroup {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 56px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.chartBars {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+  height: 176px;
+}
+
+/* A bar is only drawn for a value that exists. A period missing a series has no
+   element here at all — a zero-height bar would look like a reported zero. */
+.bar {
+  flex: 1 1 0;
+  max-width: 18px;
+  border-radius: 3px 3px 0 0;
+  min-height: 2px;
+}
+
+.chartLabel {
+  font-size: 11px;
+  color: var(--ink-muted);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ds-gap-md);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.seriesA {
+  background: var(--success);
+}
+
+.seriesB {
+  background: var(--accent);
+}
+
+.seriesC {
+  background: var(--warning);
+}
+
+/* --- news --------------------------------------------------------------- */
+
+.news {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.newsItem {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+}
+
+.newsItem + .newsItem {
+  box-shadow: inset 0 1px 0 var(--ds-hairline);
+}
+
+.newsMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.publisher {
+  font-weight: 600;
+}
+
+.newsTitle {
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.newsTitle:hover {
+  text-decoration: underline;
+}
+
+/* --- analysts ----------------------------------------------------------- */
+
+.disclaimer {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ink-muted);
+}
+
+.recs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.recs li {
+  display: grid;
+  grid-template-columns: 110px 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.recLabel {
+  color: var(--ink-soft);
+}
+
+.recTrack {
+  height: 8px;
+  border-radius: var(--ds-radius-pill, 999px);
+  background: var(--ds-surface-sunken);
+  overflow: hidden;
+}
+
+.recFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--success);
+}
+
+.recCount {
+  text-align: right;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+/* --- error -------------------------------------------------------------- */
+
+.errorBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--ds-gap-md);
+}
+
+.retry {
+  padding: 8px 18px;
+  border: 0;
+  border-radius: var(--ds-radius-pill, 999px);
+  background: var(--ds-surface-sunken);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.retry:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .recs li {
+    grid-template-columns: 88px 1fr 36px;
+  }
+}
