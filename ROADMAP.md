@@ -18,12 +18,14 @@
 item here is done, tick it here and write the finding in its § section. M0 is the only open
 gate — 10 of its 16 blocking items are closed (§13).*
 
-**Tree state 2026-08-30:** `typecheck` green, `check:delivery` green, `test:unit` **red**
-(254/255). Large uncommitted body of new pages/modules in the tree, off the M0 path.
+**Tree state 2026-09-03:** `typecheck`, `check:delivery` and `test:unit` (256/256) all green.
+The uncommitted body of new pages/modules is committed on `feature/product-surface-rework`
+and off `main`, which stays on the M0 path (§5).
 
 ### 0 — Broken now
 
-- [ ] Quant mock snapshot hash drift blocks `npm run ci` — `tests/jobs-bridge-regression.test.ts:94`
+Nothing. The quant mock snapshot hash drift that blocked `npm run ci`
+(`tests/jobs-bridge-regression.test.ts`) no longer reproduces.
 
 ### 1 — External setup: accounts, keys, vendors (not code)
 
@@ -75,15 +77,17 @@ The friction inventory of §9.8. Six rows are pure code.
 | 4.5 | Make average cost optional, prompt later | add-position form |
 | 4.6 | Open primers, ticker pages and learn to signed-out visitors | `middleware.ts` matcher |
 | 4.7 | Logged-out value: public primers + a locally saved portfolio | landing page |
-| 4.8 | Label market data "delayed 15 min" — the framing that justifies not paying for real-time | market strip |
+| 4.8 | Label market data — **regressed 2026-09-03**, the strip's provenance badge was removed and it now reads no `source`/`stale`/`asOf` at all, so nine index levels render with no indication of whether they are current or retained. Note the wording constraint: "delayed 15 min" is contractual language belonging to a licensed feed, so the label cannot name a figure until D2 is signed. Needs a home — tooltip, `aria-label`, or the market page | market strip |
 | 4.9 | Full mobile pass | deferred to M2 |
 
 ### 5 — Housekeeping
 
-- [ ] Triage the uncommitted tree: dashboard cards, portfolio analysis/calendar/positions tabs,
-      `app/design-system.css`, price export, Placera lib, trading scaffolding and
-      `db/migrations/0022_trading_accounts.sql`. It typechecks and its tests pass, but §2.9 cuts
-      new pages and new modules from M0 — commit or shelve deliberately.
+- [x] Triage the uncommitted tree *(done 2026-09-03 — 15 commits on
+      `feature/product-surface-rework`, verified green in an isolated worktree. Shelved rather
+      than merged: §2.9 cuts new pages and new modules from M0, and all of it is that.
+      `db/migrations/0022_trading_accounts.sql` is committed and still **unapplied**.)*
+- [ ] `tsconfig.tsbuildinfo` is tracked but is a build artifact — gitignore it and untrack it,
+      or it conflicts on every branch switch.
 
 ### Locked
 
