@@ -13,18 +13,6 @@ html.glass-enabled {
   --glass-button-border: rgba(20, 28, 45, 0.06);
 }
 
-html.glass-enabled[data-theme="dark"] {
-  --glass-border: 1px solid var(--panel-border);
-  --glass-panel-bg: rgba(20, 24, 36, 0.18);
-  --glass-panel-bg-strong: rgba(255, 255, 255, 0.08);
-  --glass-surface-soft: rgba(24, 28, 40, 0.26);
-  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 64px rgba(0, 0, 0, 0.38);
-  --glass-button-bg: rgba(255, 255, 255, 0.08);
-  --glass-button-bg-hover: rgba(255, 255, 255, 0.14);
-  --glass-button-text: var(--ink);
-  --glass-button-border: rgba(255, 255, 255, 0.1);
-}
-
 html.glass-enabled body {
   font-family: var(--font-sans);
   background: transparent;
@@ -150,20 +138,8 @@ html.glass-enabled [class*="app-shell_navItem"]:hover {
   background: var(--glass-surface-soft);
 }
 
-html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"] {
-  border-color: transparent;
-  background: transparent;
-  box-shadow: none;
-}
-
-html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"]:hover {
-  border-color: var(--glass-button-border);
-  background: rgba(255, 255, 255, 0.08);
-}
-
 /* Active nav reads as a solid accent pill, as in riddermarkOS. */
-html.glass-enabled [class*="app-shell_navItemActive"],
-html.glass-enabled[data-theme="dark"] [class*="app-shell_navItemActive"] {
+html.glass-enabled [class*="app-shell_navItemActive"] {
   border-color: transparent;
   background: var(--accent);
   color: #ffffff;
@@ -198,35 +174,35 @@ html.glass-enabled [class*="app-footer_disclaimer"] {
   -webkit-backdrop-filter: blur(12px) saturate(125%);
 }
 
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] {
+html.glass-enabled [class*="app-footer_disclaimer"] {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.72);
 }
 
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] h2,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] p,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] li {
+html.glass-enabled [class*="app-footer_disclaimer"] h2,
+html.glass-enabled [class*="app-footer_disclaimer"] p,
+html.glass-enabled [class*="app-footer_disclaimer"] li {
   color: var(--ink-soft);
 }
 
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_footer"] {
+html.glass-enabled [class*="app-footer_footer"] {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.66);
 }
 
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] h3,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] a,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] span,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] a,
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] span,
+html.glass-enabled [class*="app-footer_columns"] h3,
+html.glass-enabled [class*="app-footer_columns"] a,
+html.glass-enabled [class*="app-footer_columns"] span,
+html.glass-enabled [class*="app-footer_legal"] a,
+html.glass-enabled [class*="app-footer_legal"] span,
 /* The consent-withdrawal control is a button, not a link, and must not be
    quieter than the links beside it — a faded "Cookie settings" is the asymmetry
    that makes the consent unreliable (GDPR Art. 7(3)). */
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legalButton"] {
+html.glass-enabled [class*="app-footer_legalButton"] {
   color: var(--ink-soft);
 }
 
-html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] {
+html.glass-enabled [class*="app-footer_legal"] {
   border-top-color: var(--border-strong);
 }
 

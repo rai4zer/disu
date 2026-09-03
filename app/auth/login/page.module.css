@@ -90,7 +90,6 @@
   gap: 12px;
 }
 
-
 .input {
   width: 100%;
   padding: 13px 16px;
@@ -123,14 +122,6 @@
   box-shadow: 0 0 0 1000px transparent inset;
   -webkit-text-fill-color: var(--ink);
   transition: background-color 9999s ease-in-out 0s;
-}
-
-html[data-theme="dark"] .input:-webkit-autofill,
-html[data-theme="dark"] .input:-webkit-autofill:hover,
-html[data-theme="dark"] .input:-webkit-autofill:focus {
-  -webkit-box-shadow: 0 0 0 1000px #0a101c inset;
-  box-shadow: 0 0 0 1000px #0a101c inset;
-  -webkit-text-fill-color: var(--ink);
 }
 
 .forgotLink {
@@ -316,16 +307,6 @@ html[data-theme="dark"] .input:-webkit-autofill:focus {
   opacity: 0.45;
   box-shadow: none;
   cursor: default;
-}
-
-/* On a near-black surface a coloured drop shadow reads as a glow, so the lift
-   comes down to a hint. */
-html[data-theme="dark"] .primary {
-  box-shadow: 0 10px 26px -18px color-mix(in srgb, var(--cta-bg) 60%, transparent);
-}
-
-html[data-theme="dark"] .primary:hover:not(:disabled) {
-  box-shadow: 0 14px 32px -18px color-mix(in srgb, var(--cta-bg) 60%, transparent);
 }
 
 .backWrap {

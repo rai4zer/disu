@@ -33,9 +33,3 @@
   white-space: nowrap;
   border: 0;
 }
-
-:global(html[data-theme="dark"]) .toggle {
-  background: var(--surface-elevated);
-  color: var(--ink);
-  border-color: color-mix(in srgb, var(--border-strong) 90%, transparent);
-}

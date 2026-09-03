@@ -1,0 +1,379 @@
+/**
+ * DISU design system — the shared surface language for every module.
+ *
+ * Why this file exists: each module had grown its own card, its own border and
+ * its own radius, so Dashboard, Quant, Primers, Portfolio and Sentiment read as
+ * five products. The revamp brief was "consistent and Apple-like, remove the
+ * non-intuitive borders", and both halves of that are one problem — the boxes
+ * looked boxy *because* every panel drew a 1px line around itself and then
+ * nested another one inside it.
+ *
+ * The rule this file encodes: **separation comes from elevation and spacing,
+ * not from outlines.** A surface is told apart from the one behind it by a
+ * lighter fill, a soft shadow and a hairline top highlight — the same way macOS
+ * and iOS separate a sheet from its background. A real 1px border is reserved
+ * for the two cases where it means something: an input (which must look
+ * editable) and a focus ring (which must be unmissable).
+ *
+ * Tokens come from globals.css. Nothing here hardcodes a colour that would
+ * break in the other theme; every value is derived with color-mix from the
+ * theme's own surface and ink so light and dark stay in step automatically.
+ */
+
+:root {
+  /* One radius scale, used everywhere. Apple's curvature is continuous and
+     generous — small elements get 10-12px, cards get 18px, sheets get 24px. */
+  --ds-radius-xs: 8px;
+  --ds-radius-sm: 12px;
+  --ds-radius-md: 18px;
+  --ds-radius-lg: 24px;
+  --ds-radius-pill: 999px;
+
+  /* The spacing rhythm. Every gap in the app should be one of these. */
+  --ds-gap-xs: 6px;
+  --ds-gap-sm: 10px;
+  --ds-gap-md: 16px;
+  --ds-gap-lg: 22px;
+  --ds-gap-xl: 32px;
+
+  /* Surfaces. `raised` sits on the page, `sunken` sits inside a raised card —
+     the inner one is *darker* than its parent in light mode and lighter in
+     dark, which is what makes nesting readable without an outline. */
+  --ds-surface-raised: color-mix(in srgb, var(--surface-elevated-strong) 96%, var(--ink) 4%);
+  --ds-surface-sunken: color-mix(in srgb, var(--surface-soft) 88%, var(--ink) 3%);
+  --ds-surface-hover: color-mix(in srgb, var(--surface-elevated-strong) 88%, var(--accent) 6%);
+
+  /* The hairline. Not a border — a 1px inset highlight along the top edge that
+     reads as a lit surface rather than a drawn box. */
+  --ds-hairline: inset 0 1px 0 color-mix(in srgb, #ffffff 70%, transparent);
+  --ds-shadow-card: 0 1px 2px rgba(10, 16, 28, 0.04), 0 8px 24px rgba(10, 16, 28, 0.05);
+  --ds-shadow-lift: 0 2px 6px rgba(10, 16, 28, 0.06), 0 18px 44px rgba(10, 16, 28, 0.09);
+
+  /* Apple's standard easing. Used for every transition in the app so motion
+     feels like it comes from one hand. */
+  --ds-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --ds-fast: 180ms;
+  --ds-slow: 420ms;
+}
+
+/* ---------------------------------------------------------------- cards --- */
+
+/**
+ * The one card. Every module's panels are this, so a Quant panel and a
+ * Dashboard panel are physically the same object.
+ */
+.dsCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: none;
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-hairline), var(--ds-shadow-card);
+  padding: var(--ds-gap-lg);
+  transition: box-shadow var(--ds-fast) var(--ds-ease), transform var(--ds-fast) var(--ds-ease);
+}
+
+/** A card the whole of which is a link or button. */
+.dsCardInteractive {
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  appearance: none;
+}
+
+.dsCardInteractive:hover {
+  box-shadow: var(--ds-hairline), var(--ds-shadow-lift);
+  transform: translateY(-2px);
+}
+
+.dsCardInteractive:active {
+  transform: translateY(0);
+}
+
+/**
+ * A nested region inside a card. Sunken rather than outlined — this is the
+ * replacement for the `border: 1px solid var(--border)` that used to wrap every
+ * inner block and produce the boxiness the revamp is removing.
+ */
+.dsWell {
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sunken);
+  padding: var(--ds-gap-md);
+}
+
+.dsCardHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--ds-gap-sm);
+  margin-bottom: var(--ds-gap-md);
+}
+
+/**
+ * Section labels. Uppercase, tracked out, muted — the iOS grouped-table header.
+ * It carries the hierarchy that the removed borders used to carry.
+ */
+.dsCardTitle {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.dsCardAction {
+  font-size: 0.82rem;
+  font-weight: 560;
+  color: var(--accent);
+  text-decoration: none;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.dsCardAction:hover {
+  text-decoration: underline;
+}
+
+/* ----------------------------------------------------------------- rows --- */
+
+/**
+ * The grouped list. Rows are separated by an inset hairline that stops short of
+ * the card edge (iOS inset-grouped tables), and the last row has none — so the
+ * list ends with space, not with a line.
+ */
+.dsRows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.dsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-gap-sm);
+  padding: 11px 0;
+  min-width: 0;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
+}
+
+.dsRows > :last-child .dsRow,
+.dsRow:last-child {
+  box-shadow: none;
+}
+
+.dsRowLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.dsRowName {
+  font-size: 0.9rem;
+  font-weight: 560;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dsRowMeta {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dsRowValue {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* Tabular figures so columns of numbers line up on the decimal. */
+.dsNum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  font-size: 0.9rem;
+  font-weight: 560;
+  color: var(--ink);
+}
+
+/* --------------------------------------------------------------- deltas --- */
+
+/**
+ * A signed change. The tint is carried on a pill rather than on bare text: at
+ * 0.76rem a coloured number on a coloured card is the first thing to fail
+ * contrast, and the pill gives the colour a surface of its own to sit on.
+ */
+.dsDelta {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.78rem;
+  font-weight: 590;
+  padding: 2px 7px;
+  border-radius: var(--ds-radius-xs);
+  white-space: nowrap;
+}
+
+.dsUp {
+  color: var(--success-ink);
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+}
+
+.dsDown {
+  color: var(--danger-ink);
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
+}
+
+/* Unknown is not zero and must not look like a reading (docs/synthetic-data-policy.md). */
+.dsFlat {
+  color: var(--ink-muted);
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+}
+
+/* -------------------------------------------------------------- controls --- */
+
+/**
+ * The segmented control. One sunken track, an opaque thumb on the selected
+ * segment — the iOS/macOS picker. Replaces the rows of bordered toggle buttons
+ * in Quant.
+ */
+.dsSegmented {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sunken);
+}
+
+.dsSegment {
+  border: none;
+  background: none;
+  border-radius: 9px;
+  padding: 6px 13px;
+  font-size: 0.82rem;
+  font-weight: 560;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background var(--ds-fast) var(--ds-ease), color var(--ds-fast) var(--ds-ease);
+}
+
+.dsSegment:hover {
+  color: var(--ink);
+}
+
+.dsSegmentActive {
+  background: var(--surface-elevated-strong);
+  color: var(--ink);
+  box-shadow: 0 1px 3px rgba(10, 16, 28, 0.14);
+}
+
+/** The search field. Sunken capsule, no outline until focus. */
+.dsSearch {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-sm);
+  border: none;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-sunken);
+  padding: 0 6px 0 16px;
+  transition: box-shadow var(--ds-fast) var(--ds-ease), background var(--ds-fast) var(--ds-ease);
+}
+
+.dsSearch:focus-within {
+  background: var(--surface-elevated-strong);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.dsSearchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.98rem;
+  padding: 13px 0;
+}
+
+.dsSearchInput::placeholder {
+  color: var(--ink-muted);
+}
+
+/** A chip / tag. */
+.dsChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-sunken);
+  color: var(--ink-soft);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 560;
+  cursor: pointer;
+  transition: background var(--ds-fast) var(--ds-ease), transform var(--ds-fast) var(--ds-ease);
+}
+
+.dsChip:hover {
+  background: var(--ds-surface-hover);
+  transform: translateY(-1px);
+}
+
+.dsChipActive {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+/* --------------------------------------------------------------- layout --- */
+
+/**
+ * The elongated-card rail: cards side by side, each one tall and narrow, all
+ * the same height, wrapping to the next line when the viewport runs out.
+ * `--ds-rail-min` is the point at which a card would rather wrap than squeeze.
+ */
+.dsRail {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(var(--ds-rail-min, 250px), 1fr));
+  gap: var(--ds-gap-md);
+  align-items: stretch;
+  min-width: 0;
+}
+
+/* Focus, once, for everything. */
+.dsCard:focus-visible,
+.dsChip:focus-visible,
+.dsSegment:focus-visible,
+.dsCardAction:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 32%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dsCard,
+  .dsChip,
+  .dsSegment,
+  .dsSearch {
+    transition: none;
+  }
+
+  .dsCardInteractive:hover {
+    transform: none;
+  }
+}

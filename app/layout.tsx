@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./design-system.css";
 import "./theme-glass.css";
 import "@fontsource/noto-sans-cuneiform/400.css";
 import type { Metadata } from "next";
@@ -39,9 +40,14 @@ export default async function RootLayout({
   return (
     <html lang="en" className={GLASS_ENABLED ? "glass-enabled" : undefined}>
       <head>
+        {/* Sets <html lang> before paint so the document reports the stored
+            language rather than flipping once LanguageProvider hydrates.
+            There is no theme to restore — the app is light-mode only — so the
+            keys the old toggle wrote are dropped here instead, otherwise
+            browsers keep a preference the cookie inventory no longer lists. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var ls=window.localStorage;var t=ls.getItem("theme")||ls.getItem("placera-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);var l=ls.getItem("app_language")||ls.getItem("home_language");if(l==="en"||l==="sv"){document.documentElement.lang=l;}}catch(e){}})();`
+            __html: `(function(){try{var ls=window.localStorage;ls.removeItem("theme");ls.removeItem("placera-theme");var l=ls.getItem("app_language")||ls.getItem("home_language");if(l==="en"||l==="sv"){document.documentElement.lang=l;}}catch(e){}})();`
           }}
         />
       </head>
