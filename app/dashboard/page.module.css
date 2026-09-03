@@ -1,93 +1,659 @@
+/**
+ * Dashboard layout.
+ *
+ * The card surface itself comes from `.dsCard` in design-system.css — nothing
+ * here redraws a panel, a border or a radius. What is left in this file is
+ * genuinely page-specific: how the KPI tiles and the market rail are arranged,
+ * and the few type sizes that are larger here than anywhere else because this
+ * is where the headline number lives.
+ */
+
 .page {
+  padding-bottom: 48px;
+}
+
+/* ------------------------------------------------------------- first run --- */
+
+.firstRun {
+  gap: var(--ds-gap-sm);
+  align-items: flex-start;
+}
+
+.firstRunTitle {
+  margin: 0;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.firstRunLead {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--ink-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.firstRunActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  margin-top: var(--ds-gap-xs);
+}
+
+.firstRunLink {
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 560;
+  text-decoration: none;
+}
+
+.firstRunLink:hover {
+  text-decoration: underline;
+}
+
+/* A flagged, not-hidden warning that some prices are placeholders. Tinted
+   rather than outlined, like every other advisory surface in the app. */
+.syntheticNotice {
+  margin: 0;
+  border-radius: var(--ds-radius-sm);
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning-ink);
+  padding: 11px 15px;
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
+/* ------------------------------------------------------------------ hero --- */
+
+/**
+ * Value, movers, shortcuts. The value card is widest because it holds a chart;
+ * the shortcuts column is narrowest because it holds four tiles and a link.
+ */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.05fr) minmax(230px, 0.7fr);
+  gap: var(--ds-gap-md);
+  align-items: stretch;
+}
+
+/* ------------------------------------------------------------ value card --- */
+
+.valueCard {
+  padding-bottom: 0;
+  overflow: hidden;
+  /* The sparkline draws in `currentColor`, so the card's own colour tints the
+     line and its fill together. */
+  color: var(--accent);
+}
+
+.trend_up {
+  color: var(--success-ink);
+}
+
+.trend_down {
+  color: var(--danger-ink);
+}
+
+.valueHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--ds-gap-lg);
+}
+
+.valueBlock {
+  min-width: 0;
+}
+
+/**
+ * The year figure sits behind a divider — an inset hairline rather than a
+ * border, matching the reference layout where the two numbers share one card
+ * but answer different questions.
+ */
+.valueBlockSplit {
+  padding-left: var(--ds-gap-lg);
+  box-shadow: inset 1px 0 0 color-mix(in srgb, var(--ink) 9%, transparent);
+}
+
+.valueFigure {
+  margin: 6px 0 0;
+  font-size: clamp(1.7rem, 3vw, 2.4rem);
+  font-weight: 640;
+  letter-spacing: -0.028em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.valueDelta {
+  margin: 6px 0 0;
+  font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+  font-weight: 630;
+  letter-spacing: -0.022em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.valueUnavailable {
+  margin: 6px 0 0;
+  font-size: clamp(1.35rem, 2.3vw, 1.85rem);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+/* The period this actually measures. Small, but it is what keeps the figure
+   above it honest — see the note in value-card.tsx. */
+.valueSince {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  font-variant-numeric: tabular-nums;
+}
+
+.spark {
+  margin: var(--ds-gap-md) calc(var(--ds-gap-lg) * -1) 0;
+  height: 128px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sparkSvg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sparkEmpty {
+  margin: 0 var(--ds-gap-lg) var(--ds-gap-lg);
+  align-self: center;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+/* ----------------------------------------------------------- movers card --- */
+
+.moversCard {
+  gap: var(--ds-gap-xs);
+}
+
+.moversGroup + .moversGroup {
+  margin-top: var(--ds-gap-md);
+}
+
+.moversHeading {
+  margin: 0 0 2px;
+  font-size: 0.78rem;
+  font-weight: 590;
+  color: var(--ink-soft);
+}
+
+.moverRow {
+  padding: 8px 0;
+}
+
+.moversEmpty {
+  margin: 0;
+  padding: 8px 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+}
+
+.moversNote {
+  margin: var(--ds-gap-md) 0 0;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+/* -------------------------------------------------------- shortcuts card --- */
+
+.shortcutsCard {
+  gap: var(--ds-gap-sm);
+}
+
+.shortcutGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 14px 8px;
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sunken);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--ds-fast) var(--ds-ease), transform var(--ds-fast) var(--ds-ease);
+}
+
+.shortcut:hover {
+  background: var(--ds-surface-hover);
+  transform: translateY(-1px);
+}
+
+.shortcutIcon {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  color: var(--accent);
+}
+
+.shortcutIcon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.shortcutLabel {
+  font-size: 0.74rem;
+  font-weight: 550;
+  line-height: 1.25;
+}
+
+.allShortcuts {
+  margin-top: 2px;
+  border: none;
+  background: none;
+  padding: 8px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 570;
+  cursor: pointer;
+  border-radius: var(--ds-radius-xs);
+}
+
+.allShortcuts:hover {
+  background: var(--ds-surface-sunken);
+}
+
+/* --------------------------------------------------------------- sheet --- */
+
+.sheetScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in srgb, #0a1018 42%, transparent);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  display: flex;
+  justify-content: flex-end;
+  animation: scrimIn 220ms var(--ds-ease);
+}
+
+.sheet {
+  width: min(460px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--surface-elevated-strong);
+  box-shadow: -20px 0 60px rgba(8, 15, 28, 0.22);
+  animation: sheetIn 320ms var(--ds-ease);
+  outline: none;
+}
+
+@keyframes scrimIn {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes sheetIn {
+  from {
+    transform: translateX(100%);
+  }
+}
+
+.sheetHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-gap-sm);
+  padding: var(--ds-gap-lg) var(--ds-gap-lg) var(--ds-gap-md);
+  background: var(--surface-elevated-strong);
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 620;
+  letter-spacing: -0.014em;
+}
+
+.sheetClose {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 50%;
+  background: var(--ds-surface-sunken);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.sheetClose:hover {
+  background: var(--ds-surface-hover);
+  color: var(--ink);
+}
+
+.sheetClose svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.sheetBody {
+  padding: 0 var(--ds-gap-lg) var(--ds-gap-xl);
+}
+
+.sheetGroup + .sheetGroup {
+  margin-top: var(--ds-gap-lg);
+}
+
+.sheetGroupHeading {
+  margin: 0 0 4px;
+  font-size: 0.72rem;
+  font-weight: 590;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.sheetRows {
+  list-style: none;
   margin: 0;
   padding: 0;
 }
 
-/* One vertical rhythm for the whole overview: the cards do the separating, so
-   nothing here needs a rule or a heading to sit under. */
-.kpis,
-.holdings,
-.detail {
-  margin-top: 12px;
+.sheetRow {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  padding: 13px 10px;
+  margin: 0 -10px;
+  border-radius: var(--ds-radius-sm);
+  color: inherit;
+  text-decoration: none;
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 7%, transparent);
+  transition: background var(--ds-fast) var(--ds-ease);
 }
 
-.kpis {
+.sheetRows > li:last-child .sheetRow {
+  box-shadow: none;
+}
+
+a.sheetRow:hover {
+  background: var(--ds-surface-sunken);
+}
+
+/* Not a link: it explains why it is not, rather than looking clickable. */
+.sheetRowPending {
+  cursor: default;
+}
+
+.sheetRowPending .sheetRowTitle,
+.sheetRowPending .sheetRowIcon {
+  color: var(--ink-muted);
+}
+
+.sheetRowIcon {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1fr;
-  gap: 12px;
-  align-items: stretch;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-xs);
+  background: var(--ds-surface-sunken);
+  color: var(--accent);
 }
 
-.tile {
-  margin-top: 0;
-  display: grid;
-  gap: 6px;
-  align-content: start;
+.sheetRowIcon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
-.tileLabel {
-  margin: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--muted);
+.sheetRowText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 
-.tileLabel span {
-  margin-left: 6px;
-  font-weight: 560;
-  letter-spacing: 0.02em;
-  color: color-mix(in srgb, var(--muted) 78%, transparent);
-}
-
-/* The one hero figure on the page. Proportional figures, not tabular — equal
-   digit widths make a large number look loose. */
-.hero {
-  margin: 2px 0 0;
-  font-size: 2.9rem;
-  font-weight: 640;
-  line-height: 1.02;
-  letter-spacing: -0.02em;
+.sheetRowTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.92rem;
+  font-weight: 570;
   color: var(--ink);
 }
 
-.tileValue {
-  margin: 2px 0 0;
-  font-size: 1.6rem;
-  font-weight: 640;
-  line-height: 1.1;
-  letter-spacing: -0.014em;
+.sheetRowTag {
+  font-style: normal;
+  font-size: 0.66rem;
+  font-weight: 590;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--warning-ink);
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  padding: 2px 6px;
+  border-radius: var(--ds-radius-xs);
 }
 
-.tileSub {
-  margin: 0;
-  font-size: 0.86rem;
-  font-weight: 560;
-  color: var(--muted);
+.sheetRowDetail {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
 }
 
-.tileDelta {
+.sheetRowChevron {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheetScrim,
+  .sheet {
+    animation: none;
+  }
+
+  .shortcut:hover {
+    transform: none;
+  }
+}
+
+/* -------------------------------------------------------------- holdings --- */
+
+.holdings {
+  padding-bottom: var(--ds-gap-md);
+}
+
+.holdingRows {
   margin: 0;
-  font-size: 0.95rem;
+}
+
+/* The row is a button, so it has to be told to stop looking like one. */
+.row {
+  width: 100%;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 11px 10px;
+  margin: 0 -10px;
+  width: calc(100% + 20px);
+  border-radius: var(--ds-radius-xs);
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.row:hover {
+  background: var(--ds-surface-sunken);
+}
+
+.rowOpen {
+  background: var(--ds-surface-sunken);
+}
+
+/* ---------------------------------------------------------------- detail --- */
+
+.detail {
+  gap: var(--ds-gap-md);
+}
+
+.detailHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ds-gap-md);
+}
+
+.detailTitle {
+  margin: 0;
+  font-size: 1.25rem;
   font-weight: 620;
+  letter-spacing: -0.018em;
 }
 
-.tileDelta span {
-  font-weight: 560;
-  color: var(--muted);
+.detailSub {
+  margin: 3px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.85rem;
 }
 
-.tileUnavailable {
-  margin: 2px 0 0;
-  font-size: 1.18rem;
-  font-weight: 600;
-  line-height: 1.1;
-  color: var(--muted);
+/**
+ * Facts as a grid of wells rather than a bordered table. Six small labelled
+ * numbers read faster as tiles than as rows, and the sunken fill separates them
+ * without six horizontal rules.
+ */
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--ds-gap-sm);
 }
 
-/* Direction is always paired with a sign or a label, never carried by hue
-   alone (docs/synthetic-data-policy.md keeps the same rule for provenance). */
+.facts dt {
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  font-weight: 590;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.facts dd {
+  margin: 5px 0 0;
+  font-size: 0.98rem;
+  font-weight: 570;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* ------------------------------------------------------------------ rail --- */
+
+/**
+ * The elongated market cards. `--ds-rail-min` is what makes them elongated:
+ * each card is at most ~300px wide but holds six rows, so it is markedly taller
+ * than it is wide, and the row of them fills the width of the workspace.
+ */
+.rail {
+  --ds-rail-min: 262px;
+  margin-top: var(--ds-gap-xs);
+}
+
+.railCard {
+  padding: var(--ds-gap-md) var(--ds-gap-md) var(--ds-gap-sm);
+}
+
+.railBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.railNote {
+  margin: var(--ds-gap-sm) 0 4px;
+  color: var(--ink-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.railEmpty {
+  margin: 0;
+  padding: var(--ds-gap-md) 0;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+}
+
+/* The news card carries prose, so it gets more room than a quote card. */
+.newsCard {
+  grid-column: span 2;
+}
+
+.newsRow {
+  text-decoration: none;
+  color: inherit;
+  padding: 11px 10px;
+  margin: 0 -10px;
+  width: calc(100% + 20px);
+  border-radius: var(--ds-radius-xs);
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.newsRow:hover {
+  background: var(--ds-surface-sunken);
+}
+
+.newsTitle {
+  font-size: 0.86rem;
+  font-weight: 550;
+  line-height: 1.4;
+  color: var(--ink);
+  /* Two lines, then ellipsis — headlines vary wildly in length and a rail card
+     that grows to fit the longest one drags every card beside it taller. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------- signals --- */
+
 .up {
   color: var(--success-ink);
 }
@@ -97,310 +663,64 @@
 }
 
 .flat {
-  color: var(--ink);
-}
-
-.movers {
-  margin: 6px 0 0;
-  display: grid;
-  gap: 3px;
-}
-
-.movers div {
-  display: contents;
-}
-
-/* The two rows read as best-then-worst from their order and their signs, so the
-   labels are kept for assistive tech rather than spent on tile width. */
-.movers dt {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  margin: -1px;
-  padding: 0;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  clip-path: inset(50%);
-  white-space: nowrap;
-}
-
-.movers dd {
-  margin: 0;
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 10px;
-  font-size: 0.82rem;
-}
-
-.movers dd span {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.movers dd strong {
-  font-weight: 620;
-  font-variant-numeric: tabular-nums;
-}
-
-.coverage {
-  margin: 0;
-  font-size: 0.76rem;
-  line-height: 1.42;
-  color: var(--muted);
-  max-width: 62ch;
-}
-
-/* Holdings: a list of buttons, because each row opens the position. */
-.holdings {
-  display: grid;
-  gap: 8px;
-}
-
-.holdingsHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.quietLink {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  font: inherit;
-  font-size: 0.8rem;
-  color: var(--muted);
-  text-decoration: underline;
-  cursor: pointer;
-}
-
-.rows {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-}
-
-.row {
-  appearance: none;
-  border: 0;
-  border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: transparent;
-  width: 100%;
-  /* A 44px-tall target, so the row is a real hit area and not just its text. */
-  min-height: 44px;
-  padding: 9px 8px;
-  border-radius: 10px;
-  font: inherit;
-  color: var(--ink);
-  cursor: pointer;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, auto) 74px;
-  align-items: center;
-  gap: 12px;
-  text-align: left;
-}
-
-.rows li:first-child .row {
-  border-top: 0;
-}
-
-.row:hover,
-.row:focus-visible {
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
-  outline: none;
-}
-
-.rowOpen {
-  background: color-mix(in srgb, var(--accent) 9%, transparent);
-}
-
-.rowMain {
-  display: grid;
-  gap: 1px;
-  min-width: 0;
-}
-
-.rowSymbol {
-  font-size: 0.92rem;
-  font-weight: 620;
-  letter-spacing: -0.005em;
-}
-
-.rowName {
-  font-size: 0.76rem;
-  color: var(--muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rowValue {
-  display: flex;
-  align-items: baseline;
-  justify-content: flex-end;
-  gap: 8px;
-  font-size: 0.92rem;
-  font-weight: 560;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.rowShareText {
-  font-size: 0.74rem;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.rowDay {
-  text-align: right;
-  font-size: 0.86rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-/* Position detail, opened from a row. */
-.detail {
-  display: grid;
-  gap: 12px;
-}
-
-.detailHead {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.detailTitle {
-  margin: 0;
-  font-size: 1.14rem;
-  font-weight: 640;
-  letter-spacing: -0.014em;
-}
-
-.detailSub {
-  margin: 2px 0 0;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.facts {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
-  gap: 12px;
-}
-
-.facts div {
-  display: grid;
-  gap: 2px;
-  min-width: 0;
-}
-
-.facts dt {
-  font-size: 0.72rem;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.facts dd {
-  margin: 0;
-  font-size: 0.94rem;
-  font-weight: 580;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Placeholder-priced rows must never look like observed market data. */
-.syntheticNotice {
-  margin: 12px 0 0;
-  padding: 10px 12px;
-  border: 1px solid var(--danger-ink);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--danger-ink) 8%, transparent);
-  color: var(--danger-ink);
-  font-size: 0.84rem;
-  line-height: 1.45;
-}
-
-.syntheticNotice strong {
-  font-weight: 680;
+  color: var(--ink-muted);
 }
 
 .error {
-  margin: 12px 0 0;
+  margin: var(--ds-gap-md) 0 0;
   color: var(--danger-ink);
-  font-size: 0.85rem;
-}
-
-/* First run: no holdings yet. One focused action and nothing else — no zeroed
-   panels, and no invented example figures standing in for the reader's own
-   (ROADMAP §9.6). */
-.firstRun {
-  display: grid;
-  gap: 12px;
-  margin: 12px 0 0;
-}
-
-.firstRun h2 {
-  margin: 0;
-  font-size: 1.18rem;
-  line-height: 1.2;
-  letter-spacing: -0.014em;
-}
-
-.firstRunLead {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-  max-width: 62ch;
-}
-
-.firstRunActions {
-  display: flex;
-  gap: 14px;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.firstRunLink {
-  color: var(--muted);
   font-size: 0.9rem;
-  text-decoration: underline;
 }
 
-@media (max-width: 980px) {
-  .kpis {
-    grid-template-columns: 1fr 1fr;
+/* ----------------------------------------------------------- breakpoints --- */
+
+@media (max-width: 1180px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
 
-  .tileHero {
-    grid-column: 1 / -1;
+  /* Shortcuts drop under the pair and go horizontal — four tiles in a row read
+     better than a narrow column wedged beside two dense cards. */
+  .shortcutsCard {
+    grid-column: span 2;
+  }
+
+  .shortcutGrid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-@media (max-width: 620px) {
-  .kpis {
+@media (max-width: 720px) {
+  .hero {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    font-size: 2.4rem;
+  .shortcutsCard {
+    grid-column: auto;
   }
 
-  .row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, auto) 66px;
-    gap: 8px;
+  .shortcutGrid {
+    grid-template-columns: 1fr 1fr;
   }
 
-  /* The share-of-portfolio figure goes first: the value and the day move are
-     the two numbers worth the width. */
-  .rowShareText {
-    display: none;
+  /* The two figures stack rather than squeeze; the divider becomes a rule
+     between them instead of beside them. */
+  .valueHead {
+    flex-direction: column;
+    gap: var(--ds-gap-md);
+  }
+
+  .valueBlockSplit {
+    padding-left: 0;
+    padding-top: var(--ds-gap-md);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ink) 9%, transparent);
+  }
+
+  .rail {
+    --ds-rail-min: 100%;
+  }
+
+  .newsCard {
+    grid-column: auto;
   }
 }

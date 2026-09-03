@@ -8,6 +8,10 @@ import StockChart from "@/app/components/stock-chart";
 import UiState from "@/app/components/ui-state";
 import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
+import MarketCards from "./market-cards";
+import MoversCard from "./movers-card";
+import ShortcutsCard from "./shortcuts-card";
+import ValueCard from "./value-card";
 import styles from "./page.module.css";
 
 type Position = {
@@ -146,11 +150,6 @@ export default function DashboardPage() {
     [percentFormat]
   );
 
-  const signedMoney = useCallback(
-    (value: number) => `${value > 0 ? "+" : value < 0 ? "−" : ""}${money.format(Math.abs(value))}`,
-    [money]
-  );
-
   /**
    * The FX rate a row was actually converted at, read back off the row.
    *
@@ -165,71 +164,6 @@ export default function DashboardPage() {
     if (local === null || local === undefined || !Number.isFinite(local) || local <= 0) return null;
     return position.valueInDisplayCurrency / local;
   }, []);
-
-  /** Day change in the display currency, over the rows that actually have one. */
-  const dailyMove = useMemo(() => {
-    const covered = positions
-      .filter((position) => position.synthetic !== true)
-      .map((position) => {
-        const rate = rateFor(position);
-        if (rate === null) return null;
-        if (typeof position.dayChangeAmount !== "number" || !Number.isFinite(position.dayChangeAmount)) return null;
-        if (typeof position.dayChangePct !== "number" || !Number.isFinite(position.dayChangePct)) return null;
-        return {
-          position,
-          amount: position.dayChangeAmount * rate,
-          pct: position.dayChangePct,
-          valueNow: position.valueInDisplayCurrency as number
-        };
-      })
-      .filter((row): row is NonNullable<typeof row> => row !== null);
-
-    if (covered.length === 0) {
-      return { available: false as const, coveredCount: 0 };
-    }
-
-    const amount = covered.reduce((sum, row) => sum + row.amount, 0);
-    const previousValue = covered.reduce((sum, row) => sum + (row.valueNow - row.amount), 0);
-    const sorted = covered.slice().sort((a, b) => b.pct - a.pct);
-
-    return {
-      available: true as const,
-      amount,
-      pct: previousValue > 0 ? (amount / previousValue) * 100 : null,
-      best: sorted[0],
-      // Never the same row as `best`: a one-holding portfolio has a best and no
-      // worst, not the same name printed twice.
-      worst: sorted.length > 1 ? sorted[sorted.length - 1] : null,
-      coveredCount: covered.length
-    };
-  }, [positions, rateFor]);
-
-  /** Return against cost basis, across exactly the rows whose cost we know. */
-  const totalReturn = useMemo(() => {
-    let costBasis = 0;
-    let costedValue = 0;
-    let coveredCount = 0;
-
-    for (const position of positions) {
-      const rate = rateFor(position);
-      if (rate === null) continue;
-      if (position.avgCost === null || !Number.isFinite(position.avgCost) || position.avgCost <= 0) continue;
-      costBasis += position.quantity * position.avgCost * rate;
-      costedValue += position.valueInDisplayCurrency as number;
-      coveredCount += 1;
-    }
-
-    if (costBasis <= 0) {
-      return { available: false as const, coveredCount: 0 };
-    }
-
-    return {
-      available: true as const,
-      amount: costedValue - costBasis,
-      pct: ((costedValue - costBasis) / costBasis) * 100,
-      coveredCount
-    };
-  }, [positions, rateFor]);
 
   const holdings = useMemo(
     () =>
@@ -250,7 +184,7 @@ export default function DashboardPage() {
   const totalValue = totals?.total ?? null;
   const syntheticCount = totals?.syntheticCount ?? 0;
 
-  const directionClass = (value: number) => (value > 0 ? styles.up : value < 0 ? styles.down : styles.flat);
+  const directionClass = (value: number) => (value > 0 ? "dsUp" : value < 0 ? "dsDown" : "dsFlat");
 
   return (
     <main className={`${styles.page} appPage`}>
@@ -258,8 +192,8 @@ export default function DashboardPage() {
         {loading ? <UiState kind="loading" message={isSv ? "Läser in din översikt..." : "Loading your dashboard..."} /> : null}
 
         {!loading && !hasPositions ? (
-          <section className={`${styles.firstRun} appSection`} aria-label={isSv ? "Kom igång" : "Get started"}>
-            <h2>{isSv ? "Lägg till ditt första innehav" : "Add your first holding"}</h2>
+          <section className={`dsCard ${styles.firstRun}`} aria-label={isSv ? "Kom igång" : "Get started"}>
+            <h2 className={styles.firstRunTitle}>{isSv ? "Lägg till ditt första innehav" : "Add your first holding"}</h2>
             <p className={styles.firstRunLead}>
               {isSv
                 ? "Sök på bolaget och ange hur många aktier du har. Det tar tio sekunder — inköpspris är valfritt och kan fyllas i senare."
@@ -287,105 +221,41 @@ export default function DashboardPage() {
               </p>
             ) : null}
 
-            <section className={styles.kpis} aria-label={isSv ? "Nyckeltal" : "Key figures"}>
-              <article className={`${styles.tile} ${styles.tileHero} appSection`}>
-                <h2 className={styles.tileLabel}>{isSv ? "Totalt värde" : "Total value"}</h2>
-                <p className={styles.hero}>{totalValue === null ? "—" : money.format(totalValue)}</p>
-                {dailyMove.available ? (
-                  <p className={`${styles.tileDelta} ${directionClass(dailyMove.amount)}`}>
-                    {signedMoney(dailyMove.amount)}
-                    {dailyMove.pct === null ? null : <span> {percent(dailyMove.pct)}</span>}{" "}
-                    <span>{isSv ? "idag" : "today"}</span>
-                  </p>
-                ) : null}
-                {totals && totals.unconvertedCount > 0 ? (
-                  <p className={styles.coverage}>
-                    {isSv
-                      ? `Täcker ${totals.convertedCount} av ${totals.positionCount} innehav. ${totals.unconvertedCount} i ${totals.unconvertedCurrencies.join(", ")} kunde inte växlas och räknas inte in.`
-                      : `Covers ${totals.convertedCount} of ${totals.positionCount} holdings. ${totals.unconvertedCount} in ${totals.unconvertedCurrencies.join(", ")} could not be converted and are excluded.`}
-                  </p>
-                ) : null}
-              </article>
-
-              <article className={`${styles.tile} appSection`}>
-                <h2 className={styles.tileLabel}>{isSv ? "Idag" : "Today"}</h2>
-                {dailyMove.available ? (
-                  <>
-                    <p className={`${styles.tileValue} ${directionClass(dailyMove.amount)}`}>
-                      {dailyMove.pct === null ? signedMoney(dailyMove.amount) : percent(dailyMove.pct)}
-                    </p>
-                    <p className={styles.tileSub}>{signedMoney(dailyMove.amount)}</p>
-                    <dl className={styles.movers}>
-                      <div>
-                        <dt>{isSv ? "Bäst" : "Best"}</dt>
-                        <dd>
-                          <span>{dailyMove.best.position.symbol}</span>
-                          <strong className={directionClass(dailyMove.best.pct)}>{percent(dailyMove.best.pct)}</strong>
-                        </dd>
-                      </div>
-                      {dailyMove.worst ? (
-                        <div>
-                          <dt>{isSv ? "Sämst" : "Worst"}</dt>
-                          <dd>
-                            <span>{dailyMove.worst.position.symbol}</span>
-                            <strong className={directionClass(dailyMove.worst.pct)}>{percent(dailyMove.worst.pct)}</strong>
-                          </dd>
-                        </div>
-                      ) : null}
-                    </dl>
-                  </>
-                ) : (
-                  <>
-                    <p className={styles.tileUnavailable}>{isSv ? "Inte tillgängligt" : "Not available"}</p>
-                    <p className={styles.coverage}>
-                      {isSv
-                        ? "Vi visar dagens rörelse först när en marknadskälla gett oss en föregående stängningskurs. Innehav från en depå kommer utan kurshistorik."
-                        : "We show a daily move once a market source has given us a previous close. Holdings imported from a broker arrive without price history."}
-                    </p>
-                  </>
-                )}
-              </article>
-
-              <article className={`${styles.tile} appSection`}>
-                <h2 className={styles.tileLabel}>{isSv ? "Avkastning" : "Return"}</h2>
-                {totalReturn.available ? (
-                  <>
-                    <p className={`${styles.tileValue} ${directionClass(totalReturn.amount)}`}>
-                      {percent(totalReturn.pct)}
-                    </p>
-                    <p className={styles.tileSub}>{signedMoney(totalReturn.amount)}</p>
-                    <p className={styles.coverage}>
-                      {isSv
-                        ? `Mot inköpspris, för ${totalReturn.coveredCount} av ${positions.length} innehav.`
-                        : `Against cost basis, for ${totalReturn.coveredCount} of ${positions.length} holdings.`}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className={styles.tileUnavailable}>{isSv ? "Inget inköpspris" : "No cost basis"}</p>
-                    <p className={styles.coverage}>
-                      {isSv
-                        ? "Ange inköpspris på dina innehav för att se avkastning."
-                        : "Add an average cost to your holdings to see return."}
-                    </p>
-                  </>
-                )}
-              </article>
+            {/*
+              The hero row: what it is worth and how the year has gone, what
+              moved most in money, and where to go next. Three cards rather than
+              one wide panel because they answer three different questions, and
+              a reader arrives with one of them in mind.
+            */}
+            <section className={styles.hero} aria-label={isSv ? "Översikt" : "Overview"}>
+              <ValueCard
+                points={history}
+                totalValue={totalValue}
+                currency={displayCurrency}
+                loading={historyLoading}
+              />
+              <MoversCard
+                positions={positions}
+                currency={displayCurrency}
+                loading={loading}
+                rateFor={rateFor}
+              />
+              <ShortcutsCard />
             </section>
 
             <PortfolioChart points={history} currency={displayCurrency} loading={historyLoading} />
 
-            <section className={`${styles.holdings} appSection`} aria-label={isSv ? "Innehav" : "Holdings"}>
-              <header className={styles.holdingsHead}>
-                <h2 className={styles.tileLabel}>
-                  {isSv ? "Innehav" : "Holdings"} <span>{positions.length}</span>
+            <section className={`dsCard ${styles.holdings}`} aria-label={isSv ? "Innehav" : "Holdings"}>
+              <header className="dsCardHeader">
+                <h2 className="dsCardTitle">
+                  {isSv ? "Innehav" : "Holdings"} · {positions.length}
                 </h2>
-                <Link className={styles.quietLink} href="/portfolio">
+                <Link className="dsCardAction" href="/portfolio">
                   {isSv ? "Hantera" : "Manage"}
                 </Link>
               </header>
 
-              <ul className={styles.rows}>
+              <ul className={`dsRows ${styles.holdingRows}`}>
                 {holdings.map((position) => {
                   const share =
                     totalValue && totalValue > 0 && typeof position.valueInDisplayCurrency === "number"
@@ -396,43 +266,45 @@ export default function DashboardPage() {
                     <li key={position.id}>
                       <button
                         type="button"
-                        className={open ? `${styles.row} ${styles.rowOpen}` : styles.row}
+                        className={`dsRow ${styles.row} ${open ? styles.rowOpen : ""}`}
                         aria-expanded={open}
                         aria-controls="position-detail"
                         onClick={() => setSelectedId(open ? null : position.id)}
                       >
-                        <span className={styles.rowMain}>
-                          <span className={styles.rowSymbol}>{position.symbol}</span>
-                          <span className={styles.rowName}>
-                            {position.name === position.symbol ? "" : position.name}
-                            {position.name === position.symbol ? null : " · "}
+                        <span className="dsRowLabel">
+                          <span className="dsRowName">{position.symbol}</span>
+                          <span className="dsRowMeta">
+                            {position.name === position.symbol ? "" : `${position.name} · `}
                             {position.quantity.toLocaleString(locale)} {isSv ? "st" : "sh"}
+                            {share === null ? "" : ` · ${shareFormat.format(share)}%`}
                           </span>
                         </span>
 
-                        <span className={styles.rowValue}>
-                          {position.valueInDisplayCurrency === null || position.valueInDisplayCurrency === undefined
-                            ? position.marketValue === null || position.marketValue === undefined
-                              ? "—"
-                              : formatIn(position.marketValue, position.currency)
-                            : money.format(position.valueInDisplayCurrency)}
-                          {share === null ? null : (
-                            <span className={styles.rowShareText}>{shareFormat.format(share)}%</span>
-                          )}
-                        </span>
-
-                        <span
-                          className={`${styles.rowDay} ${
-                            typeof position.dayChangePct === "number" ? directionClass(position.dayChangePct) : styles.flat
-                          }`}
-                        >
-                          {position.synthetic === true
-                            ? isSv
-                              ? "platshållare"
-                              : "placeholder"
-                            : typeof position.dayChangePct === "number" && Number.isFinite(position.dayChangePct)
-                              ? percent(position.dayChangePct)
-                              : "—"}
+                        <span className="dsRowValue">
+                          <span className="dsNum">
+                            {position.valueInDisplayCurrency === null || position.valueInDisplayCurrency === undefined
+                              ? position.marketValue === null || position.marketValue === undefined
+                                ? "—"
+                                : formatIn(position.marketValue, position.currency)
+                              : money.format(position.valueInDisplayCurrency)}
+                          </span>
+                          <span
+                            className={`dsDelta ${
+                              position.synthetic === true
+                                ? "dsFlat"
+                                : typeof position.dayChangePct === "number"
+                                  ? directionClass(position.dayChangePct)
+                                  : "dsFlat"
+                            }`}
+                          >
+                            {position.synthetic === true
+                              ? isSv
+                                ? "platshållare"
+                                : "placeholder"
+                              : typeof position.dayChangePct === "number" && Number.isFinite(position.dayChangePct)
+                                ? percent(position.dayChangePct)
+                                : "—"}
+                          </span>
                         </span>
                       </button>
                     </li>
@@ -442,7 +314,7 @@ export default function DashboardPage() {
             </section>
 
             {selected ? (
-              <section id="position-detail" className={`${styles.detail} appSection`} aria-label={selected.symbol}>
+              <section id="position-detail" className={`dsCard ${styles.detail}`} aria-label={selected.symbol}>
                 <header className={styles.detailHead}>
                   <div>
                     <h2 className={styles.detailTitle}>{selected.symbol}</h2>
@@ -452,13 +324,13 @@ export default function DashboardPage() {
                       {selected.accountType ? ` · ${selected.accountType}` : ""}
                     </p>
                   </div>
-                  <button type="button" className={styles.quietLink} onClick={() => setSelectedId(null)}>
+                  <button type="button" className="dsCardAction" onClick={() => setSelectedId(null)}>
                     {isSv ? "Stäng" : "Close"}
                   </button>
                 </header>
 
                 <dl className={styles.facts}>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Kurs" : "Price"}</dt>
                     <dd>
                       {typeof selected.currentPrice === "number"
@@ -468,11 +340,11 @@ export default function DashboardPage() {
                           : "Unavailable"}
                     </dd>
                   </div>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Inköpspris" : "Avg. cost"}</dt>
                     <dd>{selected.avgCost === null ? "—" : formatIn(selected.avgCost, selected.currency)}</dd>
                   </div>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Värde" : "Value"}</dt>
                     <dd>
                       {selected.marketValue === null || selected.marketValue === undefined
@@ -480,11 +352,13 @@ export default function DashboardPage() {
                         : formatIn(selected.marketValue, selected.currency)}
                     </dd>
                   </div>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Orealiserat" : "Unrealised"}</dt>
                     <dd
                       className={
-                        typeof selected.unrealizedPnl === "number" ? directionClass(selected.unrealizedPnl) : undefined
+                        typeof selected.unrealizedPnl === "number"
+                          ? styles[selected.unrealizedPnl > 0 ? "up" : selected.unrealizedPnl < 0 ? "down" : "flat"]
+                          : undefined
                       }
                     >
                       {typeof selected.unrealizedPnl === "number"
@@ -492,11 +366,13 @@ export default function DashboardPage() {
                         : "—"}
                     </dd>
                   </div>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Idag" : "Today"}</dt>
                     <dd
                       className={
-                        typeof selected.dayChangePct === "number" ? directionClass(selected.dayChangePct) : undefined
+                        typeof selected.dayChangePct === "number"
+                          ? styles[selected.dayChangePct > 0 ? "up" : selected.dayChangePct < 0 ? "down" : "flat"]
+                          : undefined
                       }
                     >
                       {selected.synthetic === true
@@ -508,7 +384,7 @@ export default function DashboardPage() {
                           : "—"}
                     </dd>
                   </div>
-                  <div>
+                  <div className="dsWell">
                     <dt>{isSv ? "Källa" : "Source"}</dt>
                     <dd>{selected.broker ?? (isSv ? "Manuellt" : "Manual")}</dd>
                   </div>
@@ -519,6 +395,11 @@ export default function DashboardPage() {
             ) : null}
           </>
         ) : null}
+
+        {/* The market rail renders for everyone, holdings or not: a brand new
+            account should still land on something alive, and none of it depends
+            on owning anything. */}
+        <MarketCards />
 
         {error ? <p className={styles.error}>{error}</p> : null}
       </Workspace>

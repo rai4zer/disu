@@ -1,0 +1,192 @@
+/**
+ * The walk cycle.
+ *
+ * One duration (`--gait`) drives everything, and every moving part is offset
+ * from it by `--phase` via a negative animation-delay. A negative delay starts
+ * an animation already part-way through, which is exactly what a gait phase is
+ * — so the four legs run one identical keyframe set, each entering it a quarter
+ * cycle apart, rather than four hand-written sets that would drift apart the
+ * moment the timing is tuned.
+ *
+ * The body bob runs at half the duration because a four-beat gait produces two
+ * rises per cycle: one as each diagonal pair passes under the body.
+ */
+
+.figure {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: inherit;
+  --gait: 1.15s;
+}
+
+.bodyGroup {
+  /* Transforms on SVG children need an explicit box, or Safari resolves
+     percentage origins against the viewport instead of the element. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.torso {
+  fill: currentColor;
+  stroke: none;
+  animation: bob calc(var(--gait) / 2) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+}
+
+/* Punched-out details — muzzle line, nose — read against the filled body. */
+.cut {
+  fill: none;
+  stroke: color-mix(in srgb, currentColor 40%, transparent);
+}
+
+.eye {
+  fill: var(--surface-elevated-strong);
+  stroke: none;
+}
+
+.horn,
+.tail {
+  fill: none;
+  stroke: currentColor;
+}
+
+/* The wag is the dog's alone: fast, small, and off the gait clock so it does
+   not look mechanically bolted to the legs. */
+.tail {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  animation: wag 0.42s ease-in-out infinite;
+}
+
+.leg {
+  stroke: currentColor;
+  fill: none;
+  animation: swingUpper var(--gait) ease-in-out infinite;
+  animation-delay: calc(var(--gait) * var(--phase) * -1);
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+/* Far-side legs: dimmer and fractionally smaller, so four legs read as two
+   pairs at different depths instead of a row of four. */
+.legFar {
+  opacity: 0.45;
+}
+
+.legUpper {
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+/**
+ * The knee. Same cycle, one eighth behind the hip — a lower leg that trails the
+ * upper is the whole difference between a walking leg and a swinging stick.
+ */
+.legLower {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: swingLower var(--gait) ease-in-out infinite;
+  animation-delay: calc(var(--gait) * (var(--phase) + 0.12) * -1);
+}
+
+.shadow {
+  fill: currentColor;
+  opacity: 0.13;
+  animation: shadowPulse calc(var(--gait) / 2) ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Hip swing: forward reach, plant, drive back, lift. */
+@keyframes swingUpper {
+  0% {
+    transform: rotate(26deg);
+  }
+  25% {
+    transform: rotate(4deg);
+  }
+  50% {
+    transform: rotate(-22deg);
+  }
+  75% {
+    transform: rotate(-6deg);
+  }
+  100% {
+    transform: rotate(26deg);
+  }
+}
+
+/**
+ * Knee bend. Only ever negative — a knee flexes one way, and letting it go
+ * positive is what makes a cheap walk cycle look broken-legged.
+ */
+@keyframes swingLower {
+  0% {
+    transform: rotate(-2deg);
+  }
+  30% {
+    transform: rotate(-1deg);
+  }
+  55% {
+    transform: rotate(-16deg);
+  }
+  80% {
+    transform: rotate(-26deg);
+  }
+  100% {
+    transform: rotate(-2deg);
+  }
+}
+
+@keyframes bob {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-1.4px) rotate(-0.7deg);
+  }
+}
+
+@keyframes wag {
+  0%,
+  100% {
+    transform: rotate(-13deg);
+  }
+  50% {
+    transform: rotate(13deg);
+  }
+}
+
+@keyframes shadowPulse {
+  0%,
+  100% {
+    transform: scaleX(1);
+    opacity: 0.13;
+  }
+  50% {
+    transform: scaleX(0.9);
+    opacity: 0.09;
+  }
+}
+
+/**
+ * Reduced motion stops the gait but keeps the animal — the figure still names
+ * the reading, so it must not disappear. Legs are frozen mid-stride rather than
+ * at 0%, where all four would line up and the animal would look like a table.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .torso,
+  .leg,
+  .legLower,
+  .tail,
+  .shadow {
+    animation: none;
+  }
+
+  .leg {
+    transform: rotate(calc((var(--phase) - 0.375) * 44deg));
+  }
+}
