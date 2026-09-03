@@ -3,7 +3,7 @@
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Workspace from "@/app/components/workspace";
-import { useLanguage } from "@/app/i18n/language";
+import { useLanguage, type AppLanguage } from "@/app/i18n/language";
 import {
   PASSWORD_MESSAGES,
   PASSWORD_MIN_LENGTH,
@@ -66,8 +66,13 @@ function googleErrorMessage(code: string, isSv: boolean): string {
   }
 }
 
+const LANGUAGE_OPTIONS: { value: AppLanguage; flag: string; label: string }[] = [
+  { value: "en", flag: "🇬🇧", label: "English" },
+  { value: "sv", flag: "🇸🇪", label: "Svenska" }
+];
+
 export default function AccountSecurity({ googleEnabled }: Props) {
-  const { language } = useLanguage();
+  const { language, setLanguage } = useLanguage();
   const isSv = language === "sv";
   const searchParams = useSearchParams();
 
@@ -239,14 +244,54 @@ export default function AccountSecurity({ googleEnabled }: Props) {
   return (
     <main className={`${styles.page} appPage`}>
       <Workspace
-        title={isSv ? "Konto" : "Account"}
-        subtitle={isSv ? "Inloggningsmetoder för det här kontot." : "How you sign in to this account."}
-        size="narrow"
+        title={isSv ? "Min profil" : "My Profile"}
+        subtitle={isSv ? "Inloggningsmetoder och data för ditt konto." : "How you sign in, and the data on your account."}
       >
         {loadError && <p className={styles.error}>{loadError}</p>}
 
+        {/* The language picker used to sit in the market strip. It lives here
+            now, with the other account preferences — the top bar carries only
+            chrome. Still browser-local (localStorage), not a stored account
+            setting, so it does not survive a change of device. */}
         <section className={`${styles.card} appSection`}>
-          <h2>{isSv ? "Inloggningsmetoder" : "Sign-in methods"}</h2>
+          <div className={styles.sectionHead}>
+            <h2>{isSv ? "Språk" : "Language"}</h2>
+            <p>
+              {isSv
+                ? "Gäller den här webbläsaren. Ändras direkt."
+                : "Applies to this browser. Takes effect immediately."}
+            </p>
+          </div>
+          <div className={styles.actions}>
+            <div className="dsSegmented" role="radiogroup" aria-label={isSv ? "Språk" : "Language"}>
+              {LANGUAGE_OPTIONS.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="radio"
+                  aria-checked={language === option.value}
+                  className={`dsSegment ${language === option.value ? "dsSegmentActive" : ""}`}
+                  onClick={() => setLanguage(option.value)}
+                >
+                  <span className={styles.flag} aria-hidden="true">
+                    {option.flag}
+                  </span>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={`${styles.card} appSection`}>
+          <div className={styles.sectionHead}>
+            <h2>{isSv ? "Inloggningsmetoder" : "Sign-in methods"}</h2>
+            <p>
+              {isSv
+                ? "Sätten du kan ta dig in i kontot på."
+                : "The ways you can get into this account."}
+            </p>
+          </div>
           <dl className={styles.summary}>
             <div>
               <dt>{isSv ? "E-post" : "Email"}</dt>
@@ -284,31 +329,33 @@ export default function AccountSecurity({ googleEnabled }: Props) {
         </section>
 
         <section className={`${styles.card} appSection`}>
-          <h2>
-            {state?.hasPassword
-              ? isSv
-                ? "Byt lösenord"
-                : "Change password"
-              : isSv
-                ? "Sätt ett lösenord"
-                : "Set a password"}
-          </h2>
-          <p className={styles.hint}>
-            {state?.hasPassword
-              ? isSv
-                ? "Alla andra inloggade enheter loggas ut. Den här förblir inloggad."
-                : "Every other signed-in device is signed out. This one stays signed in."
-              : isSv
-                ? "Du loggade in med Google, så kontot har inget lösenord. Ett lösenord låter dig logga in med e-post också — och krävs innan du kan koppla bort Google eller radera kontot."
-                : "You signed in with Google, so this account has no password. Adding one lets you sign in with email too — and is required before you can disconnect Google or erase the account."}
-          </p>
+          <div className={styles.sectionHead}>
+            <h2>
+              {state?.hasPassword
+                ? isSv
+                  ? "Byt lösenord"
+                  : "Change password"
+                : isSv
+                  ? "Sätt ett lösenord"
+                  : "Set a password"}
+            </h2>
+            <p>
+              {state?.hasPassword
+                ? isSv
+                  ? "Alla andra inloggade enheter loggas ut. Den här förblir inloggad."
+                  : "Every other signed-in device is signed out. This one stays signed in."
+                : isSv
+                  ? "Du loggade in med Google, så kontot har inget lösenord. Ett lösenord låter dig logga in med e-post också — och krävs innan du kan koppla bort Google eller radera kontot."
+                  : "You signed in with Google, so this account has no password. Adding one lets you sign in with email too — and is required before you can disconnect Google or erase the account."}
+            </p>
+          </div>
 
           <form className={styles.form} onSubmit={(event) => void handlePasswordSubmit(event)}>
             {state?.hasPassword && (
-              <label className={styles.field}>
+              <label className={`${styles.field} appField`}>
                 <span>{isSv ? "Nuvarande lösenord" : "Current password"}</span>
                 <input
-                  className={styles.input}
+                  className="appInput"
                   type="password"
                   autoComplete="current-password"
                   value={currentPassword}
@@ -318,10 +365,10 @@ export default function AccountSecurity({ googleEnabled }: Props) {
               </label>
             )}
 
-            <label className={styles.field}>
+            <label className={`${styles.field} appField`}>
               <span>{isSv ? "Nytt lösenord" : "New password"}</span>
               <input
-                className={styles.input}
+                className="appInput"
                 type="password"
                 autoComplete="new-password"
                 minLength={PASSWORD_MIN_LENGTH}
@@ -331,10 +378,10 @@ export default function AccountSecurity({ googleEnabled }: Props) {
               />
             </label>
 
-            <label className={styles.field}>
+            <label className={`${styles.field} appField`}>
               <span>{isSv ? "Upprepa nytt lösenord" : "Repeat new password"}</span>
               <input
-                className={styles.input}
+                className="appInput"
                 type="password"
                 autoComplete="new-password"
                 minLength={PASSWORD_MIN_LENGTH}
@@ -348,7 +395,7 @@ export default function AccountSecurity({ googleEnabled }: Props) {
             {passwordNotice && <p className={styles.notice}>{passwordNotice}</p>}
 
             <div className={styles.actions}>
-              <button className={styles.button} type="submit" disabled={passwordBusy || !state}>
+              <button className="appButton" type="submit" disabled={passwordBusy || !state}>
                 {passwordBusy
                   ? isSv
                     ? "Sparar..."
@@ -367,16 +414,18 @@ export default function AccountSecurity({ googleEnabled }: Props) {
 
         {googleVisible && (
           <section className={`${styles.card} appSection`}>
-            <h2>Google</h2>
-            <p className={styles.hint}>
-              {state?.googleLinked
-                ? isSv
-                  ? "Du kan logga in med Google på det här kontot."
-                  : "You can sign in to this account with Google."
-                : isSv
-                  ? "Koppla Google för att logga in med ett klick."
-                  : "Connect Google to sign in with one click."}
-            </p>
+            <div className={styles.sectionHead}>
+              <h2>Google</h2>
+              <p>
+                {state?.googleLinked
+                  ? isSv
+                    ? "Du kan logga in med Google på det här kontot."
+                    : "You can sign in to this account with Google."
+                  : isSv
+                    ? "Koppla Google för att logga in med ett klick."
+                    : "Connect Google to sign in with one click."}
+              </p>
+            </div>
 
             {googleError && <p className={styles.error}>{googleError}</p>}
             {googleNotice && <p className={styles.notice}>{googleNotice}</p>}
@@ -387,7 +436,7 @@ export default function AccountSecurity({ googleEnabled }: Props) {
                   unlinkArmed ? (
                     <>
                       <button
-                        className={styles.dangerButton}
+                        className={styles.dangerBtn}
                         type="button"
                         onClick={() => void handleUnlink()}
                         disabled={unlinkBusy}
@@ -401,7 +450,7 @@ export default function AccountSecurity({ googleEnabled }: Props) {
                             : "Confirm disconnect"}
                       </button>
                       <button
-                        className={styles.ghostButton}
+                        className={styles.ghostBtn}
                         type="button"
                         onClick={() => setUnlinkArmed(false)}
                         disabled={unlinkBusy}
@@ -410,7 +459,7 @@ export default function AccountSecurity({ googleEnabled }: Props) {
                       </button>
                     </>
                   ) : (
-                    <button className={styles.button} type="button" onClick={() => setUnlinkArmed(true)}>
+                    <button className={styles.secondaryBtn} type="button" onClick={() => setUnlinkArmed(true)}>
                       {isSv ? "Koppla bort Google" : "Disconnect Google"}
                     </button>
                   )
@@ -426,7 +475,7 @@ export default function AccountSecurity({ googleEnabled }: Props) {
               <div className={styles.actions}>
                 {/* A plain link, not fetch(): connecting is a full-page redirect
                     to accounts.google.com and back. */}
-                <a className={styles.button} href="/api/auth/google/start?mode=link&next=/account">
+                <a className={styles.secondaryBtn} href="/api/auth/google/start?mode=link&next=/account">
                   {isSv ? "Koppla Google" : "Connect Google"}
                 </a>
               </div>

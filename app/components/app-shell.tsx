@@ -20,14 +20,14 @@ type Props = {
 type NavItem = {
   href: string;
   label: string;
-  icon: "dashboard" | "portfolio" | "sentiment" | "quant" | "primers";
+  icon: "dashboard" | "portfolio" | "sentiment" | "quant" | "primers" | "profile";
 };
 
 // Routes that render inside the app frame. Not the same thing as "requires a
 // session" — /help, /legal, /learn and /primers are public and are deliberately
 // not in the middleware matcher, but they still get chrome (the signed-out
 // variant below) because a visitor can reach them before signing up.
-const PROTECTED_PREFIXES = ["/account", "/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/legal", "/filings-primers", "/placera"];
+const PROTECTED_PREFIXES = ["/profile", "/account", "/dashboard", "/portfolio", "/sentiment", "/quant", "/primers", "/learn", "/help", "/legal", "/filings-primers", "/placera"];
 
 function shouldUseShell(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
@@ -79,6 +79,15 @@ function NavIcon({ kind }: { kind: NavItem["icon"] }) {
     );
   }
 
+  if (kind === "profile") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <circle cx="12" cy="8" r="3.5" />
+        <path d="M5 19c0-3.6 3.1-5.5 7-5.5s7 1.9 7 5.5" />
+      </svg>
+    );
+  }
+
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M6 4h12v16H6z" />
@@ -96,7 +105,10 @@ export default function AppShell({ children, signedIn }: Props) {
     { href: "/portfolio", label: copy.nav.portfolio, icon: "portfolio" },
     { href: "/placera", label: copy.nav.sentiment, icon: "sentiment" },
     { href: "/quant", label: copy.nav.quant, icon: "quant" },
-    { href: "/primers", label: copy.nav.primers, icon: "primers" }
+    { href: "/primers", label: copy.nav.primers, icon: "primers" },
+    // Last, and set apart in the rail: this is where you go to change a
+    // setting, not part of the daily loop the four modules above it make up.
+    { href: "/profile", label: copy.nav.profile, icon: "profile" }
   ];
 
   if (!pathname || !shouldUseShell(pathname)) {

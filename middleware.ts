@@ -42,6 +42,7 @@ export const config = {
   //                                   needs an account, and the page says so
   // Only /help/release-notes is gated inside /help.
   matcher: [
+    "/profile/:path*",
     "/account/:path*",
     "/dashboard/:path*",
     "/portfolio/:path*",

@@ -1,16 +1,16 @@
-import { Suspense } from "react";
-import AccountSecurity from "./account-security";
-import { isGoogleSignInConfigured } from "@/app/lib/auth/google";
+import { redirect } from "next/navigation";
 
 /**
- * Server component so the "Connect Google" button can be hidden on deployments
- * where the OAuth client has not been provisioned, matching the login page.
- * Everything else is fetched client-side from /api/account/security.
+ * `/account` moved to `/profile` when it became a module of its own ("My
+ * Profile") rather than a link tucked next to sign-out in the market strip.
+ *
+ * This redirect stays because the old path is still reachable from outside the
+ * app's own navigation: a bookmark, and — the case that would actually break —
+ * a Google OAuth round-trip already in flight, whose signed `state` carries
+ * `nextPath: "/account"` from before the deploy. Those users come back to a
+ * path this build no longer has a page for, and the honest fix is to forward
+ * them rather than to 404 someone mid-sign-in.
  */
-export default function AccountPage() {
-  return (
-    <Suspense fallback={null}>
-      <AccountSecurity googleEnabled={isGoogleSignInConfigured()} />
-    </Suspense>
-  );
+export default function AccountRedirect() {
+  redirect("/profile");
 }

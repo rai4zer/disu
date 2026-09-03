@@ -1,0 +1,180 @@
+/**
+ * My Profile layout.
+ *
+ * This module is one of the six in the sidebar, so it is laid out like the
+ * other five and not like a settings sheet: the page surrenders its padding to
+ * the shell (`.appPage` would otherwise add a second gutter and push the H1 20px
+ * below every other module's), the panels are the shared `.appSection`, and the
+ * section heads, fields and buttons are the same objects Portfolio uses.
+ * Nothing here redraws a card, an input or a radius — see app/design-system.css.
+ */
+
+.page {
+  margin: 0;
+  padding: 0;
+  color: var(--ink);
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+}
+
+/* The shared section head: title on the baseline, one muted line of context
+   beside or under it. Same metrics as Portfolio's `.sectionHead`. */
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sectionHead h2 {
+  margin: 0;
+  font-size: 0.96rem;
+  font-weight: 610;
+}
+
+.sectionHead p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 78ch;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+  max-width: 78ch;
+}
+
+.summary {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.summary > div {
+  display: grid;
+  grid-template-columns: minmax(0, 140px) minmax(0, 1fr);
+  gap: 10px;
+  align-items: baseline;
+}
+
+.summary dt {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.summary dd {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.warn {
+  color: var(--warning-ink);
+}
+
+/* A form inside a full-width section stays at a readable measure rather than
+   stretching to the canvas — the same thing Portfolio's add-holding grid does. */
+.form {
+  display: grid;
+  gap: 12px;
+  max-width: 380px;
+}
+
+.field {
+  margin: 0;
+}
+
+/* The flag sits inside a dsSegment button whose own text is the label; JSX
+   collapses the whitespace between them, so the gap is set here. */
+.flag {
+  margin-right: 6px;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.secondaryBtn,
+.dangerBtn,
+.ghostBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 580;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.secondaryBtn {
+  background: var(--ds-surface-sunken);
+  color: var(--ink);
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.secondaryBtn:hover:not(:disabled) {
+  background: var(--ds-surface-hover);
+}
+
+/* Destructive action: same shape as .secondaryBtn, tinted so it reads apart
+   from the safe actions beside it. --danger-ink swaps per theme. */
+.dangerBtn {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger-ink);
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger) 20%, transparent);
+}
+
+.ghostBtn {
+  background: transparent;
+  color: var(--muted);
+  transition: background var(--ds-fast) var(--ds-ease), color var(--ds-fast) var(--ds-ease);
+}
+
+.ghostBtn:hover:not(:disabled) {
+  background: var(--ds-surface-sunken);
+  color: var(--ink);
+}
+
+.secondaryBtn:disabled,
+.dangerBtn:disabled,
+.ghostBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error {
+  margin: 0;
+  color: var(--danger-ink);
+  font-size: 0.85rem;
+}
+
+.notice {
+  margin: 0;
+  color: var(--success-ink);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 700px) {
+  .summary > div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}

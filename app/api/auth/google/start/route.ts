@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   // `?mode=link` is the account-settings entry point: connect Google to the
   // account that is already signed in, rather than signing in with Google.
   const mode: GoogleFlowMode = request.nextUrl.searchParams.get("mode") === "link" ? "link" : "signin";
-  const nextPath = sanitizeNextPath(request.nextUrl.searchParams.get("next") ?? (mode === "link" ? "/account" : null));
+  const nextPath = sanitizeNextPath(request.nextUrl.searchParams.get("next") ?? (mode === "link" ? "/profile" : null));
 
   // The user id is captured now and baked into the signed state, so the callback
   // can refuse a link that started in one account and came back in another.

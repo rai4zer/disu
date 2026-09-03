@@ -79,9 +79,21 @@
   justify-items: center;
   align-content: center;
   padding: 7px;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--surface-elevated);
+  border: none;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-raised);
+  box-shadow: var(--ds-hairline), var(--ds-shadow-card);
+}
+
+/**
+ * My Profile is set apart from the four modules above it by a gap, not by a
+ * divider: it is where you go to change a setting rather than part of the daily
+ * loop, and the rest of this revamp separates groups with space instead of
+ * lines. `:last-child` rather than a modifier class so the rail keeps working
+ * if the order changes.
+ */
+.navItem:last-child {
+  margin-top: 10px;
 }
 
 .navItem {
