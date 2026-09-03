@@ -16,7 +16,11 @@
  */
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
+import QuantPanel from "./quant-panel";
+import SentimentPanel from "./sentiment-panel";
+import PrimerPanel from "./primer-panel";
 import type {
   InstrumentAnalysts,
   InstrumentDetail,
@@ -24,15 +28,29 @@ import type {
   StatementPeriod
 } from "@/app/lib/market/instrument-types";
 import type { GatedSection } from "@/app/lib/market/instrument-visibility";
+import { placeraQuery, toolsFor } from "@/app/lib/market/instrument-tools";
 import styles from "./page.module.css";
 
-type Tab = "overview" | "kpi" | "news" | "analysts";
+type Tab = "overview" | "kpi" | "news" | "analysts" | "quant" | "sentiment" | "primers";
+
+/**
+ * The analysis tabs, kept apart from the data tabs above.
+ *
+ * The four data tabs are already-fetched facts; these three *run something* —
+ * a Python job that takes tens of seconds and can fail, or a forum fetch. A tab
+ * strip that mixed them without a break would make clicking "Quant" feel like
+ * clicking a broken "News".
+ */
+const TOOL_TABS: Tab[] = ["quant", "sentiment", "primers"];
 
 const TAB_LABELS: Record<Tab, { en: string; sv: string }> = {
   overview: { en: "Overview", sv: "Översikt" },
   kpi: { en: "Key figures", sv: "Nyckeltal" },
   news: { en: "News", sv: "Nyheter" },
-  analysts: { en: "Analysts", sv: "Analytiker" }
+  analysts: { en: "Analysts", sv: "Analytiker" },
+  quant: { en: "Quant", sv: "Quant" },
+  sentiment: { en: "Sentiment", sv: "Sentiment" },
+  primers: { en: "Primer", sv: "Primer" }
 };
 
 /** Compact money, in the instrument's own currency — never converted here. */
@@ -50,6 +68,38 @@ function count(value: number): string {
 
 function ratio(value: number): string {
   return value.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+}
+
+/** The overview blurb is a teaser, not the filing. */
+const SUMMARY_WORD_LIMIT = 70;
+
+/** Words whose trailing period does not end a sentence. */
+const ABBREVIATIONS = new Set([
+  "inc", "corp", "co", "ltd", "llc", "plc", "sa", "nv", "ab", "us", "mr", "mrs", "ms", "dr", "st", "jr", "sr", "no"
+]);
+
+/**
+ * Cut the issuer's description to a teaser — trimmed, never reworded.
+ *
+ * We walk back to the last sentence that ends inside the budget so the blurb
+ * lands on a period instead of a dangling clause, and only fall back to an
+ * ellipsis when the opening sentence is longer than the whole budget. A period
+ * counts as a sentence end when the next word starts a new one, which is what
+ * keeps "Apple Inc. designs..." in one piece; ABBREVIATIONS covers the rest.
+ */
+function teaser(text: string, limit: number): string {
+  const words = text.trim().split(/\s+/);
+  if (words.length <= limit) return words.join(" ");
+
+  const head = words.slice(0, limit);
+  for (let i = head.length - 1; i >= limit / 2; i--) {
+    if (!/[.!?]["')\]]?$/.test(head[i])) continue;
+    if (ABBREVIATIONS.has(head[i].replace(/[^A-Za-z]/g, "").toLowerCase())) continue;
+    const next = head[i + 1] ?? words[limit];
+    if (!/^["'(\[]?[A-Z0-9]/.test(next)) continue;
+    return head.slice(0, i + 1).join(" ");
+  }
+  return `${head.join(" ")}…`;
 }
 
 /** A definition row that renders only when there is something to say. */
@@ -172,9 +222,10 @@ function Overview({ detail, sv }: { detail: InstrumentDetail & { gated?: GatedSe
       {p.summary ? (
         <section className={styles.section}>
           <h2>{sv ? "Om bolaget" : "About"}</h2>
-          {/* The issuer's own description, passed through unedited. Never
-              paraphrased or model-generated — see the bridge module. */}
-          <p className={styles.summary}>{p.summary}</p>
+          {/* The issuer's own description, cut to a teaser but never reworded:
+              no paraphrase, no model-generated prose — see the bridge module.
+              The full filing is the issuer's to publish, not ours to reprint. */}
+          <p className={styles.summary}>{teaser(p.summary, SUMMARY_WORD_LIMIT)}</p>
         </section>
       ) : null}
 
@@ -365,23 +416,72 @@ export default function InstrumentTabs({
   detail: InstrumentDetail & { gated?: GatedSection[] };
   sv: boolean;
 }) {
-  const available = (["overview", "kpi", "news", "analysts"] as Tab[]).filter((tab) => detail.sections[tab]);
-  const [active, setActive] = useState<Tab>(available[0] ?? "overview");
-  const current = available.includes(active) ? active : available[0];
+  const router = useRouter();
+  const params = useSearchParams();
+
+  // Data tabs come from what the payload holds; tool tabs from what each tool
+  // can reach. Both are derived rather than fixed, so an index shows two tabs
+  // and a US equity six — and no instrument ever shows seven, because primers
+  // (SEC) and sentiment (Placera) are mutually exclusive by geography.
+  const tools = useMemo(() => toolsFor(detail.symbol, detail.profile), [detail.symbol, detail.profile]);
+
+  const dataTabs = (["overview", "kpi", "news", "analysts"] as const).filter((tab) => detail.sections[tab]) as Tab[];
+  const toolTabs = TOOL_TABS.filter((tab) => tools[tab as keyof typeof tools]);
+  const available = [...dataTabs, ...toolTabs];
+
+  // The tab is held in state and mirrored into the URL, rather than read from
+  // the URL alone.
+  //
+  // Both halves are needed. The URL is what makes "look at this" a link someone
+  // can send once a tab holds a job result, and what survives a reload. But
+  // driving the UI *from* the URL alone makes every click wait on a router
+  // round-trip, and a click that does not paint immediately reads as a dead
+  // button. So state answers the click and the URL follows.
+  const requested = params.get("tab") as Tab | null;
+  const [chosen, setChosen] = useState<Tab | null>(null);
+  const picked = chosen ?? requested;
+  const current = picked && available.includes(picked) ? picked : available[0];
+
+  const select = useCallback(
+    (tab: Tab) => {
+      setChosen(tab);
+      const next = new URLSearchParams(Array.from(params.entries()));
+      next.set("tab", tab);
+      // `scroll: false` keeps the reader where they are. Switching tabs is not
+      // navigation to a new page and should not jump to the top of one.
+      router.replace(`?${next.toString()}`, { scroll: false });
+    },
+    [params, router]
+  );
 
   if (available.length === 0) return null;
 
   return (
     <>
       <div className={styles.tabs} role="tablist">
-        {available.map((tab) => (
+        {dataTabs.map((tab) => (
           <button
             key={tab}
             role="tab"
             type="button"
             aria-selected={tab === current}
             className={tab === current ? `${styles.tab} ${styles.tabActive}` : styles.tab}
-            onClick={() => setActive(tab)}
+            onClick={() => select(tab)}
+          >
+            {sv ? TAB_LABELS[tab].sv : TAB_LABELS[tab].en}
+          </button>
+        ))}
+
+        {dataTabs.length > 0 && toolTabs.length > 0 ? <span className={styles.tabDivider} aria-hidden="true" /> : null}
+
+        {toolTabs.map((tab) => (
+          <button
+            key={tab}
+            role="tab"
+            type="button"
+            aria-selected={tab === current}
+            className={tab === current ? `${styles.tab} ${styles.tabTool} ${styles.tabActive}` : `${styles.tab} ${styles.tabTool}`}
+            onClick={() => select(tab)}
           >
             {sv ? TAB_LABELS[tab].sv : TAB_LABELS[tab].en}
           </button>
@@ -394,6 +494,14 @@ export default function InstrumentTabs({
       {current === "analysts" && detail.analysts ? (
         <Analysts analysts={detail.analysts} currency={detail.profile.currency} sv={sv} />
       ) : null}
+      {current === "quant" ? <QuantPanel symbol={detail.symbol} sv={sv} /> : null}
+      {current === "sentiment" ? (
+        // Placera resolves a company by name, not by ticker, and not by the
+        // *legal* name Yahoo reports — "AB Volvo (publ)" 404s where "Volvo"
+        // resolves, measured against the live endpoint.
+        <SentimentPanel companyQuery={placeraQuery(detail.profile.name ?? detail.symbol)} sv={sv} />
+      ) : null}
+      {current === "primers" ? <PrimerPanel symbol={detail.symbol} sv={sv} /> : null}
     </>
   );
 }

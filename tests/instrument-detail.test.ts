@@ -7,6 +7,8 @@ import { isInstrumentBridgeConfigured, normaliseSymbol } from "../app/lib/market
 import { tabsFor } from "../app/lib/market/instrument-cache.ts";
 import type { InstrumentDetail } from "../app/lib/market/instrument-types.ts";
 import { fullDetail, redactForPublic } from "../app/lib/market/instrument-visibility.ts";
+import { placeraQuery, toolsFor } from "../app/lib/market/instrument-tools.ts";
+import type { InstrumentProfile } from "../app/lib/market/instrument-types.ts";
 
 // The instrument page is the app's largest new synthetic-data surface: four
 // tabs, most of which do not exist for most instrument types. These tests pin
@@ -225,4 +227,53 @@ test("a new profile field is private until it is listed", () => {
     source.includes("satisfies ReadonlyArray<keyof InstrumentProfile>"),
     "the allowlist must be checked against the profile type so a renamed field is a compile error"
   );
+});
+
+test("each analysis tool is offered only where it can reach", () => {
+  // Measured 2026-09-03, and the reason the tab strip tops out at six:
+  // quant runs off price history (everything), primers read SEC EDGAR (US
+  // filers), sentiment reads Placera (Swedish board). Primers and sentiment are
+  // therefore mutually exclusive by geography — no instrument shows both.
+  const equity = (over: Partial<InstrumentProfile>): InstrumentProfile => ({
+    name: "X", quoteType: "EQUITY", exchange: null, currency: null, summary: null,
+    sector: null, industry: null, website: null, country: null, employees: null,
+    ceo: null, marketCap: null, sharesOutstanding: null, peRatio: null, forwardPe: null,
+    priceToBook: null, eps: null, dividendYield: null, beta: null,
+    fiftyTwoWeekHigh: null, fiftyTwoWeekLow: null, ...over
+  });
+
+  const us = toolsFor("AAPL", equity({ exchange: "NasdaqGS" }));
+  assert.deepEqual(us, { quant: true, sentiment: false, primers: true }, "a US filer gets primers, not Placera");
+
+  const se = toolsFor("VOLV-B.ST", equity({ exchange: "Stockholm" }));
+  assert.deepEqual(se, { quant: true, sentiment: true, primers: false }, "a Stockholm listing gets Placera, not primers");
+
+  // Never both — that is what caps the strip at six tabs rather than seven.
+  assert.ok(!(us.primers && us.sentiment) && !(se.primers && se.sentiment));
+
+  // Non-equities: quant only. There is no filing to read and no forum thread.
+  const index = toolsFor("^OMX", equity({ quoteType: "INDEX", exchange: "STO" }));
+  assert.deepEqual(index, { quant: true, sentiment: false, primers: false });
+  const gold = toolsFor("GC=F", equity({ quoteType: "FUTURE", exchange: "CMX" }));
+  assert.deepEqual(gold, { quant: true, sentiment: false, primers: false });
+});
+
+test("the Placera query strips the legal wrapper but not the name", () => {
+  // Yahoo reports the legal name; Placera's search does not match it. Measured
+  // against the live endpoint: "AB Volvo (publ)" 404s, "Volvo" resolves.
+  assert.equal(placeraQuery("AB Volvo (publ)"), "Volvo");
+  assert.equal(placeraQuery("Investor AB (publ)"), "Investor");
+  assert.equal(placeraQuery("H & M Hennes & Mauritz AB"), "H & M Hennes & Mauritz");
+
+  // Conservative on purpose. Over-trimming would match a *different* company's
+  // forum and attribute strangers' posts to this instrument, which is worse
+  // than returning nothing.
+  assert.equal(
+    placeraQuery("Telefonaktiebolaget LM Ericsson (publ)"),
+    "Telefonaktiebolaget LM Ericsson",
+    "a name with no corporate-form wrapper must survive intact"
+  );
+  // Never empties out, whatever it is handed.
+  assert.equal(placeraQuery("AB"), "AB");
+  assert.equal(placeraQuery("   Volvo   "), "Volvo");
 });

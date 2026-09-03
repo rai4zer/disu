@@ -103,9 +103,13 @@ export default function AppShell({ children, signedIn }: Props) {
   const navItems: NavItem[] = [
     { href: "/dashboard", label: copy.nav.dashboard, icon: "dashboard" },
     { href: "/portfolio", label: copy.nav.portfolio, icon: "portfolio" },
-    { href: "/placera", label: copy.nav.sentiment, icon: "sentiment" },
-    { href: "/quant", label: copy.nav.quant, icon: "quant" },
-    { href: "/primers", label: copy.nav.primers, icon: "primers" },
+    // Sentiment, Quant and Primers left the rail: all three are questions about
+    // a *specific* asset, and they now live as tabs on that asset's page. A
+    // module that opens by asking "which ticker?" was a detour around the page
+    // the reader was already trying to reach.
+    //
+    // /sentiment (the market desk) is a different thing and stays in the top
+    // nav: it is about the market as a whole, so it has no asset to live on.
     // Last, and set apart in the rail: this is where you go to change a
     // setting, not part of the daily loop the four modules above it make up.
     { href: "/profile", label: copy.nav.profile, icon: "profile" }
