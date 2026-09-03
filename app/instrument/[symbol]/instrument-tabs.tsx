@@ -15,6 +15,7 @@
  * the chart.
  */
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import type {
   InstrumentAnalysts,
@@ -22,6 +23,7 @@ import type {
   InstrumentNews,
   StatementPeriod
 } from "@/app/lib/market/instrument-types";
+import type { GatedSection } from "@/app/lib/market/instrument-visibility";
 import styles from "./page.module.css";
 
 type Tab = "overview" | "kpi" | "news" | "analysts";
@@ -126,7 +128,42 @@ function StatementChart({
   );
 }
 
-function Overview({ detail, sv }: { detail: InstrumentDetail; sv: boolean }) {
+/**
+ * What signing in adds, named specifically.
+ *
+ * Rendered once at the foot of the overview rather than as locked, empty tabs.
+ * A tab that opens onto a wall is the same broken promise as an empty KPI tab
+ * on gold — and naming the three things ("revenue, earnings, balance sheet")
+ * is a better reason to sign up than a padlock is.
+ */
+function SignInPrompt({ gated, sv }: { gated: GatedSection[]; sv: boolean }) {
+  if (gated.length === 0) return null;
+
+  const names: Record<GatedSection, { en: string; sv: string }> = {
+    kpi: { en: "revenue, earnings and the balance sheet", sv: "omsättning, vinst och balansräkning" },
+    analysts: { en: "analyst recommendations and price targets", sv: "analytikerrekommendationer och riktkurser" },
+    valuation: { en: "valuation figures like P/E and market cap", sv: "värderingsmått som P/E och börsvärde" }
+  };
+  const list = gated.map((key) => (sv ? names[key].sv : names[key].en));
+  const joined =
+    list.length === 1
+      ? list[0]
+      : `${list.slice(0, -1).join(", ")} ${sv ? "och" : "and"} ${list[list.length - 1]}`;
+
+  return (
+    <div className={styles.gate}>
+      <p className={styles.gateText}>
+        {sv ? "Skapa ett konto för att se " : "Create a free account to see "}
+        {joined}.
+      </p>
+      <Link href="/auth/login?mode=register" className={styles.gateCta}>
+        {sv ? "Skapa konto" : "Create account"}
+      </Link>
+    </div>
+  );
+}
+
+function Overview({ detail, sv }: { detail: InstrumentDetail & { gated?: GatedSection[] }; sv: boolean }) {
   const [expanded, setExpanded] = useState(false);
   const p = detail.profile;
 
@@ -182,6 +219,8 @@ function Overview({ detail, sv }: { detail: InstrumentDetail; sv: boolean }) {
           ) : null}
         </dl>
       ) : null}
+
+      <SignInPrompt gated={detail.gated ?? []} sv={sv} />
     </div>
   );
 }
@@ -319,7 +358,13 @@ function Analysts({ analysts, currency, sv }: { analysts: InstrumentAnalysts; cu
   );
 }
 
-export default function InstrumentTabs({ detail, sv }: { detail: InstrumentDetail; sv: boolean }) {
+export default function InstrumentTabs({
+  detail,
+  sv
+}: {
+  detail: InstrumentDetail & { gated?: GatedSection[] };
+  sv: boolean;
+}) {
   const available = (["overview", "kpi", "news", "analysts"] as Tab[]).filter((tab) => detail.sections[tab]);
   const [active, setActive] = useState<Tab>(available[0] ?? "overview");
   const current = available.includes(active) ? active : available[0];

@@ -5,6 +5,8 @@ import test from "node:test";
 
 import { isInstrumentBridgeConfigured, normaliseSymbol } from "../app/lib/market/instrument-bridge.ts";
 import { tabsFor } from "../app/lib/market/instrument-cache.ts";
+import type { InstrumentDetail } from "../app/lib/market/instrument-types.ts";
+import { fullDetail, redactForPublic } from "../app/lib/market/instrument-visibility.ts";
 
 // The instrument page is the app's largest new synthetic-data surface: four
 // tabs, most of which do not exist for most instrument types. These tests pin
@@ -128,4 +130,99 @@ test("the bridge is skipped, not crashed, without an interpreter", () => {
     if (before.market !== undefined) process.env.MARKET_PYTHON_BIN = before.market;
     if (before.quant !== undefined) process.env.QUANT_PYTHON_BIN = before.quant;
   }
+});
+
+test("a signed-out reader gets the description but not the valuation", () => {
+  // The product line (ROADMAP §1.3, §4.6): "what is this company" is public and
+  // is what earns a visit and a search ranking; "what is it worth, should I buy
+  // it" is the reason to sign up. This test is the definition of that line.
+  const full: InstrumentDetail = {
+    symbol: "AAPL",
+    profile: {
+      name: "Apple Inc.",
+      quoteType: "EQUITY",
+      exchange: "NasdaqGS",
+      currency: "USD",
+      summary: "Apple designs and sells consumer electronics.",
+      sector: "Technology",
+      industry: "Consumer Electronics",
+      website: "https://apple.com",
+      country: "United States",
+      employees: 150000,
+      ceo: "A Person",
+      marketCap: 4e12,
+      sharesOutstanding: 1.4e10,
+      peRatio: 37.1,
+      forwardPe: 30,
+      priceToBook: 44,
+      eps: 8.76,
+      dividendYield: 0.32,
+      beta: 1.16,
+      fiftyTwoWeekHigh: 340,
+      fiftyTwoWeekLow: 200
+    },
+    financials: { income: [{ period: "2025-09-30", revenue: 4e11 }], balance: [{ period: "2025-09-30", assets: 3e11 }] },
+    news: [{ title: "A headline", publisher: "Reuters", publishedAt: null, link: null }],
+    analysts: { analystCount: 44, priceTarget: { low: 215, high: 400 } },
+    sections: { overview: true, kpi: true, news: true, analysts: true }
+  };
+
+  const publicView = redactForPublic(full);
+
+  // Kept: what the company is.
+  assert.equal(publicView.profile.name, "Apple Inc.");
+  assert.equal(publicView.profile.summary, "Apple designs and sells consumer electronics.");
+  assert.equal(publicView.profile.sector, "Technology");
+  assert.equal(publicView.profile.employees, 150000);
+  assert.equal(publicView.news.length, 1, "headlines stay public");
+
+  // Withheld: what a prospective buyer would act on.
+  for (const field of ["marketCap", "peRatio", "forwardPe", "priceToBook", "eps", "dividendYield", "beta", "sharesOutstanding", "fiftyTwoWeekHigh", "fiftyTwoWeekLow"] as const) {
+    assert.equal(publicView.profile[field], null, `${field} must not reach an anonymous reader`);
+  }
+  assert.equal(publicView.financials, null, "financial statements are gated");
+  assert.equal(publicView.analysts, null, "analyst coverage is gated");
+
+  // The gated tabs disappear rather than rendering locked and empty.
+  assert.equal(publicView.sections.kpi, false);
+  assert.equal(publicView.sections.analysts, false);
+  assert.equal(publicView.sections.overview, true);
+  assert.equal(publicView.sections.news, true);
+  assert.deepEqual(publicView.gated, ["kpi", "analysts", "valuation"]);
+
+  // Redaction must not mutate the cached object — the same detail is handed to
+  // a signed-in reader on the next request.
+  assert.equal(full.profile.marketCap, 4e12, "redaction must not mutate its input");
+  assert.equal(fullDetail(full).profile.peRatio, 37.1, "a signed-in reader keeps everything");
+});
+
+test("nothing is offered for unlocking that does not exist", () => {
+  // An index has no P/E to withhold. Claiming otherwise invites someone to
+  // sign up for nothing, which is worse than inviting them for nothing at all.
+  const index: InstrumentDetail = {
+    symbol: "^OMX",
+    profile: {
+      name: "OMX Stockholm 30", quoteType: "INDEX", exchange: "STO", currency: "SEK",
+      summary: null, sector: null, industry: null, website: null, country: null,
+      employees: null, ceo: null, marketCap: null, sharesOutstanding: null, peRatio: null,
+      forwardPe: null, priceToBook: null, eps: null, dividendYield: null, beta: null,
+      fiftyTwoWeekHigh: null, fiftyTwoWeekLow: null
+    },
+    financials: null,
+    news: [],
+    analysts: null,
+    sections: { overview: true, kpi: false, news: false, analysts: false }
+  };
+  assert.deepEqual(redactForPublic(index).gated, [], "an index has nothing to unlock");
+});
+
+test("a new profile field is private until it is listed", () => {
+  // The allowlist is the point. A blocklist would leak every field added to the
+  // payload after it was written; this fails closed instead.
+  const source = readRepoCodeOnly("app/lib/market/instrument-visibility.ts");
+  assert.ok(source.includes("PUBLIC_PROFILE_FIELDS"), "the public set must be an explicit allowlist");
+  assert.ok(
+    source.includes("satisfies ReadonlyArray<keyof InstrumentProfile>"),
+    "the allowlist must be checked against the profile type so a renamed field is a compile error"
+  );
 });

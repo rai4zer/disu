@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import InstrumentSearch from "@/app/components/instrument-search";
 import { useLanguage } from "@/app/i18n/language";
 import { getUiCopy } from "@/app/i18n/ui-copy";
 import styles from "./public-nav.module.css";
@@ -59,9 +60,15 @@ export default function PublicNav() {
           </nav>
         </div>
 
-        <Link href="/auth/login?mode=register" className={styles.cta}>
-          {isSv ? "Skapa konto" : "Create account"}
-        </Link>
+        {/* Search sits beside the CTA for a signed-out visitor too: instrument
+            pages are public (ROADMAP §4.6), and searching is how anyone reaches
+            them without already knowing a URL. */}
+        <div className={styles.actions}>
+          <InstrumentSearch />
+          <Link href="/auth/login?mode=register" className={styles.cta}>
+            {isSv ? "Skapa konto" : "Create account"}
+          </Link>
+        </div>
       </div>
     </div>
   );

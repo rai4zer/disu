@@ -22,10 +22,11 @@ import UiState from "@/app/components/ui-state";
 import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
 import type { InstrumentDetail } from "@/app/lib/market/instrument-types";
+import type { GatedSection } from "@/app/lib/market/instrument-visibility";
 import InstrumentTabs from "./instrument-tabs";
 import styles from "./page.module.css";
 
-type Payload = InstrumentDetail & { ok: true; fetchedAt: string; cached: boolean };
+type Payload = InstrumentDetail & { ok: true; fetchedAt: string; cached: boolean; gated?: GatedSection[] };
 
 /** What kind of thing this is, said plainly rather than as a raw enum. */
 const TYPE_LABEL: Record<string, { en: string; sv: string }> = {

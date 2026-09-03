@@ -49,6 +49,18 @@
   grid-column: 2;
   min-width: 0;
   padding-inline: var(--content-gutter);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* Right-aligned controls. `align-items: center` rather than stretch: the nav
+   items are full-height hit targets, a 34px icon button is not. */
+.actions {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
 
 .nav {

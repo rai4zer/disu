@@ -40,10 +40,18 @@ export const config = {
   //   /learn/*                      — static education pages, nothing user-specific
   //   /primers                      — browsable logged out; the run itself still
   //                                   needs an account, and the page says so
+  //   /instrument/*                 — ROADMAP §4.6. The page is the logged-out
+  //                                   value that earns a visit and a search
+  //                                   ranking, so it is not gated *here* —
+  //                                   /api/instruments redacts by session
+  //                                   instead, and returns a smaller body to an
+  //                                   anonymous reader rather than a 401. See
+  //                                   app/lib/market/instrument-visibility.ts.
+  //   /api/tickers/search           — search is how someone reaches those pages;
+  //                                   gating it would gate the door to them
   // Only /help/release-notes is gated inside /help.
   matcher: [
     "/profile/:path*",
-    "/instrument/:path*",
     "/account/:path*",
     "/dashboard/:path*",
     "/portfolio/:path*",
@@ -53,7 +61,6 @@ export const config = {
     "/placera/:path*",
     "/help/release-notes/:path*",
     "/api/brokers/:path*",
-    "/api/instruments/:path*",
     "/api/portfolio/:path*",
     "/api/quant/:path*",
     "/api/filings-primers/:path*",

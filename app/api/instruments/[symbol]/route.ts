@@ -16,6 +16,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthenticatedSession } from "@/app/lib/auth/session";
 import { getInstrumentDetail } from "@/app/lib/market/instrument-cache";
+import { fullDetail, redactForPublic } from "@/app/lib/market/instrument-visibility";
 import { isInstrumentBridgeConfigured, normaliseSymbol } from "@/app/lib/market/instrument-bridge";
 import { log } from "@/app/lib/observability/log";
 
@@ -23,10 +24,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest, { params }: { params: { symbol: string } }) {
+  // Public on purpose (ROADMAP §4.6): an instrument page is the logged-out
+  // value that earns a visit and a search ranking. The session decides how much
+  // of it comes back, not whether anything does.
   const session = await getAuthenticatedSession(request);
-  if (!session) {
-    return NextResponse.json({ ok: false, error: "Not signed in." }, { status: 401 });
-  }
 
   const symbol = normaliseSymbol(decodeURIComponent(params.symbol ?? ""));
   if (!symbol) {
@@ -45,11 +46,18 @@ export async function GET(request: NextRequest, { params }: { params: { symbol: 
 
   try {
     const { detail, fetchedAt, cached } = await getInstrumentDetail(symbol);
+    // Redaction happens here, before serialisation. Hiding these fields in a
+    // component would still ship them in this JSON, where a network tab reads
+    // them — the gate has to be on the wire to be a gate at all.
+    const body = session ? fullDetail(detail) : redactForPublic(detail);
     return NextResponse.json(
-      { ok: true, ...detail, fetchedAt, cached },
+      { ok: true, ...body, fetchedAt, cached },
       // Short public cache: the payload is identical for every viewer, and the
       // upstream TTL is an hour anyway.
-      { headers: { "Cache-Control": "private, max-age=60" } }
+      // `private` even for anonymous readers: the two audiences get different
+      // bodies from the same URL, and a shared cache must never hand a
+      // signed-out visitor's redacted copy to a signed-in one, or vice versa.
+      { headers: { "Cache-Control": "private, max-age=60", Vary: "Cookie" } }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

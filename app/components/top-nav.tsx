@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import InstrumentSearch from "@/app/components/instrument-search";
 import { useLanguage } from "@/app/i18n/language";
 import { getUiCopy } from "@/app/i18n/ui-copy";
 import styles from "./top-nav.module.css";
@@ -162,6 +163,13 @@ export default function TopNav() {
               </div>
             </div>
           </nav>
+
+          {/* Right-hand end of the rail, deliberately not in the market strip:
+              the strip is a readout that scrolls, and a control that opens a
+              popover does not belong inside something that moves. */}
+          <div className={styles.actions}>
+            <InstrumentSearch />
+          </div>
         </div>
       </div>
     </div>
