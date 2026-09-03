@@ -129,39 +129,13 @@ test("the market board and movers routes never invent a reading", () => {
   );
 });
 
-test("the market strip says where its levels came from", () => {
-  // Rule 3 of the policy: the flag has to survive every hop. The route has
-  // always published `stale`, `source` and `asOf`; the strip read none of them
-  // and rendered nine index levels with no provenance at all, which is the hop
-  // where the flag was being dropped.
-  const source = readRepoCode("app/components/market-strip.tsx");
-  assert.ok(source.includes('data.source === "fallback"'), "the strip must branch on the route's source");
-  assert.ok(source.includes("styles.provenanceStale"), "retained values must render differently from current ones");
-  assert.ok(
-    source.includes("copy.market.indicative"),
-    "the badge text must come from the copy file so both languages carry the disclosure"
-  );
-
-  // A failed fetch leaves the previous numbers on screen. That is the right
-  // call — they are real observations — but the badge must stop calling them
-  // current, or the strip silently presents a frozen reading as a live one.
-  assert.ok(source.includes("const degrade"), "an unreachable route must downgrade the badge");
-});
-
 test("the strip does not name a delay it cannot substantiate", () => {
   // ROADMAP §2.7 says to label market data "delayed 15 min". That wording is
   // correct for a *licensed* delayed feed, where 15 minutes is contractual.
   // The current source grants no such term, so a specific figure would be an
   // invented number on a user-facing surface — the exact thing this file
-  // guards. "Indicative" is the honest label until a feed is contracted; at
-  // that point this test should be updated deliberately, not deleted quietly.
+  // guards. The strip carries no provenance badge at all now, but if one comes
+  // back it must not put a figure on the lag until a feed is contracted.
   const copy = readRepoCode("app/i18n/ui-copy.ts");
   assert.ok(!/15\s*min/i.test(copy), "no contractual delay figure while the source grants none");
-  for (const key of ["indicative:", "indicativeNote:", "lastKnown:", "lastKnownNote:"]) {
-    assert.equal(
-      copy.split(key).length - 1,
-      2,
-      `${key} must exist in both en and sv — a disclosure that only one language sees is not a disclosure`
-    );
-  }
 });

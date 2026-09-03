@@ -13,17 +13,7 @@ export const uiCopy = {
     },
     market: {
       ariaLabel: "Market overview",
-      signIn: "Sign in",
-      // "Indicative", not "delayed 15 min". A 15-minute figure is contractual
-      // language that belongs to a licensed feed; on the current source the lag
-      // is real but unspecified, so naming a number would be inventing the one
-      // fact we do not have (docs/synthetic-data-policy.md).
-      indicative: "Indicative",
-      indicativeNote:
-        "Index levels are indicative and may be delayed. This is not a real-time or guaranteed feed — do not trade on it.",
-      lastKnown: "Last known",
-      lastKnownNote:
-        "Live readings are unavailable. These are the last levels we could observe, recorded at"
+      signIn: "Sign in"
     },
     languageToggle: {
       label: "Switch language",
@@ -83,13 +73,7 @@ export const uiCopy = {
     },
     market: {
       ariaLabel: "Marknadsöversikt",
-      signIn: "Logga in",
-      indicative: "Indikativ",
-      indicativeNote:
-        "Indexnivåerna är indikativa och kan vara fördröjda. Detta är inte ett realtidsflöde eller ett garanterat flöde — handla inte utifrån dem.",
-      lastKnown: "Senast kända",
-      lastKnownNote:
-        "Live-avläsningar är inte tillgängliga. Detta är de senaste nivåer vi kunde observera, registrerade kl."
+      signIn: "Logga in"
     },
     languageToggle: {
       label: "Byt språk",
