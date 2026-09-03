@@ -7,7 +7,89 @@
 > **Status:** v1 — 2026-08-19
 > **Owner:** solo founder (one person, no team)
 > **Companion docs:** `architecture.md` (how it works today), `docs/deployment-policy.md`,
-> `docs/runbooks.md`, `docs/market-live-feed.md` (market-data reality check)
+> `docs/runbooks.md`, `docs/market-live-feed.md` (market-data reality check),
+> `docs/trading-platform.md` (M6 scaffolding), `app/design-system.css` (the shared UI language)
+
+---
+
+## Now — the queue
+
+*The only forward-looking list in this document. Everything below §0 is rationale: when an
+item here is done, tick it here and write the finding in its § section. M0 is the only open
+gate — 10 of its 16 blocking items are closed (§13).*
+
+**Tree state 2026-08-30:** `typecheck` green, `check:delivery` green, `test:unit` **red**
+(254/255). Large uncommitted body of new pages/modules in the tree, off the M0 path.
+
+### 0 — Broken now
+
+- [ ] Quant mock snapshot hash drift blocks `npm run ci` — `tests/jobs-bridge-regression.test.ts:94`
+
+### 1 — External setup: accounts, keys, vendors (not code)
+
+Nothing here moves by writing software. Three are M0 exit criteria.
+
+| # | Item | Unblocks | § |
+|---|---|---|---|
+| 1.1 | Register entity → name controller (`legalName`, `registrationNumber`, `address`, `privacyEmail`, `supportEmail`) | `app/lib/legal/controller.ts` is `PENDING`; `check:delivery:strict` refuses a prod boot | §2.2 |
+| 1.2 | Provision Google OAuth client → `GOOGLE_OAUTH_CLIENT_ID` / secret | Code and migration are live, inert without the vars | §2.3 |
+| 1.3 | Commit hosting decision (D1: long-lived Node — Fly/Railway/Render, 1 instance) | All of block 3 | §2.5 |
+| 1.4 | Pick alerting sink → `ERROR_REPORT_WEBHOOK_URL` (Discord/Slack now, GlitchTip/Sentry EU later) | Capture and fingerprinting already ship; nothing notifies a human | §2.6 |
+| 1.5 | ~~Sign `docs/decisions/0001`~~ **done 2026-08-30.** Nothing left for you — tripwire T5 was going to be a calendar reminder, and is instead a build guard in `scripts/check-delivery-readiness.mjs`: past 2026-11-30 `check:delivery` exits 1, with a warning for 21 days before | Closed the §2.8 market-data line | §2.7 |
+| 1.6 | Marketstack free key | Runs 2.1 | §2.7 |
+| 1.7 | EODHD B2B quote at ~10k users; Finnhub ticket re: which tier serves `^OMX` | Provider contract (D2) | §2.7 |
+| 1.8 | DPAs: Google, Meta, LinkedIn | Consent gate is built; a DPA is a separate obligation | §2.2 |
+
+A vendor goes into `app/lib/legal/subprocessors.ts` and the privacy notice **before** 1.4 points at it.
+
+### 2 — Backend / data
+
+| # | Item | Where | § |
+|---|---|---|---|
+| 2.1 | Run `scripts/marketstack-omxs30-test.py` — does the index endpoint return OMXS30, fresh or EOD? May collapse the budget from $229/mo to $10/mo | `docs/market-data-providers.md` | §2.7 |
+| 2.2 | Live market-data smoke test — every market test mocks the network, so nothing catches Yahoo changing its JSON shape | `tests/` | §2.7 |
+| 2.3 | Symbol-level shared cache: one fetch per symbol per interval across all users (~800 distinct symbols) | `app/lib/market/market-provider.ts` | §2.7 |
+| 2.4 | Confirm snapshot rows are landing — the free tier auto-pauses and a paused day records nothing | `app/lib/portfolio/snapshots.ts`, runbook 5 | §13 |
+| 2.5 | Migration runner + `schema_migrations` — nothing records what is applied, so a restore can silently roll the schema behind the code | `db/migrations/` | §13 |
+| 2.6 | Uptime + synthetic check: `/api/market/indices` plus one authenticated route | — | §2.6 |
+| 2.7 | Ops dashboard read once daily: WAP, signups, activation, errors, job failure rate, external-API failure rate | — | §2.6 |
+| 2.8 | **W1 — instrument the market source.** Count outcomes per source and alert when the fallback rate crosses T1's threshold. Created by signing decision 0001: without it tripwires T1 and T2 detect nothing. Needs 1.4 for the sink. `recordEvent()` is not the vehicle — it is user-scoped with a closed action union; this wants a process-level counter | `app/api/market/indices/route.ts`, `app/lib/market/market-provider.ts` | 0001 W1 |
+
+### 3 — Infra / deploy (gated on 1.3)
+
+- [ ] Deploy config committed, documented in `docs/deployment-policy.md` — §2.5
+- [ ] Set both `*_MOCK_FALLBACK_MODE=never` on the production host — the gate exists, the host does not
+- [ ] Staging environment with its own secrets — §2.5
+- [ ] Automated DB backups verified by an **actual restore test** — §2.5
+
+### 4 — Design / frontend
+
+The friction inventory of §9.8. Six rows are pure code.
+
+| # | Item | Where |
+|---|---|---|
+| 4.1 | Rewrite B2B copy ("work email", "request demo") for consumers | `app/i18n/en.json` |
+| 4.2 | First-run card + demo data for the empty post-signup dashboard | `app/dashboard/page.tsx` |
+| 4.3 | Reorder the activation ladder — broker connect is shown before manual add | `app/portfolio/page.tsx:747` |
+| 4.4 | Promote manual add out from behind a toggle to primary | `app/portfolio/page.tsx:1054` |
+| 4.5 | Make average cost optional, prompt later | add-position form |
+| 4.6 | Open primers, ticker pages and learn to signed-out visitors | `middleware.ts` matcher |
+| 4.7 | Logged-out value: public primers + a locally saved portfolio | landing page |
+| 4.8 | Label market data "delayed 15 min" — the framing that justifies not paying for real-time | market strip |
+| 4.9 | Full mobile pass | deferred to M2 |
+
+### 5 — Housekeeping
+
+- [ ] Triage the uncommitted tree: dashboard cards, portfolio analysis/calendar/positions tabs,
+      `app/design-system.css`, price export, Placera lib, trading scaffolding and
+      `db/migrations/0022_trading_accounts.sql`. It typechecks and its tests pass, but §2.9 cuts
+      new pages and new modules from M0 — commit or shelve deliberately.
+
+### Locked
+
+M6 trading, gated by §8.3 and `docs/trading-platform.md`. `0022_trading_accounts.sql` is written
+and **must not be applied** until that gate is met. Deeplinking (path 1) ships at M4/M5 first; if
+it proves sufficient, not building the rest is the correct outcome.
 
 ---
 
@@ -18,7 +100,7 @@
 2. **Every gate has a "Definition of Done" that is measurable.** "Onboarding improved" is
    not a criterion. "Median time from landing page to first holding visible < 90s, measured
    over the last 50 signups" is.
-3. **Update the tracker in §11 weekly.** Tick boxes, write the actual number next to the
+3. **Work the queue at the top; update the tracker in §13 weekly.** Tick boxes, write the actual number next to the
    target. Do not delete missed targets — the miss is the signal.
 4. **The "Cut list" in each gate is binding.** It records what you decided *not* to build.
    Re-adding something from a cut list requires writing down what changed.
@@ -304,9 +386,13 @@ verification**.
 - [x] Close the two Google gaps flagged in `architecture.md`: no unlink UI, and a Google-only
       user must go through password reset to add a password.
       *Done 2026-08-27.* Both were the same missing thing — the app had no account-settings
-      page at all — so `/account` is new, gated by middleware, reachable from the market strip
-      next to Sign out, and backed by `GET /api/account/security` (booleans only: does a
-      password exist, is Google linked; never the hash, salt or `sub`).
+      page at all — so the settings page is new, gated by middleware, and backed by
+      `GET /api/account/security` (booleans only: does a password exist, is Google linked;
+      never the hash, salt or `sub`). It shipped at `/account` as a link in the market strip
+      next to Sign out; it is now **`/profile`, the "My Profile" module** in the sidebar rail,
+      with `/account` kept as a redirect so a bookmark — or a Google OAuth round-trip whose
+      signed `state` still carries the old `nextPath` — does not land on a 404. The API routes
+      are unchanged and stay under `/api/account/*`.
 
       **Adding a password no longer routes through a reset email.**
       `POST /api/account/password` sets one in-session. For a Google-only account the
@@ -491,10 +577,13 @@ total. That table is the specification a paid tier has to meet (D2).
 Shipping a consumer product to 10k users on scraped endpoints will fail in one of three ways:
 rate limiting, silent schema change, or a ToS complaint. All three break the core promise.
 
-> **Drafted 2026-08-27, awaiting sign-off:** `docs/decisions/0001-market-data-source.md`
-> (time-boxed decision, tripwires, switch plan) and `docs/market-data-providers.md`
-> (priced comparison of the five candidates below). The decision record is PROPOSED —
-> it needs a decider, an accept date, and an expiry before it satisfies §2.8.
+> **ACCEPTED 2026-08-30:** `docs/decisions/0001-market-data-source.md` — launch M0 on
+> Yahoo deliberately, expiring **2026-11-30** or at the first external paying user,
+> whichever comes first. Companion: `docs/market-data-providers.md` (priced comparison
+> of the five candidates below). The decision buys €0/mo through M0 and costs three
+> obligations, W1–W3: W3 is done, W2 is the "delayed" label, and **W1 — counting source
+> outcomes and alerting on the fallback rate — is not built, which leaves tripwires T1
+> and T2 undetected.** Until W1 ships, this decision is watched by nobody.
 
 - [x] Price out a licensed provider for the coverage you actually need: Nordic equities +
       a few indices + FX. Candidates: EOD Historical Data, Twelve Data, Marketstack,
@@ -577,10 +666,12 @@ never run in CI; wired in 2026-08-28, along with `NODE_ENV=test` on `test:unit` 
 - [ ] Funnel events flowing; error alerts reaching your phone
       — *funnel events done (§2.6): the stream, the nine events and the retention sweep are
       live. Error alerting is what is left on this line*
-- [ ] Licensed market-data provider contracted **or** an explicit, written, time-boxed
+- [x] Licensed market-data provider contracted **or** an explicit, written, time-boxed
       decision to launch on Yahoo with a documented switch plan
-      — *the decision is drafted at `docs/decisions/0001-market-data-source.md` but is
-      still PROPOSED; signing it (decider + accept date + expiry) closes this line*
+      — *closed 2026-08-30 by signing `docs/decisions/0001-market-data-source.md`
+      (ACCEPTED, expires 2026-11-30 or first external paying user). Note what the
+      signature does **not** buy: W1 is unbuilt, so tripwires T1 and T2 fire against
+      nothing. The line is closed; the risk is transferred to queue item 2.8*
 
 ### 2.9 Cut list for M0
 
@@ -817,6 +908,75 @@ Realistic paths, cheapest first:
 or a signed partner LOI. Until then, the honest strategy is path 1, which delivers most of the
 user benefit for none of the regulatory cost.
 
+### 8.1 On "do we need a market maker?" — no
+
+Asked directly, so answered directly. A market maker quotes two-sided prices to provide
+liquidity **on a venue**. You would only need one if DISU operated its own trading venue (an
+MTF), which is several regulatory orders of magnitude beyond executing customer orders and is
+on no realistic path here.
+
+What actually stands between DISU and a buy button is heavier than a market maker, and all of
+it belongs to the regulated entity: authorisation to receive and transmit orders, custody of
+client assets, client-money segregation, a KYC/AML programme with sanctions and PEP screening,
+capital and professional indemnity, and MiFIR transaction reporting. **A one-person company
+holds none of these.** The design conclusion is unchanged from the table above: DISU does not
+become the regulated entity — a licensed partner does execution, custody and KYC, and DISU is
+the interface.
+
+The full technical plan is `docs/trading-platform.md`. Its headline points:
+
+- **Ship the deeplink first (path 1, at M4/M5).** A "Trade" button that opens a pre-filled
+  order ticket at the user's own broker. No licence, no custody, no client money, no KYC —
+  and most of the user benefit. Everything below waits behind it, and if deeplinking turns
+  out to be enough, *not building the rest is the correct outcome.*
+- **Multi-account is a new table, not a column.** `trading_accounts` is distinct from
+  `broker_connection_accounts`, which is a read-only projection of an account someone else
+  holds. Both coexist. ISK / KF / AF is a first-class column from day one because it decides
+  tax treatment, and retrofitting it across live positions is a migration over real money.
+- **The ledger is the source of truth.** Double-entry rows; balances derived, never stored.
+  Money is `NUMERIC`, never a float. `external_ref UNIQUE` makes a retried partner webhook
+  safe to replay — a fill delivered twice must not book twice.
+- **Client money never touches a DISU account.** Deposits move from the customer's bank to
+  the partner's segregated client account. Name-matched accounts only; withdrawals return to
+  the account the deposit came from; buying power exists on settlement, not on initiation.
+- **Security is a step up, not the current floor.** Re-authentication on every order and
+  withdrawal, mandatory MFA, server-side limits, idempotency keys on every mutating endpoint,
+  and an append-only audit log in a separate store. The trading service is its own deployable
+  with its own credentials, so a bug in the primer generator cannot reach the ledger.
+
+### 8.2 Scaffolding that exists today
+
+Written, tested, and deliberately **not wired to any route**:
+
+| File | What it is |
+|---|---|
+| `docs/trading-platform.md` | The plan: regulatory shape, accounts, orders, deposits, security, and the gate |
+| `app/lib/trading/types.ts` | Domain model — accounts, orders, fills, ledger entries. Money is a decimal string, never a `number` |
+| `app/lib/trading/order-state.ts` | The order state machine, pure and side-effect free |
+| `tests/trading-order-state.test.ts` | 12 tests pinning the rules: terminal is terminal, fills accumulate and never over-fill, weighted average fill price, exact decimal arithmetic |
+| `db/migrations/0022_trading_accounts.sql` | The schema. **Written, not applied** — and it must not be until §8.3 is met |
+
+The state machine was written first on purpose: it is the only part that can be made correct
+before a partner exists, and it is where the expensive mistakes live.
+
+Note that `trading_accounts` is registered in `app/lib/account/personal-data.ts` with the
+`blocks` erasure policy, not `erase`. A financial record cannot be deleted on request —
+bokföringslag requires seven years, MiFID II five on order records, and GDPR Art. 17(3)(b) is
+the exemption. The delete is refused and escalated to a human rather than silently cascading
+away a statutory record.
+
+### 8.3 🔴 The gate — what must be true before any trading code runs
+
+- [ ] **M0 closed. All of it.** Trading on an unhardened foundation is a liability, not a product
+- [ ] Company entity registered, capitalised, insured (D7)
+- [ ] Hosting decision settled and *not* an auto-pausing tier (§2.5 — the snapshot job already suffers from this)
+- [ ] Error alerting reaching a human (§2.6)
+- [ ] A signed partner agreement, with the regulated-perimeter line explicit
+- [ ] Written legal opinion: appointed representative, or technology supplier?
+- [ ] A compliance function that is a named person, not a document
+- [ ] ≥ 6,000 WAP and positive revenue
+- [ ] **Broker deeplinking shipped, measured, and demonstrably insufficient**
+
 ---
 
 ## 9. Signup & onboarding — the friction-removal plan
@@ -1020,7 +1180,7 @@ the user understood exactly what this does, would they thank you?*
 
 | Gate | Focus | Key metric | Target | Actual | Status |
 |---|---|---|---|---|---|
-| **M0** | Foundation hardening | trust incidents | 0 | — | ⬜ not started |
+| **M0** | Foundation hardening | trust incidents | 0 | 0 | 🟡 10/16 — see the queue |
 | **M1** | Private beta | WAP | 25 | — | ⬜ |
 | **M2** | Public launch | WAP | 300 | — | ⬜ |
 | **M3** | Habit | W4 retention | 25% | — | ⬜ |
@@ -1028,25 +1188,27 @@ the user understood exactly what this does, would they thank you?*
 | **M5** | Revenue readiness | WAP / revenue > cost | 6,000 / yes | — | ⬜ |
 | **M6** | Trading platform | *gated on funding or partner* | — | — | 🔒 locked |
 
-### M0 blocking checklist (the only list that matters right now)
+### M0 — closed, and what each one taught
 
+*The record. Open M0 work is in the queue at the top of this document, not here —
+one item, one place.*
+
+
+- [x] Market-data provider decision written down 🔴 *(done 2026-08-30 — `docs/decisions/0001-market-data-source.md` is ACCEPTED: launch M0 on Yahoo, expiring
+      2026-11-30 or at the first external paying user. Two things are worth knowing. **W3 turned out to be already done** —
+      the record was drafted 2026-08-27 and the indices route moved behind `MarketProvider` on 2026-08-28, so an
+      obligation was signed that no longer existed; a decision record drafted days before it is signed must be re-read
+      against the code, not just signed. **And a signature is not a safety net:** W1 is unbuilt, so T1 (rate limiting) and
+      T2 (schema change) fire against nothing. The exit criterion asked for a written decision and now has one — but
+      Yahoo is still watched only by a human noticing.)*
 - [x] Remove `stableDayMovePct` and all fabricated user-facing data 🔴 *(§2.1 done)*
-- [ ] Set the two `*_MOCK_FALLBACK_MODE=never` vars on the production host (gate exists, host does not)
-- [ ] Privacy policy + Terms + consent notice live 🔴 *(written and published; blocked only on
-      registering the entity)*
 - [x] GDPR export + cascading delete 🔴 *(§2.2 done 2026-08-25 — register-driven, with a build
       guard that fails when a new table is not declared)*
 - [x] Rate-limit auth routes 🔴 *(§2.3 done 2026-08-25 — IP + email keyed, `test:unit` covers it)*
 - [x] Password floor + breach check 🔴 *(§2.3 done 2026-08-27 — 10 chars, blocklist, and the
       Pwned Passwords range API; `password1` and its disguises are now rejected)*
-- [ ] Provision Google OAuth client (unblocks the biggest onboarding win) 🔴
 - [x] Cross-tenant isolation tests for all user-scoped routes 🔴 *(§2.4 done 2026-08-25 — plus a
       `userScoped()` helper and a CI guard so it cannot regress)*
-- [ ] Hosting decision committed + staging up 🔴
-- [ ] Backup restore rehearsed
-- [ ] Funnel analytics + error alerting live — *funnel analytics done (§2.6); error alerting open*
-- [ ] Market-data provider decision written down 🔴 *(decision record drafted and PROPOSED;
-      the coverage a paid tier must meet is now measured, not guessed — §2.7)*
 - [x] Start recording daily portfolio snapshots (history cannot be backfilled) *(done 2026-08-27 —
       `0021_portfolio_snapshots.sql` **applied to production**, plus `app/lib/portfolio/snapshots.ts`
       swept off the job worker's timer. Unblocked 2026-08-28 when `0019` went live — the sweep starts
