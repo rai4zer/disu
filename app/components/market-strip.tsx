@@ -4,8 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import LogoutButton from "@/app/components/logout-button";
 import LanguageToggle from "@/app/components/language-toggle";
-import ThemeToggle from "@/app/components/theme-toggle";
-import { useLanguage } from "@/app/i18n/language";
+import { useLanguage, type AppLanguage } from "@/app/i18n/language";
 import { getUiCopy } from "@/app/i18n/ui-copy";
 import styles from "./market-strip.module.css";
 
@@ -16,6 +15,44 @@ type MarketItem = {
   value: string;
   time: string;
 };
+
+/**
+ * What the strip is allowed to claim about the numbers beside it.
+ *
+ * The route already publishes `stale`, `source` and `asOf`; until now the strip
+ * read none of them and rendered every level with no provenance at all. That is
+ * the bug docs/synthetic-data-policy.md names in rule 3 — the flag has to survive
+ * every hop, and the component has to change what it renders.
+ *
+ * `stale` on its own is not the signal, because the route uses it for two
+ * different things. On a successful publish it means *some* index came back
+ * empty; those cells already render "--", so every number actually on screen is
+ * still current. It is `source === "fallback"` that means the whole payload is
+ * last-known values retained from an earlier fetch, and only that deserves a
+ * different label.
+ */
+type Provenance =
+  | { kind: "pending" }
+  | { kind: "indicative" }
+  | { kind: "lastKnown"; asOf: string };
+
+type IndicesResponse = {
+  ok?: boolean;
+  items?: MarketItem[];
+  stale?: boolean;
+  asOf?: string;
+  source?: string;
+};
+
+function formatAsOf(iso: string, language: AppLanguage): string {
+  if (!iso) return "";
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  return at.toLocaleTimeString(language === "sv" ? "sv-SE" : "en-GB", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
 
 // Pre-fetch state: dashes everywhere, so nothing on screen claims a reading we
 // do not have yet.
@@ -58,21 +95,48 @@ export default function MarketStrip({ action = "signout", withSidebarOffset = fa
   const { language } = useLanguage();
   const copy = getUiCopy(language);
   const [items, setItems] = useState<MarketItem[]>(PLACEHOLDER_ITEMS);
+  // Starts at "pending" on purpose: before the first response the strip is all
+  // dashes, and a badge vouching for dashes would be worse than no badge.
+  const [provenance, setProvenance] = useState<Provenance>({ kind: "pending" });
+  const lastGoodAsOf = useRef("");
   const viewportRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
 
+    // A fetch that never arrives leaves real numbers on screen with no way for
+    // the reader to know they have stopped moving, so a failure downgrades the
+    // badge even though it deliberately leaves the values alone.
+    const degrade = () => {
+      if (!alive) return;
+      setProvenance((current) =>
+        current.kind === "pending" ? current : { kind: "lastKnown", asOf: lastGoodAsOf.current }
+      );
+    };
+
     const load = async () => {
       try {
         const res = await fetch("/api/market/indices", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as { ok?: boolean; items?: MarketItem[] };
-        if (!alive || !data.ok || !Array.isArray(data.items) || data.items.length === 0) return;
+        if (!res.ok) {
+          degrade();
+          return;
+        }
+        const data = (await res.json()) as IndicesResponse;
+        if (!alive || !data.ok || !Array.isArray(data.items) || data.items.length === 0) {
+          degrade();
+          return;
+        }
         setItems(data.items);
+        if (data.source === "fallback") {
+          setProvenance({ kind: "lastKnown", asOf: data.asOf ?? lastGoodAsOf.current });
+        } else {
+          if (data.asOf) lastGoodAsOf.current = data.asOf;
+          setProvenance({ kind: "indicative" });
+        }
       } catch {
-        // Keep the last known items on screen.
+        // Keep the last known items on screen, but stop calling them current.
+        degrade();
       }
     };
 
@@ -186,10 +250,39 @@ export default function MarketStrip({ action = "signout", withSidebarOffset = fa
     };
   }, []);
 
+  // Composed here rather than in the copy file so the timestamp is formatted in
+  // the reader's language without inventing a placeholder syntax for one string.
+  const asOfText = provenance.kind === "lastKnown" ? formatAsOf(provenance.asOf, language) : "";
+  const provenanceLabel =
+    provenance.kind === "lastKnown"
+      ? asOfText
+        ? `${copy.market.lastKnown} ${asOfText}`
+        : copy.market.lastKnown
+      : copy.market.indicative;
+  const provenanceNote =
+    provenance.kind === "lastKnown"
+      ? asOfText
+        ? `${copy.market.lastKnownNote} ${asOfText}.`
+        : copy.market.indicativeNote
+      : copy.market.indicativeNote;
+
   return (
     <div className={styles.strip} role="status" aria-label={copy.market.ariaLabel}>
       <div className={withSidebarOffset ? `${styles.inner} ${styles.innerWithSidebar}` : styles.inner}>
         <div className={styles.rail}>
+          {provenance.kind === "pending" ? null : (
+            <span
+              className={
+                provenance.kind === "lastKnown"
+                  ? `${styles.provenance} ${styles.provenanceStale}`
+                  : styles.provenance
+              }
+              title={provenanceNote}
+              aria-label={`${provenanceLabel}. ${provenanceNote}`}
+            >
+              {provenanceLabel}
+            </span>
+          )}
           <div className={styles.tickers} ref={viewportRef}>
             {/* Two identical passes so the right-to-left scroll loops seamlessly. */}
             <div className={styles.track} ref={trackRef}>
@@ -217,21 +310,22 @@ export default function MarketStrip({ action = "signout", withSidebarOffset = fa
           </div>
         </div>
         <div className={styles.controls}>
-          <LanguageToggle />
-          <ThemeToggle />
           {action === "signin" ? (
-            <Link href="/auth/login" className={styles.signOut}>
-              {copy.market.signIn}
-            </Link>
-          ) : (
+            /* Signed out, the strip is the only chrome there is, so the
+               language toggle stays here. Signed in it lives in My Profile
+               instead — the top bar carries no preferences. */
             <>
-              {/* The only entry point to the account page, so it sits next to
-                  sign-out rather than in a module that has to be discovered. */}
-              <Link href="/account" className={styles.signOut}>
-                {copy.market.account}
+              <LanguageToggle />
+              <Link href="/auth/login" className={styles.signOut}>
+                {copy.market.signIn}
               </Link>
-              <LogoutButton className={styles.signOut} />
             </>
+          ) : (
+            /* Account used to sit here as a link, because it had no module of
+               its own to be found in. It is now "My Profile" in the sidebar
+               rail, so the strip keeps only sign-out — the one control that
+               belongs to the chrome rather than to a page. */
+            <LogoutButton className={styles.signOut} />
           )}
         </div>
       </div>

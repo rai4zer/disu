@@ -8,20 +8,26 @@ export const uiCopy = {
       sentiment: "Sentiment",
       quant: "Quant",
       primers: "Primers",
+      profile: "My Profile",
       mainNavigation: "Main navigation"
     },
     market: {
       ariaLabel: "Market overview",
       signIn: "Sign in",
-      account: "Account"
+      // "Indicative", not "delayed 15 min". A 15-minute figure is contractual
+      // language that belongs to a licensed feed; on the current source the lag
+      // is real but unspecified, so naming a number would be inventing the one
+      // fact we do not have (docs/synthetic-data-policy.md).
+      indicative: "Indicative",
+      indicativeNote:
+        "Index levels are indicative and may be delayed. This is not a real-time or guaranteed feed — do not trade on it.",
+      lastKnown: "Last known",
+      lastKnownNote:
+        "Live readings are unavailable. These are the last levels we could observe, recorded at"
     },
     languageToggle: {
       label: "Switch language",
       shortLabel: "EN"
-    },
-    themeToggle: {
-      switchToLight: "Switch to light mode",
-      switchToDark: "Switch to dark mode"
     },
     dashboard: {
       title: "Dashboard",
@@ -72,20 +78,22 @@ export const uiCopy = {
       sentiment: "Sentiment",
       quant: "Quant",
       primers: "Primers",
+      profile: "Min profil",
       mainNavigation: "Huvudnavigering"
     },
     market: {
       ariaLabel: "Marknadsöversikt",
       signIn: "Logga in",
-      account: "Konto"
+      indicative: "Indikativ",
+      indicativeNote:
+        "Indexnivåerna är indikativa och kan vara fördröjda. Detta är inte ett realtidsflöde eller ett garanterat flöde — handla inte utifrån dem.",
+      lastKnown: "Senast kända",
+      lastKnownNote:
+        "Live-avläsningar är inte tillgängliga. Detta är de senaste nivåer vi kunde observera, registrerade kl."
     },
     languageToggle: {
       label: "Byt språk",
       shortLabel: "SV"
-    },
-    themeToggle: {
-      switchToLight: "Byt till ljust läge",
-      switchToDark: "Byt till mörkt läge"
     },
     dashboard: {
       title: "Översikt",
