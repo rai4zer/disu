@@ -9,7 +9,9 @@ import PortfolioTabs from "./portfolio-tabs";
 import { useLanguage } from "@/app/i18n/language";
 import UiState from "@/app/components/ui-state";
 import TickerAutocomplete from "@/app/components/ticker-autocomplete";
-import { inferCurrencyFromTicker } from "@/app/lib/market/market-provider";
+// From the leaf module, not market-provider: this is a client component, and
+// market-provider reaches the quote cache and therefore the database.
+import { inferCurrencyFromTicker } from "@/app/lib/market/ticker-currency";
 
 type ProviderInfo = {
   id: BrokerProvider;

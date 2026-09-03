@@ -435,6 +435,71 @@ if (existsSync(decisionsDir)) {
   }
 }
 
+
+// A client component that reaches a Node builtin does not fail `tsc --noEmit` --
+// it fails `next build`, with `UnhandledSchemeError: Reading from "node:fs"` and
+// an import trace. `npm run ci` has no build step, so nothing caught it.
+//
+// It happened for real: app/lib/market/market-provider.ts gained a quote-cache
+// import, and app/portfolio/page.tsx ("use client") imported one pure function
+// from it -- dragging supabase, runtime/env and node:fs into the browser bundle.
+// The fix was a leaf module (app/lib/market/ticker-currency.ts); this guard is
+// so the next one is caught in a second rather than at deploy.
+const appDir = path.join(process.cwd(), 'app');
+if (existsSync(appDir)) {
+  const files = walk(appDir);
+  const sources = new Map(files.map((file) => [file, readFileSync(file, 'utf8')]));
+  // Comments stripped: a doc comment that *mentions* node:fs (ticker-currency.ts
+  // explains this very bug) is not an import.
+  const stripped = new Map(
+    [...sources].map(([file, src]) => [file, src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '')])
+  );
+
+  const resolveSpec = (spec, from) => {
+    let base;
+    if (spec.startsWith('@/')) base = path.join(process.cwd(), spec.slice(2));
+    else if (spec.startsWith('.')) base = path.resolve(path.dirname(from), spec);
+    else return null;
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, path.join(base, 'index.ts'), base]) {
+      if (sources.has(candidate)) return candidate;
+    }
+    return null;
+  };
+
+  const specsOf = (file) =>
+    [...(stripped.get(file) ?? '').matchAll(/(?:from|import)\s+["']([^"']+)["']/g)].map((m) => m[1]);
+
+  const serverOnly = /^node:|^fs$|^child_process$/;
+  const clients = files.filter((file) => /^["']use client["']/.test((sources.get(file) ?? '').trimStart()));
+  let leaks = 0;
+
+  for (const entry of clients) {
+    const seen = new Set();
+    const stack = [[entry, [entry]]];
+    while (stack.length > 0) {
+      const [file, trail] = stack.pop();
+      if (seen.has(file)) continue;
+      seen.add(file);
+      for (const spec of specsOf(file)) {
+        if (serverOnly.test(spec)) {
+          leaks += 1;
+          fail(
+            `client component reaches "${spec}": ` +
+              [...trail].map((f) => path.relative(process.cwd(), f)).join(' -> ')
+          );
+          continue;
+        }
+        const next = resolveSpec(spec, file);
+        if (next) stack.push([next, [...trail, next]]);
+      }
+    }
+  }
+
+  if (leaks === 0) {
+    ok(`Client components (${clients.length}) reach no server-only builtin`);
+  }
+}
+
 if (process.exitCode && process.exitCode !== 0) {
   process.exit(process.exitCode);
 }

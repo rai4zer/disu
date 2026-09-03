@@ -11,8 +11,10 @@ import {
 } from "./index-quotes";
 import { computeDayChange, createPlaceholderQuote, type DayChange, type QuoteSnapshot } from "./quote";
 import { readCachedQuotes, type CachedQuote } from "./quote-cache";
+import { CURATED_TICKERS, inferCurrencyFromTicker } from "./ticker-currency";
 
 export { computeDayChange };
+export { inferCurrencyFromTicker } from "./ticker-currency";
 export type { DayChange, QuoteSnapshot };
 export { INDEX_CATALOGUE, YahooRateLimitedError } from "./index-quotes";
 export type { IndexDescriptor, IndexReading } from "./index-quotes";
@@ -70,22 +72,6 @@ export type IndexQuoteBatch = {
   reason: string;
 };
 
-const CURATED_TICKERS: Array<{ symbol: string; name: string; currency: string }> = [
-  { symbol: "AAPL", name: "Apple Inc", currency: "USD" },
-  { symbol: "MSFT", name: "Microsoft Corp", currency: "USD" },
-  { symbol: "NVDA", name: "NVIDIA Corp", currency: "USD" },
-  { symbol: "TSLA", name: "Tesla Inc", currency: "USD" },
-  { symbol: "AMZN", name: "Amazon.com Inc", currency: "USD" },
-  { symbol: "ASML.AS", name: "ASML Holding NV", currency: "EUR" },
-  { symbol: "MC.PA", name: "LVMH", currency: "EUR" },
-  { symbol: "SAP.DE", name: "SAP SE", currency: "EUR" },
-  { symbol: "NOVO-B.CO", name: "Novo Nordisk B", currency: "DKK" },
-  { symbol: "EVO.ST", name: "Evolution AB", currency: "SEK" },
-  { symbol: "VOLV-B.ST", name: "Volvo B", currency: "SEK" },
-  { symbol: "DNB.OL", name: "DNB Bank ASA", currency: "NOK" },
-  { symbol: "NESN.SW", name: "Nestle SA", currency: "CHF" },
-  { symbol: "SHEL.L", name: "Shell plc", currency: "GBP" }
-];
 
 type YahooSearchResponse = {
   quotes?: Array<{
@@ -531,22 +517,6 @@ export async function tryGetQuoteInCurrency(
   }
 }
 
-export function inferCurrencyFromTicker(rawSymbol: string): string {
-  const symbol = rawSymbol.trim().toUpperCase();
-  if (!symbol) return "USD";
-
-  const curated = CURATED_TICKERS.find((item) => item.symbol === symbol);
-  if (curated) return curated.currency;
-
-  const suffix = symbol.split(".")[1] ?? "";
-  if (suffix === "ST") return "SEK";
-  if (suffix === "CO") return "DKK";
-  if (suffix === "OL") return "NOK";
-  if (suffix === "SW") return "CHF";
-  if (["PA", "AS", "DE", "MI", "BR", "HE", "VI"].includes(suffix)) return "EUR";
-  if (suffix === "L") return "GBP";
-  return "USD";
-}
 
 class YahooMarketProvider implements MarketProvider {
   async searchTickers(query: string, limit: number): Promise<TickerSuggestion[]> {
