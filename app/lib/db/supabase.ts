@@ -85,5 +85,16 @@ export async function supabaseRequest<T>(table: string, options: RequestOptions 
     return undefined as T;
   }
 
-  return (await response.json()) as T;
+  // An empty body is a success with nothing to report, not a parse error.
+  // `Prefer: return=minimal` is the case that matters: PostgREST answers a
+  // write with 201 and no body, and calling response.json() on that throws
+  // "Unexpected end of JSON input" — which surfaces as a failed write that
+  // actually succeeded, so the caller retries or under-reports rows it did
+  // in fact store. Only 204 was covered before.
+  const text = await response.text();
+  if (!text.trim()) {
+    return undefined as T;
+  }
+
+  return JSON.parse(text) as T;
 }

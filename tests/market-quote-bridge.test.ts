@@ -147,6 +147,25 @@ test("the cache refuses to store a reading it cannot account for", () => {
   assert.ok(migration.includes("as_of") && migration.includes("fetched_at"), "both timestamps are required");
 });
 
+test("an empty response body is a success, not a parse error", async () => {
+  // Regression: writeCachedQuotes() sends `Prefer: return=minimal`, and
+  // PostgREST answers that with 201 and no body. supabaseRequest() only
+  // special-cased 204, so response.json() threw "Unexpected end of JSON input"
+  // — and the sweep reported `written: 0` for 52 rows it had actually stored.
+  // A write path that under-reports its own success is worse than one that
+  // fails loudly: it invites a retry of work already done, and it makes the
+  // metric lie.
+  const source = readRepoFile("app/lib/db/supabase.ts");
+  assert.ok(
+    /const text = await response\.text\(\)/.test(source),
+    "the response must be read as text so an empty body can be detected"
+  );
+  assert.ok(
+    /if \(!text\.trim\(\)\)/.test(source),
+    "an empty body must return undefined rather than reaching JSON.parse"
+  );
+});
+
 async function withEnvAsync(overrides: Record<string, string | undefined>, run: () => Promise<void>) {
   const previous: Record<string, string | undefined> = {};
   for (const [key, value] of Object.entries(overrides)) {

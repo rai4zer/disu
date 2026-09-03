@@ -73,6 +73,20 @@ function isMissingTable(error: unknown): boolean {
   return error.status === 404 || /42P01|does not exist/i.test(error.message);
 }
 
+/**
+ * Whether the cache is simply not configured in this process.
+ *
+ * `getBaseUrl()` / `getApiKey()` throw a plain Error before any request is
+ * made when the Supabase vars are absent. That is a *configuration* state, not
+ * a runtime failure — the unit tests run in it, and so does any process
+ * deliberately started without a database — so it must not warn. Left as a
+ * warning it fired once per quote and buried real cache failures in noise,
+ * which is the practical way a log stops being read.
+ */
+function isUnconfigured(error: unknown): boolean {
+  return error instanceof Error && /Missing required env var/i.test(error.message);
+}
+
 function parseRow(row: QuoteRow): CachedQuote | null {
   const symbol = typeof row.symbol === "string" ? row.symbol.toUpperCase() : null;
   const price = typeof row.price === "number" && Number.isFinite(row.price) ? row.price : null;
@@ -145,7 +159,7 @@ export async function readCachedQuotes(symbols: string[], maxAgeMs: number): Pro
       memory.set(quote.symbol, { quote, storedAt: now });
     }
   } catch (error) {
-    if (!isMissingTable(error)) {
+    if (!isMissingTable(error) && !isUnconfigured(error)) {
       log.warn("market.cache.read.failed", {
         symbols: missing.length,
         error: error instanceof Error ? error.message : String(error)
@@ -192,8 +206,11 @@ export async function writeCachedQuotes(quotes: BridgeQuote[]): Promise<number> 
       prefer: "resolution=merge-duplicates,return=minimal"
     });
   } catch (error) {
-    if (isMissingTable(error)) {
-      log.info("market.cache.write.skipped", { reason: "market_quotes not migrated yet", rows: rows.length });
+    if (isMissingTable(error) || isUnconfigured(error)) {
+      log.info("market.cache.write.skipped", {
+        reason: isMissingTable(error) ? "market_quotes not migrated yet" : "supabase not configured",
+        rows: rows.length
+      });
       return 0;
     }
     log.warn("market.cache.write.failed", {
