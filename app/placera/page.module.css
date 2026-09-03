@@ -11,17 +11,6 @@
   margin-bottom: 24px;
 }
 
-.searchRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.searchField {
-  width: min(190px, 100%);
-}
-
 .srOnly {
   position: absolute;
   width: 1px;
@@ -34,569 +23,66 @@
   border: 0;
 }
 
-/* Surfaces on this page are defined by translucent fills rather than outlines, so
-   they settle into the page background instead of sitting in boxes on top of it.
-   Borders that remain are hairlines at a fraction of --border, kept only where an
-   edge carries meaning (focus rings, the comment overlay). */
-.searchInput {
-  width: 100%;
-  border: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
-  border-radius: 999px;
-  padding: 11px 18px;
-  font-size: 0.95rem;
-  background: color-mix(in srgb, var(--surface-elevated-strong) 50%, transparent);
-  color: var(--ink);
-  transition: border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+/* The magnifier sits inside the capsule, so it reads as part of the field
+   rather than as a label beside it. */
+.searchIcon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: var(--ink-muted);
+  stroke-width: 2.2;
+  stroke-linecap: round;
 }
 
-.searchInput::placeholder {
-  color: color-mix(in srgb, var(--muted) 85%, transparent);
-}
-
-.searchInput:focus {
-  outline: none;
-  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
-}
-
+/* A circular submit inside the capsule — the iOS "go" affordance. */
 .runButton {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
   background: var(--cta-bg);
   color: var(--cta-text);
-  padding: 11px 22px;
-  font-size: 0.95rem;
-  font-weight: 620;
   cursor: pointer;
-  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+  transition: background-color var(--ds-fast) var(--ds-ease), transform var(--ds-fast) var(--ds-ease);
 }
 
 .runButton:hover:not(:disabled) {
   background: var(--cta-bg-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-cta);
+  transform: scale(1.06);
 }
 
 .runButton:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
-.runIcon {
+.runArrow {
   width: 17px;
   height: 17px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.2;
   stroke-linecap: round;
-}
-
-.quickPicks {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.quickCluster {
-  /* One pair of radii drives the whole dome, so breakpoints only retune these. */
-  --cluster-rx: 290px;
-  --cluster-ry: 100px;
-  position: relative;
-  width: 100%;
-  height: calc(var(--cluster-ry) + 48px);
-}
-
-/* The cluster is a one-time greeting: the first lookup pops the blips back out
-   (outermost first) and collapses the space they occupied. */
-.quickPicksLeaving .quickCluster {
-  animation: clusterCollapse 440ms cubic-bezier(0.4, 0, 0.2, 1) 120ms forwards;
-}
-
-.quickPicksLeaving .quickPick {
-  animation: blipOut 300ms ease-out var(--blip-out-delay, 0ms) forwards;
-  pointer-events: none;
-}
-
-.quickPicksLeaving .quickPick::after {
-  animation: none;
-}
-
-@keyframes clusterCollapse {
-  from {
-    height: calc(var(--cluster-ry) + 48px);
-  }
-  to {
-    height: 0;
-  }
-}
-
-@keyframes blipOut {
-  from {
-    opacity: 1;
-    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: rotate(var(--blip-tilt, 0deg)) scale(0.25);
-  }
-}
-
-.quickSlot {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  z-index: 1;
-  transform: translate(
-    calc(-50% + var(--blip-fx, 0) * var(--cluster-rx)),
-    calc(var(--blip-fy, 0) * var(--cluster-ry) * -1)
-  );
-}
-
-/* Lift a hovered chip clear of the arcs it overlaps. */
-.quickSlot:hover,
-.quickSlot:focus-within {
-  z-index: 3;
-}
-
-.quickFlag {
-  font-size: 0.9rem;
-  line-height: 1;
-}
-
-.quickPick {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  border: 1px solid transparent;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--ink) 4%, transparent);
-  color: var(--muted);
-  padding: 5px 12px;
-  font-size: 0.8rem;
-  font-weight: 520;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  white-space: nowrap;
-  /* Resting pose: leaning along the arc's tangent. */
-  transform: rotate(var(--blip-tilt, 0deg));
-  animation: blipIn 420ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--blip-delay, 0ms) backwards;
-  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
-}
-
-/* Radar-style ping that fires once as the chip lands, then gets out of the way. */
-.quickPick::after {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
-  opacity: 0;
-  pointer-events: none;
-  animation: blipPing 620ms ease-out var(--blip-delay, 0ms) backwards;
-}
-
-.quickPick:hover:not(:disabled) {
-  color: var(--ink);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  transform: rotate(var(--blip-tilt, 0deg)) scale(1.07);
-}
-
-@keyframes blipIn {
-  0% {
-    opacity: 0;
-    transform: rotate(var(--blip-tilt, 0deg)) scale(0.2);
-  }
-  60% {
-    opacity: 1;
-    transform: rotate(var(--blip-tilt, 0deg)) scale(1.12);
-  }
-  100% {
-    opacity: 1;
-    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
-  }
-}
-
-@keyframes blipPing {
-  0% {
-    opacity: 0.85;
-    transform: scale(0.4);
-  }
-  100% {
-    opacity: 0;
-    transform: scale(1.9);
-  }
-}
-
-.quickPick:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.quickPickActive {
-  color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-}
-
-@media (max-width: 1080px) {
-  .quickCluster {
-    --cluster-rx: 215px;
-    --cluster-ry: 84px;
-  }
-}
-
-/* Narrow viewports: no room for the dome, so fall back to a plain wrapped cluster
-   while keeping the pop-in. */
-@media (max-width: 760px) {
-  .quickCluster {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    height: auto;
-  }
-
-  .quickSlot {
-    position: static;
-    transform: none;
-    /* Flat layout, so drop the tangent lean (keyframes read this too). */
-    --blip-tilt: 0deg;
-  }
-
-  /* Height is auto here, so fade the wrapped cluster instead of collapsing it. */
-  .quickPicksLeaving .quickCluster {
-    animation: clusterFade 420ms ease forwards;
-  }
-}
-
-@keyframes clusterFade {
-  to {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .quickPick,
-  .quickPick::after,
-  .quickPicksLeaving .quickPick,
-  .quickPicksLeaving .quickCluster {
-    animation: none;
-  }
-
-  .quickPick::after {
-    display: none;
-  }
-
-  .quickPicksLeaving {
-    opacity: 0;
-  }
-}
-
-.error {
-  margin-top: 14px;
-  color: var(--danger-ink);
-  background: color-mix(in srgb, var(--danger-ink) 9%, transparent);
-  border: 1px solid transparent;
-  border-radius: 12px;
-  padding: 10px;
-}
-
-.deck {
-  margin-top: 4px;
-  display: grid;
-  /* Fixed track sizes so the four cards never reflow with content. */
-  grid-template-columns: minmax(300px, 1.45fr) repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-/* Translucent fill plus a wide, faint shadow instead of an outline. background-color
-   only — the sentiment tints below paint background-image, so both can coexist. */
-.deckCard {
-  height: 330px;
-  border: 1px solid transparent;
-  border-radius: 18px;
-  background-color: color-mix(in srgb, var(--surface-elevated-strong) 55%, transparent);
-  box-shadow: 0 2px 22px color-mix(in srgb, var(--ink) 4%, transparent);
-  overflow: hidden;
-}
-
-.mainCard {
-  padding: 14px 16px;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 12px;
-}
-
-/* Sentiment reads as a wash bleeding down from the top edge, replacing the tinted
-   outlines these cards used to carry. */
-.mainCard_positive {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--success-ink) 10%, transparent),
-    transparent 45%
-  );
-}
-
-.mainCard_negative {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--danger-ink) 10%, transparent),
-    transparent 45%
-  );
-}
-
-.mainCard_neutral {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--neutral-ink) 9%, transparent),
-    transparent 45%
-  );
-}
-
-.mainTop {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.moodStage {
-  width: 96px;
-  height: 86px;
-  flex-shrink: 0;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: color-mix(in srgb, var(--ink) 6%, transparent);
-  color: var(--ink);
-  overflow: hidden;
-}
-
-.moodFigure {
-  width: 84px;
-  height: 74px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2.4;
-  stroke-linecap: round;
   stroke-linejoin: round;
-  opacity: 0.92;
 }
 
-.moodFigure g,
-.moodFigure path {
-  transform-box: fill-box;
-  transform-origin: center;
+.runSpinner {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--cta-text) 35%, transparent);
+  border-top-color: var(--cta-text);
+  animation: spin 640ms linear infinite;
 }
 
-.figBull {
-  animation: bullCharge 1.5s ease-in-out infinite;
-}
-
-.figDust {
-  animation: dustStreak 1.5s linear infinite;
-}
-
-.figBear {
-  animation: bearRear 1.4s ease-in-out infinite;
-}
-
-.figPawLeft,
-.figPawRight {
-  transform-origin: 90% 10%;
-  animation: pawSlam 1.4s ease-in-out infinite;
-}
-
-.figImpact {
-  animation: impactFlash 1.4s ease-in-out infinite;
-}
-
-.figGround {
-  opacity: 0.35;
-}
-
-.figCrab {
-  animation: crabSidestep 3.4s ease-in-out infinite;
-}
-
-.figClawLeft {
-  transform-origin: 100% 100%;
-  animation: clawSnap 0.9s ease-in-out infinite;
-}
-
-.figClawRight {
-  transform-origin: 0% 100%;
-  animation: clawSnap 0.9s ease-in-out infinite reverse;
-}
-
-.figLegA {
-  animation: legStepA 0.9s ease-in-out infinite;
-}
-
-.figLegB {
-  animation: legStepB 0.9s ease-in-out infinite;
-}
-
-.mainIdentity {
-  min-width: 0;
-}
-
-.mainEyebrow {
-  margin: 0 0 2px;
-  color: var(--muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.mainMood {
-  margin: 0;
-  font-size: 1.25rem;
-  line-height: 1.15;
-}
-
-.mainScore {
-  margin: 4px 0 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.mainCompany {
-  display: grid;
-  gap: 2px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-  min-width: 0;
-}
-
-.mainCompanyName {
-  font-size: 1rem;
-  font-weight: 620;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mainCompanyMeta {
-  color: var(--muted);
-  font-size: 0.8rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mainStats {
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
-  align-content: start;
-}
-
-.mainStat {
-  min-width: 0;
-}
-
-.mainStat dt {
-  color: var(--muted);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.mainStat dd {
-  margin: 2px 0 0;
-  font-weight: 580;
-  font-size: 0.92rem;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.deltaUp {
-  color: var(--success-ink);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.deltaDown {
-  color: var(--danger-ink);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.laneCard {
-  padding: 10px;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-}
-
-.lane_positive {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--success-ink) 11%, transparent),
-    transparent 40%
-  );
-}
-
-.lane_neutral {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--neutral-ink) 10%, transparent),
-    transparent 40%
-  );
-}
-
-.lane_negative {
-  background-image: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--danger-ink) 11%, transparent),
-    transparent 40%
-  );
-}
-
-.laneHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-  padding-bottom: 8px;
-  margin-bottom: 8px;
-}
-
-.laneHeader h3 {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.laneViewport {
-  position: relative;
-  overflow: hidden;
-  /* Fade the ends so comments enter and leave without a hard cut. */
-  mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-}
-
-.laneTrack {
-  display: grid;
-  gap: 8px;
-  align-content: start;
-  animation-name: commentScroll;
-  animation-timing-function: linear;
-  animation-iteration-count: infinite;
-  will-change: transform;
-}
-
-.laneViewport:hover .laneTrack,
-.laneTrack:focus-within {
-  animation-play-state: paused;
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes commentScroll {
@@ -798,143 +284,7 @@
   background: color-mix(in srgb, var(--success-ink) 16%, transparent);
 }
 
-@keyframes legStepA {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(1.4px);
-  }
-}
-
-@keyframes legStepB {
-  0%,
-  100% {
-    transform: translateY(1.4px);
-  }
-  50% {
-    transform: translateY(0);
-  }
-}
-
-/* Gallop in, drop the head, butt, recover. */
-@keyframes bullCharge {
-  0%,
-  40% {
-    transform: translateX(3px) rotate(0deg);
-  }
-  62% {
-    transform: translateX(-5px) rotate(-7deg);
-  }
-  74% {
-    transform: translateX(-2px) rotate(3deg);
-  }
-  100% {
-    transform: translateX(3px) rotate(0deg);
-  }
-}
-
-@keyframes dustStreak {
-  0% {
-    opacity: 0;
-    transform: translateX(4px);
-  }
-  50% {
-    opacity: 0.75;
-  }
-  100% {
-    opacity: 0;
-    transform: translateX(-4px);
-  }
-}
-
-/* Rear up, then slam back down onto the ground line. */
-@keyframes bearRear {
-  0%,
-  40% {
-    transform: translateY(-3px);
-  }
-  58% {
-    transform: translateY(2px);
-  }
-  68% {
-    transform: translateY(0);
-  }
-  100% {
-    transform: translateY(-3px);
-  }
-}
-
-@keyframes pawSlam {
-  0%,
-  40% {
-    transform: rotate(-16deg);
-  }
-  58% {
-    transform: rotate(14deg);
-  }
-  70% {
-    transform: rotate(8deg);
-  }
-  100% {
-    transform: rotate(-16deg);
-  }
-}
-
-@keyframes impactFlash {
-  0%,
-  52% {
-    opacity: 0;
-    transform: scale(0.85);
-  }
-  60% {
-    opacity: 0.9;
-    transform: scale(1);
-  }
-  78%,
-  100% {
-    opacity: 0;
-    transform: scale(1.1);
-  }
-}
-
-/* Sideways chop: the crab market. */
-@keyframes crabSidestep {
-  0%,
-  100% {
-    transform: translateX(-5px);
-  }
-  50% {
-    transform: translateX(5px);
-  }
-}
-
-@keyframes clawSnap {
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-  50% {
-    transform: rotate(-14deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .figBull,
-  .figBear,
-  .figCrab,
-  .figDust,
-  .figImpact,
-  .figPawLeft,
-  .figPawRight,
-  .figClawLeft,
-  .figClawRight,
-  .figLegA,
-  .figLegB {
-    animation: none;
-  }
-
   .laneViewport {
     overflow-y: auto;
   }
@@ -970,3 +320,436 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ============================================================ result deck ===
+   The panels that render once a lookup lands, on the shared card language:
+   no outlines, sunken nesting, one radius scale.
+   ========================================================================== */
+
+.deck {
+  margin-top: 4px;
+  display: grid;
+  /* Fixed track sizes so the four cards never reflow with content. */
+  grid-template-columns: minmax(300px, 1.45fr) repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.deckCard {
+  height: 330px;
+  border: none;
+  border-radius: var(--ds-radius-md);
+  background-color: var(--ds-surface-raised);
+  box-shadow: var(--ds-hairline), var(--ds-shadow-card);
+  overflow: hidden;
+}
+
+.deltaDown {
+  color: var(--danger-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.deltaUp {
+  color: var(--success-ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.error {
+  margin-top: 14px;
+  color: var(--danger-ink);
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  border: none;
+  border-radius: var(--ds-radius-sm);
+  padding: 12px 14px;
+}
+
+.laneCard {
+  padding: 10px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.laneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+.laneTrack {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  animation-name: commentScroll;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+.laneViewport {
+  position: relative;
+  overflow: hidden;
+  /* Fade the ends so comments enter and leave without a hard cut. */
+  mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+}
+
+.lane_negative {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger-ink) 11%, transparent),
+    transparent 40%
+  );
+}
+
+.lane_neutral {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--neutral-ink) 10%, transparent),
+    transparent 40%
+  );
+}
+
+.lane_positive {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--success-ink) 11%, transparent),
+    transparent 40%
+  );
+}
+
+.mainCard {
+  padding: 14px 16px;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.mainCard_negative {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--danger-ink) 10%, transparent),
+    transparent 45%
+  );
+}
+
+.mainCard_neutral {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--neutral-ink) 9%, transparent),
+    transparent 45%
+  );
+}
+
+.mainCard_positive {
+  background-image: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--success-ink) 10%, transparent),
+    transparent 45%
+  );
+}
+
+.mainCompany {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  min-width: 0;
+}
+
+.mainCompanyMeta {
+  color: var(--muted);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainCompanyName {
+  font-size: 1rem;
+  font-weight: 620;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mainEyebrow {
+  margin: 0 0 2px;
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mainIdentity {
+  min-width: 0;
+}
+
+.mainMood {
+  margin: 0;
+  font-size: 1.25rem;
+  line-height: 1.15;
+}
+
+.mainScore {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.mainStat {
+  min-width: 0;
+}
+
+.mainStats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 14px;
+  align-content: start;
+}
+
+.mainTop {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.moodStage {
+  width: 118px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: var(--ds-radius-sm);
+  display: grid;
+  place-items: center;
+  background: var(--ds-surface-sunken);
+  color: var(--ink-soft);
+  overflow: hidden;
+}
+
+/* The animal is drawn entirely in `currentColor`, so tinting it is a matter of
+   setting `color` on the stage — which is why MoodAnimal knows nothing about
+   sentiment. The reading is carried by the card class on the ancestor. */
+.mainCard_positive .moodStage {
+  color: var(--success-ink);
+}
+
+.mainCard_negative .moodStage {
+  color: var(--danger-ink);
+}
+
+.quickPickActive {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+/* ========================================================== pick cluster ===
+   The chips that fan out under the search bar on a fresh visit.
+
+   Restored deliberately over the board of pre-computed readings that briefly
+   replaced them. The board ran the sentiment pipeline for a watchlist before
+   anyone asked for a single company, and each run is dozens of calls into
+   Placera's forum — comfortably over the rate limit. These chips cost nothing
+   until one is clicked: they fill the search box and submit it.
+   ========================================================================= */
+
+.quickPicks {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+
+.quickCluster {
+  /* One pair of radii drives the whole dome, so breakpoints only retune these. */
+  --cluster-rx: 290px;
+  --cluster-ry: 100px;
+  position: relative;
+  width: 100%;
+  height: calc(var(--cluster-ry) + 48px);
+}
+
+.quickPicksLeaving .quickCluster {
+  animation: clusterCollapse 440ms cubic-bezier(0.4, 0, 0.2, 1) 120ms forwards;
+}
+
+
+.quickPicksLeaving .quickPick {
+  animation: blipOut 300ms ease-out var(--blip-out-delay, 0ms) forwards;
+  pointer-events: none;
+}
+
+
+.quickPicksLeaving .quickPick::after {
+  animation: none;
+}
+
+
+@keyframes clusterCollapse {
+  from {
+    height: calc(var(--cluster-ry) + 48px);
+  }
+  to {
+    height: 0;
+  }
+}
+
+
+@keyframes blipOut {
+  from {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(0.25);
+  }
+}
+
+
+.quickSlot {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  transform: translate(
+    calc(-50% + var(--blip-fx, 0) * var(--cluster-rx)),
+    calc(var(--blip-fy, 0) * var(--cluster-ry) * -1)
+  );
+}
+
+.quickSlot:focus-within {
+  z-index: 3;
+}
+
+
+.quickFlag {
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+
+.quickPick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+  color: var(--muted);
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  font-weight: 520;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  white-space: nowrap;
+  /* Resting pose: leaning along the arc's tangent. */
+  transform: rotate(var(--blip-tilt, 0deg));
+  animation: blipIn 420ms cubic-bezier(0.2, 1.5, 0.4, 1) var(--blip-delay, 0ms) backwards;
+  transition: color 150ms ease, border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.quickPick::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  animation: blipPing 620ms ease-out var(--blip-delay, 0ms) backwards;
+}
+
+
+.quickPick:hover:not(:disabled) {
+  color: var(--ink);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  transform: rotate(var(--blip-tilt, 0deg)) scale(1.07);
+}
+
+
+@keyframes blipIn {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(0.2);
+  }
+  60% {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1.12);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(var(--blip-tilt, 0deg)) scale(1);
+  }
+}
+
+
+@keyframes blipPing {
+  0% {
+    opacity: 0.85;
+    transform: scale(0.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+
+.quickPick:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+  .quickCluster {
+    --cluster-rx: 215px;
+    --cluster-ry: 84px;
+  }
+
+  .quickCluster {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    height: auto;
+  }
+
+
+  .quickSlot {
+    position: static;
+    transform: none;
+    /* Flat layout, so drop the tangent lean (keyframes read this too). */
+    --blip-tilt: 0deg;
+  }
+
+  .quickPicksLeaving .quickCluster {
+    animation: clusterFade 420ms ease forwards;
+  }
+
+
+@keyframes clusterFade {
+  to {
+    opacity: 0;
+  }
+}
+
+  .quickPicksLeaving .quickCluster {
+    animation: none;
+  }
+
+
+  .quickPick::after {
+    display: none;
+  }
+
+
+  .quickPicksLeaving {
+    opacity: 0;
+  }

@@ -9,7 +9,9 @@ import { buildForumSummary } from "./summary";
 import { useLanguage } from "@/app/i18n/language";
 import UiState from "@/app/components/ui-state";
 import StockChart from "@/app/components/stock-chart";
+import MoodAnimal from "@/app/components/mood-animal";
 const SENTIMENT_TICKER_PREF_KEY = "pref.sentiment.ticker";
+
 
 const QUICK_PICKS: Array<{ symbol: string; name: string; flag: string }> = [
   { symbol: "AAPL", name: "Apple", flag: "🇺🇸" },
@@ -184,84 +186,6 @@ function formatVolume(value: number | null, isSv: boolean): string {
   return value.toLocaleString(isSv ? "sv-SE" : "en-US", { maximumFractionDigits: 0 });
 }
 
-/**
- * Bull charges and butts when the mood is positive, bear rears up and slams its
- * paws down when negative, and a crab sidesteps when the market is going nowhere
- * ("crab market" is the trader's own word for sideways chop).
- */
-function MoodFigure({ mood }: { mood: "positive" | "neutral" | "negative" }) {
-  if (mood === "positive") {
-    return (
-      <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
-        <g className={styles.figBull}>
-          <path className={styles.figDust} d="M8 30 H18" />
-          <path className={styles.figDust} d="M6 38 H16" />
-          <rect x="22" y="27" width="28" height="15" rx="7.5" />
-          <circle cx="53" cy="29" r="8" />
-          <path d="M47 22 C45 15 39 13 35 17" />
-          <path d="M59 22 C61 15 67 13 70 17" />
-          <path d="M50 31 H56" />
-          <path className={styles.figLegA} d="M27 42 V51" />
-          <path className={styles.figLegB} d="M34 42 V51" />
-          <path className={styles.figLegA} d="M41 42 V51" />
-          <path className={styles.figLegB} d="M47 42 V51" />
-          <path d="M22 31 C18 30 17 27 18 24" />
-        </g>
-      </svg>
-    );
-  }
-
-  if (mood === "negative") {
-    return (
-      <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
-        <g className={styles.figBear}>
-          <circle cx="36" cy="18" r="9" />
-          <circle cx="29" cy="10" r="3" />
-          <circle cx="43" cy="10" r="3" />
-          <path d="M32 20 H40" />
-          <rect x="27" y="27" width="18" height="19" rx="8" />
-          <path className={styles.figPawLeft} d="M27 32 L16 40" />
-          <path className={styles.figPawRight} d="M45 32 L56 40" />
-          <path d="M31 46 V54" />
-          <path d="M41 46 V54" />
-        </g>
-        <g className={styles.figImpact}>
-          <path d="M10 46 L6 42" />
-          <path d="M12 50 H5" />
-          <path d="M62 46 L66 42" />
-          <path d="M60 50 H67" />
-        </g>
-        <path className={styles.figGround} d="M8 56 H64" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg viewBox="0 0 72 64" className={styles.moodFigure} aria-hidden="true">
-      <g className={styles.figCrab}>
-        <path d="M20 36 C20 27 27 22 36 22 C45 22 52 27 52 36 C52 41 45 44 36 44 C27 44 20 41 20 36 Z" />
-        <path d="M30 24 V16" />
-        <path d="M42 24 V16" />
-        <circle cx="30" cy="14" r="2.4" />
-        <circle cx="42" cy="14" r="2.4" />
-        <path d="M29 34 H33" />
-        <path d="M39 34 H43" />
-        <g className={styles.figClawLeft}>
-          <path d="M20 32 L12 26" />
-          <path d="M12 26 L7 23 L10 29 Z" />
-        </g>
-        <g className={styles.figClawRight}>
-          <path d="M52 32 L60 26" />
-          <path d="M60 26 L65 23 L62 29 Z" />
-        </g>
-        <path className={styles.figLegA} d="M24 42 L19 50" />
-        <path className={styles.figLegB} d="M31 44 L29 52" />
-        <path className={styles.figLegA} d="M41 44 L43 52" />
-        <path className={styles.figLegB} d="M48 42 L53 50" />
-      </g>
-    </svg>
-  );
-}
 
 export default function PlaceraPage() {
   const { language } = useLanguage();
@@ -417,54 +341,80 @@ export default function PlaceraPage() {
         title={isSv ? "Sentiment" : "Sentiment"}
         subtitle={isSv ? "Se hur marknadens samtal om ett bolag utvecklas." : "See how market conversations around a company are trending."}
       >
+        {/*
+          The search bar. One sunken capsule with the magnifier inside it and
+          the action as a circular button on the right — the field is the whole
+          control rather than an input with a separate bordered button beside
+          it, which is what made the old row read as a form and not as search.
+        */}
         <form className={styles.form} onSubmit={onSubmit}>
-          <div className={styles.searchRow}>
-            <div className={styles.searchField}>
-              <label className={styles.srOnly} htmlFor="companyLookup">
-                {isSv ? "Ticker" : "Ticker"}
-              </label>
-              <input
-                id="companyLookup"
-                className={styles.searchInput}
-                value={companyLookup}
-                onChange={(event) => setCompanyLookup(event.target.value)}
-                autoComplete="off"
-                required
-              />
-            </div>
-
-            <button className={styles.runButton} type="submit" disabled={loading}>
-              <svg viewBox="0 0 24 24" className={styles.runIcon} aria-hidden="true">
-                <circle cx="11" cy="11" r="6.5" />
-                <path d="M16 16 L21 21" />
-              </svg>
-              {loading ? (isSv ? "Laddar..." : "Loading...") : isSv ? "Kör" : "Run"}
+          <div className="dsSearch">
+            <svg viewBox="0 0 24 24" className={styles.searchIcon} aria-hidden="true">
+              <circle cx="11" cy="11" r="6.5" />
+              <path d="M16 16 L21 21" />
+            </svg>
+            <label className={styles.srOnly} htmlFor="companyLookup">
+              {isSv ? "Bolag eller ticker" : "Company or ticker"}
+            </label>
+            <input
+              id="companyLookup"
+              className="dsSearchInput"
+              value={companyLookup}
+              onChange={(event) => setCompanyLookup(event.target.value)}
+              placeholder={isSv ? "Sök bolag, t.ex. Volvo" : "Search a company, e.g. Volvo"}
+              autoComplete="off"
+              required
+            />
+            <button className={styles.runButton} type="submit" disabled={loading} aria-label={isSv ? "Kör" : "Run"}>
+              {loading ? (
+                <span className={styles.runSpinner} aria-hidden="true" />
+              ) : (
+                <svg viewBox="0 0 24 24" className={styles.runArrow} aria-hidden="true">
+                  <path d="M5 12h13" />
+                  <path d="M12 6l6 6-6 6" />
+                </svg>
+              )}
             </button>
           </div>
 
+          {/*
+            The pick cluster, not a board of pre-computed readings.
+
+            A board would mean running the sentiment pipeline for a dozen
+            companies before anyone asked for one, and each run is dozens of
+            calls into Placera's forum — resolve the company, page its posts,
+            page the replies under every post. Measured against the live API
+            that is well over the rate limit: sweeping the watchlist got two
+            companies through, 429'd the rest, and left the whole IP in a
+            penalty box where even a *user's own* search failed for minutes.
+
+            So nothing runs until it is asked for. These chips only fill the
+            search box and submit it — one analysis, on one company, because
+            somebody clicked. The cost of the page at rest is zero requests.
+          */}
           {picksPhase === "gone" ? null : (
-          <div className={`${styles.quickPicks} ${picksPhase === "leaving" ? styles.quickPicksLeaving : ""}`}>
-            <div className={styles.quickCluster}>
-              {QUICK_PICKS.map((pick, index) => (
-                <span key={pick.symbol} className={styles.quickSlot} style={blipStyle(index)}>
-                  <button
-                    type="button"
-                    className={`${styles.quickPick} ${
-                      companyLookup.trim().toUpperCase() === pick.symbol ? styles.quickPickActive : ""
-                    }`}
-                    onClick={() => void onQuickPick(pick.symbol)}
-                    disabled={loading}
-                    title={pick.name}
-                  >
-                    <span className={styles.quickFlag} aria-hidden="true">
-                      {pick.flag}
-                    </span>
-                    {pick.symbol}
-                  </button>
-                </span>
-              ))}
+            <div className={`${styles.quickPicks} ${picksPhase === "leaving" ? styles.quickPicksLeaving : ""}`}>
+              <div className={styles.quickCluster}>
+                {QUICK_PICKS.map((pick, index) => (
+                  <span key={pick.symbol} className={styles.quickSlot} style={blipStyle(index)}>
+                    <button
+                      type="button"
+                      className={`${styles.quickPick} ${
+                        companyLookup.trim().toUpperCase() === pick.symbol ? styles.quickPickActive : ""
+                      }`}
+                      onClick={() => void onQuickPick(pick.symbol)}
+                      disabled={loading}
+                      title={pick.name}
+                    >
+                      <span className={styles.quickFlag} aria-hidden="true">
+                        {pick.flag}
+                      </span>
+                      {pick.symbol}
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
           )}
         </form>
 
@@ -476,7 +426,7 @@ export default function PlaceraPage() {
               <article className={`${styles.deckCard} ${styles.mainCard} ${styles[`mainCard_${data.sentiment.label}`]}`}>
                 <div className={styles.mainTop}>
                   <div className={styles.moodStage}>
-                    <MoodFigure mood={data.sentiment.label} />
+                    <MoodAnimal mood={data.sentiment.label} />
                   </div>
                   <div className={styles.mainIdentity}>
                     <p className={styles.mainEyebrow}>{isSv ? "Marknadsläge" : "Market mood"}</p>
