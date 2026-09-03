@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import type { BrokerConnection, BrokerProvider } from "@/app/lib/brokers/types";
 import Workspace from "@/app/components/workspace";
+import PortfolioTabs from "./portfolio-tabs";
 import { useLanguage } from "@/app/i18n/language";
 import UiState from "@/app/components/ui-state";
 import TickerAutocomplete from "@/app/components/ticker-autocomplete";
@@ -768,10 +769,12 @@ export default function PortfolioPage() {
         title={isSv ? "Portfölj" : "Portfolio"}
         subtitle={
           isSv
-            ? "Lägg till innehav på tio sekunder, importera en fil eller koppla din bank."
-            : "Add a holding in ten seconds, import a file, or connect your bank."
+            ? "Konton, kopplingar och innehav."
+            : "Accounts, connections and holdings."
         }
       >
+        <PortfolioTabs />
+
         <section className={`${styles.overview} appSection`} aria-label={isSv ? "Portföljöversikt" : "Portfolio snapshot"}>
           <article className={styles.kpiCard}>
             <p className={styles.kpiLabel}>{isSv ? "Totalt marknadsvärde" : "Total market value"}</p>

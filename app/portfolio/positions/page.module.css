@@ -1,0 +1,118 @@
+.page {
+  margin: 0;
+  padding: 0 var(--content-gutter) 40px;
+  color: var(--ink);
+}
+
+.tableCard {
+  padding-bottom: var(--ds-gap-md);
+}
+
+.tableHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ds-gap-md);
+  flex-wrap: wrap;
+  margin-bottom: var(--ds-gap-md);
+}
+
+.tableTools {
+  display: flex;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  flex-wrap: wrap;
+}
+
+/* Wide content scrolls inside its own box rather than pushing the page sideways. */
+.tableWrap {
+  overflow-x: auto;
+  margin: 0 calc(var(--ds-gap-lg) * -1);
+  padding: 0 var(--ds-gap-lg);
+}
+
+.table {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  border: none;
+  padding: 11px 10px;
+  vertical-align: middle;
+}
+
+.table th {
+  color: var(--ink-muted);
+  font-weight: 590;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Inset hairlines between rows, nothing under the last: the list ends with
+   space rather than a line, like every other table in the app. */
+.table tbody tr {
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--ink) 7%, transparent);
+  transition: background var(--ds-fast) var(--ds-ease);
+}
+
+.table tbody tr:last-child {
+  box-shadow: none;
+}
+
+.table tbody tr:hover {
+  background: var(--ds-surface-sunken);
+}
+
+/* Numbers right-aligned and tabular so the columns line up on the decimal —
+   the whole reason this view is a table and not a list of cards. */
+.numeric {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.symbol {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 590;
+  color: var(--ink);
+}
+
+.rowMeta {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.74rem;
+  color: var(--ink-muted);
+}
+
+.note {
+  margin: var(--ds-gap-md) 0 0;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.empty {
+  align-items: flex-start;
+  gap: var(--ds-gap-sm);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.emptyLead {
+  margin: 0;
+  max-width: 56ch;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}

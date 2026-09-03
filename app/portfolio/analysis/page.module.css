@@ -1,0 +1,128 @@
+.page {
+  margin: 0;
+  padding: 0 var(--content-gutter) 40px;
+  color: var(--ink);
+}
+
+.metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--ds-gap-md);
+}
+
+.metric {
+  gap: 2px;
+}
+
+.metricValue {
+  margin: 6px 0 0;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+  font-weight: 630;
+  letter-spacing: -0.024em;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.metricUnavailable {
+  margin: 6px 0 0;
+  font-size: 1.2rem;
+  font-weight: 570;
+  color: var(--ink-muted);
+}
+
+.metricSub {
+  margin: 4px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.up {
+  color: var(--success-ink);
+}
+
+.down {
+  color: var(--danger-ink);
+}
+
+/* The coverage and method footnotes. Small, but they are what keep the figures
+   above them from claiming more than was measured. */
+.note {
+  margin: var(--ds-gap-sm) 0 0;
+  max-width: 78ch;
+  color: var(--ink-muted);
+  font-size: 0.76rem;
+  line-height: 1.5;
+}
+
+.venues {
+  margin-top: var(--ds-gap-lg);
+}
+
+/* A proportion bar under the venue name — the share is already printed on the
+   right, so this only has to make the ordering feel like a shape. */
+.venueBar {
+  display: block;
+  width: 120px;
+  height: 4px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: var(--ds-surface-sunken);
+  overflow: hidden;
+}
+
+.venueFill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+
+.gaps {
+  margin-top: var(--ds-gap-lg);
+}
+
+.gapList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ds-gap-md);
+}
+
+.gap {
+  padding: var(--ds-gap-md);
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-surface-sunken);
+}
+
+.gapTitle {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 590;
+  color: var(--ink);
+}
+
+.gapWhy {
+  margin: 4px 0 0;
+  max-width: 74ch;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.gapUnlock {
+  margin: 7px 0 0;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+
+.gapUnlock span {
+  font-weight: 590;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.68rem;
+  margin-right: 5px;
+}

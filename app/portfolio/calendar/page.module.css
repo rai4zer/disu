@@ -1,0 +1,156 @@
+.page {
+  margin: 0;
+  padding: 0 var(--content-gutter) 40px;
+  color: var(--ink);
+}
+
+.month + .month {
+  margin-top: var(--ds-gap-xl);
+}
+
+.monthHeading {
+  margin: 0 0 var(--ds-gap-sm);
+  font-size: 1.15rem;
+  font-weight: 620;
+  letter-spacing: -0.014em;
+  /* The month name comes from Intl and is lowercase in Swedish. */
+  text-transform: capitalize;
+}
+
+.kindHeading {
+  margin: 0 0 var(--ds-gap-sm);
+  font-size: 0.86rem;
+  font-weight: 550;
+  color: var(--ink-muted);
+}
+
+.eventList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--ds-gap-sm);
+}
+
+.event {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--ds-gap-md);
+  padding: var(--ds-gap-md);
+}
+
+/**
+ * The date block. Fixed width so every row's company name starts at the same
+ * x — a ragged left edge is what makes a list of dated rows hard to scan.
+ */
+.eventDate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  flex-shrink: 0;
+  padding-right: var(--ds-gap-md);
+  box-shadow: inset -1px 0 0 color-mix(in srgb, var(--ink) 10%, transparent);
+}
+
+.eventDay {
+  font-size: 1.3rem;
+  font-weight: 630;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.eventMonth {
+  margin-top: 2px;
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  text-transform: capitalize;
+}
+
+.eventBody {
+  min-width: 0;
+  flex: 1;
+}
+
+.eventName {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 0.96rem;
+  font-weight: 570;
+  color: var(--ink);
+}
+
+.eventSymbol {
+  font-size: 0.72rem;
+  font-weight: 550;
+  color: var(--ink-muted);
+  letter-spacing: 0.03em;
+}
+
+.eventDetail {
+  margin: 3px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--ink-muted);
+}
+
+.empty {
+  gap: var(--ds-gap-xs);
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.emptyLead {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* The honest footnote: which holdings this page cannot see, and why. */
+.coverage {
+  margin-top: var(--ds-gap-xl);
+  gap: var(--ds-gap-sm);
+}
+
+.coverageLead {
+  margin: 0;
+  max-width: 72ch;
+  color: var(--ink-muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.coverageList {
+  list-style: none;
+  margin: var(--ds-gap-xs) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.coverageItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: var(--ds-radius-pill);
+  background: var(--ds-surface-sunken);
+}
+
+.coverageSymbol {
+  font-size: 0.8rem;
+  font-weight: 570;
+  color: var(--ink);
+}
