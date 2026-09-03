@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://disu.local/contracts/market-quote.schema.json",
+  "title": "Market Quote Bridge Payload",
+  "description": "Payload emitted by python/src/market/fetcher.py and consumed by app/lib/market/quote-bridge.ts. One request carries many symbols because the bridge's cost is almost entirely interpreter startup (~1.9s) and the marginal cost per symbol is near zero; see app/lib/market/quote-bridge.ts.",
+  "type": "object",
+  "required": ["ok"],
+  "oneOf": [
+    {
+      "properties": {
+        "ok": { "const": true },
+        "quotes": {
+          "type": "array",
+          "description": "One entry per symbol the caller asked for, in the order asked. A symbol that could not be priced appears with price null and a reason — it is never omitted, because a caller matching by position must be able to tell 'not asked' from 'asked and unavailable'.",
+          "items": {
+            "type": "object",
+            "required": ["symbol", "price", "previousClose", "currency", "asOf", "source"],
+            "properties": {
+              "symbol": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Echo of the requested symbol, uppercased. Never a symbol the bridge substituted."
+              },
+              "price": {
+                "type": ["number", "null"],
+                "description": "Last observed price. null means no live source could price it. The bridge never estimates, derives or carries forward a value into this field."
+              },
+              "previousClose": {
+                "type": ["number", "null"],
+                "description": "Previous official close when the feed supplies one. null means 'we do not know' and must stay null — a day change derived from a guessed close is fabricated. Mirrors QuoteSnapshot.previousClose in app/lib/market/quote.ts."
+              },
+              "currency": {
+                "type": ["string", "null"],
+                "description": "ISO code as reported by the feed. null when the feed did not say; the caller must not infer one from the ticker suffix and then present it as observed."
+              },
+              "asOf": {
+                "type": ["string", "null"],
+                "description": "ISO-8601 UTC timestamp of the reading as reported by the feed, not the time the bridge ran. null when the feed supplied no timestamp."
+              },
+              "source": {
+                "type": "string",
+                "enum": ["yfinance", "finnhub", "none"],
+                "description": "Which feed answered. 'none' accompanies a null price. There is deliberately no synthetic value here — the bridge has no placeholder mode, so MARKET_MOCK_FALLBACK_MODE has nothing to permit on this path."
+              },
+              "reason": {
+                "type": "string",
+                "description": "Present when price is null: why the reading could not be taken. Diagnostic only, never rendered as a value."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "meta": {
+          "type": "object",
+          "properties": {
+            "bridgeVersion": { "type": "string" },
+            "requested": { "type": "integer", "minimum": 0 },
+            "resolved": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "How many of the requested symbols got a price. requested minus resolved is the gap the caller must render as unavailable rather than fill."
+            },
+            "elapsedMs": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": true
+        }
+      },
+      "required": ["ok", "quotes"],
+      "additionalProperties": false
+    },
+    {
+      "properties": {
+        "ok": { "const": false },
+        "error": { "type": "string", "minLength": 1 },
+        "traceback": { "type": "string" }
+      },
+      "required": ["ok", "error"],
+      "additionalProperties": false
+    }
+  ]
+}

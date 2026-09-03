@@ -10,6 +10,7 @@ import {
   type IndexReading
 } from "./index-quotes";
 import { computeDayChange, createPlaceholderQuote, type DayChange, type QuoteSnapshot } from "./quote";
+import { readCachedQuotes, type CachedQuote } from "./quote-cache";
 
 export { computeDayChange };
 export type { DayChange, QuoteSnapshot };
@@ -708,6 +709,43 @@ class FinnhubMarketProvider implements MarketProvider {
  * Finnhub is the documented, keyed source that keeps working when Yahoo
  * rate-limits (docs/market-live-feed.md). Neither is trusted to be up.
  */
+/**
+ * How stale a swept reading may be before the chain stops trusting it.
+ *
+ * This is a *trust* window, not the sweep interval. It is deliberately several
+ * times the sweep period so that one failed sweep does not blank the board —
+ * the readings are real observations and stay usable — while a source that has
+ * been down for hours eventually stops answering as though it were current.
+ */
+function cacheTrustWindowMs(): number {
+  const raw = Number(process.env.MARKET_QUOTE_MAX_AGE_MS ?? String(30 * 60 * 1000));
+  return Number.isFinite(raw) && raw >= 60_000 ? raw : 30 * 60 * 1000;
+}
+
+/**
+ * A cached quote as an index reading, or `null` when it cannot be one honestly.
+ *
+ * `IndexReading` carries `changePct` as a required number, so a row without a
+ * previous close has no representation here. Returning 0 would assert the
+ * market was flat, and deriving a close from the price would fabricate the
+ * baseline the whole percentage rests on — so the answer is `null`, which the
+ * caller already handles as "not observed" (docs/synthetic-data-policy.md).
+ */
+function toIndexReading(quote: CachedQuote): IndexReading | null {
+  if (quote.previousClose === null || quote.previousClose <= 0) {
+    return null;
+  }
+  const ts = Date.parse(quote.asOf ?? quote.fetchedAt);
+  if (!Number.isFinite(ts)) {
+    return null;
+  }
+  return {
+    price: quote.price,
+    changePct: ((quote.price - quote.previousClose) / quote.previousClose) * 100,
+    ts: Math.floor(ts / 1000)
+  };
+}
+
 class HybridMarketProvider implements MarketProvider {
   private yahoo = new YahooMarketProvider();
   private finnhub = new FinnhubMarketProvider();
@@ -738,6 +776,39 @@ class HybridMarketProvider implements MarketProvider {
     // network entirely, or the mode is a lie about what the process did.
     if (marketFallbackMode() === "always") {
       return this.placeholder.getQuote(symbol, fallbackCurrency);
+    }
+
+    // Tier 0: what the background sweep already fetched through the Python
+    // bridge. It is first because it is the only tier that costs nothing and
+    // the only one with real Nordic coverage — yfinance resolves `.ST`, `^OMX`,
+    // futures, FX and crypto, three of which Finnhub refuses on the current
+    // plan (python/src/market/fetcher.py).
+    //
+    // Reading rather than fetching is the whole design. The bridge costs ~1.9s
+    // to spawn, so a request that missed the cache must fall through to the
+    // live tiers below instead of paying it; the sweep in app/lib/jobs is what
+    // spawns Python. A cold or unmigrated cache is therefore just a miss.
+    try {
+      const cached = await readCachedQuotes([symbol], cacheTrustWindowMs());
+      const hit = cached.get(symbol.trim().toUpperCase());
+      if (hit) {
+        return {
+          symbol: hit.symbol,
+          // A cached row with no currency is a row we never learned the unit
+          // for. Inferring one here would stamp a guess onto an observed price
+          // — the exact trap `fallbackCurrency` was split out to avoid — so the
+          // ticker inference is used only as a last resort and the price is
+          // still the observed one.
+          currency: hit.currency ?? inferCurrencyFromTicker(symbol),
+          price: hit.price,
+          previousClose: hit.previousClose,
+          asOf: hit.asOf ?? hit.fetchedAt,
+          source: hit.source,
+          synthetic: false
+        };
+      }
+    } catch {
+      // The cache is an accelerator, never a dependency.
     }
 
     for (const attempt of [
@@ -777,6 +848,43 @@ class HybridMarketProvider implements MarketProvider {
    */
   async getIndexQuotes(indices: IndexDescriptor[], signal?: AbortSignal): Promise<IndexQuoteBatch> {
     const reasons: string[] = [];
+
+    // Tier 0 again, and the reason the dashboard board is fast: the sweep
+    // covers every board symbol, so all 24 readings come from one query.
+    //
+    // Note what this cannot serve. `IndexReading.changePct` is a plain number
+    // with no "unknown" case, so an index whose cached row has no
+    // `previous_close` cannot be turned into an honest reading — a change
+    // computed against a guessed close is fabricated, and zero would claim the
+    // market did not move. Those fall through to the live tiers rather than
+    // being answered wrongly.
+    try {
+      const symbols = indices.flatMap((index) => index.yahooSymbols);
+      if (symbols.length > 0) {
+        const cached = await readCachedQuotes(symbols, cacheTrustWindowMs());
+        if (cached.size > 0) {
+          const readings = indices.map((index) => {
+            for (const symbol of index.yahooSymbols) {
+              const hit = cached.get(symbol.trim().toUpperCase());
+              if (hit) {
+                const reading = toIndexReading(hit);
+                if (reading) return reading;
+              }
+            }
+            return null;
+          });
+
+          // Only answer from the cache when it covered everything. A partial
+          // answer here would mean an index that the live tiers *could* have
+          // read renders "--" because the sweep happened to miss it.
+          if (readings.every(Boolean)) {
+            return { readings, source: "cache", reason: "" };
+          }
+        }
+      }
+    } catch {
+      // Accelerator, not a dependency.
+    }
 
     if (finnhubToken()) {
       const finnhub = await this.finnhub.getIndexQuotes(indices, signal);

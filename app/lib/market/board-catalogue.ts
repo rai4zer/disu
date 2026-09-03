@@ -25,7 +25,7 @@
  * and `EURSEK=X` on the same batch endpoint as `^GSPC` — is the real source.
  */
 
-import type { IndexDescriptor } from "./index-quotes";
+import { INDEX_CATALOGUE, type IndexDescriptor } from "./index-quotes";
 
 /** A board group as the dashboard renders it: one card per group. */
 export type BoardGroupKey = "markets" | "commodities" | "crypto" | "fx";
@@ -200,3 +200,27 @@ export const MOVERS_UNIVERSE: Array<{ symbol: string; name: string }> = [
   { symbol: "TSLA", name: "Tesla" },
   { symbol: "AVGO", name: "Broadcom" }
 ];
+
+/**
+ * Every symbol the background sweep should keep warm, deduped.
+ *
+ * This is the sweep's universe and nothing else decides it, which is the point:
+ * a card that renders a symbol the sweep does not fetch is a card that is
+ * permanently cold, and the two lists drifting apart is the failure mode this
+ * function exists to make impossible. The strip's `INDEX_CATALOGUE` is included
+ * for the same reason — it is on every page, so it is the most valuable thing
+ * in the cache.
+ *
+ * Deliberately *not* included: a user's individual holdings. There are ~800
+ * distinct ones (ROADMAP §2.7 item 2.3) and sweeping them all on a timer would
+ * spend most of the budget on symbols nobody is looking at. Those go through
+ * the live tiers, which is what the tiers below the cache are for.
+ */
+export function sweepUniverse(): string[] {
+  const symbols = [
+    ...Object.values(BOARD_GROUPS).flatMap((entries) => entries.flatMap((entry) => entry.yahooSymbols)),
+    ...INDEX_CATALOGUE.flatMap((index) => index.yahooSymbols),
+    ...MOVERS_UNIVERSE.map((entry) => entry.symbol)
+  ];
+  return [...new Set(symbols.map((s) => s.trim().toUpperCase()).filter(Boolean))];
+}

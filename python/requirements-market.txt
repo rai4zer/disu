@@ -1,0 +1,8 @@
+# Market quote bridge (python/src/market/fetcher.py).
+#
+# Pinned to a minor range rather than left open: yfinance tracks an undocumented
+# upstream, so its output shape is not a stable contract. 1.2.0 is what the
+# bridge was written and measured against — notably that yf.download() returns a
+# ticker-grouped MultiIndex even for a single symbol, which _fetch_intraday_batch
+# detects rather than assumes. Read that function before widening this pin.
+yfinance>=1.2,<2

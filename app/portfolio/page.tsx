@@ -95,7 +95,7 @@ type PortfolioPosition = {
   previousClose?: number | null;
   dayChangePct?: number | null;
   dayChangeAmount?: number | null;
-  priceSource?: "yahoo" | "finnhub" | "placeholder" | "broker" | "unavailable";
+  priceSource?: "yahoo" | "yfinance" | "finnhub" | "placeholder" | "broker" | "unavailable";
   // True when currentPrice is a placeholder rather than observed market data.
   synthetic?: boolean;
   // positionValue converted into the display currency, or null when no FX rate

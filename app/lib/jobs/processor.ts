@@ -14,6 +14,7 @@ import {
 import { pruneExpiredSessions } from "@/app/lib/auth/sessions";
 import { pruneOldFunnelEvents } from "@/app/lib/analytics/funnel-store";
 import { runDailySnapshotSweep } from "@/app/lib/portfolio/snapshots";
+import { marketSweepIntervalMs, runMarketQuoteSweep } from "@/app/lib/market/quote-sweep";
 import type { PrimerJobPayload, QuantJobPayload } from "@/app/lib/jobs/types";
 import { executeQuantJob } from "@/app/lib/quant/executor";
 import { executePrimerJob } from "@/app/lib/primers/executor";
@@ -66,6 +67,34 @@ export function initJobWorker(): void {
   setInterval(() => {
     void captureDailySnapshots();
   }, snapshotSweepIntervalMs());
+  // Market quotes, on the same worker timer as the chores above. The 5s offset
+  // keeps the first sweep clear of boot: it spawns a Python interpreter, and
+  // competing with Next's own startup for CPU only makes the first page slower.
+  setTimeout(() => {
+    void sweepMarketQuotes();
+  }, 5_000);
+  setInterval(() => {
+    void sweepMarketQuotes();
+  }, marketSweepIntervalMs());
+}
+
+/**
+ * Keep the shared quote cache warm (migration 0023).
+ *
+ * Here for the same reason the snapshot sweep is: this process is where the
+ * app's periodic chores run, and the alternative — fetching when someone loads
+ * the dashboard — puts the bridge's multi-second spawn in front of a real
+ * person. `runMarketQuoteSweep()` already contains its own failures; this
+ * wrapper exists so a bug in it can still never reject into the timer.
+ */
+async function sweepMarketQuotes(): Promise<void> {
+  try {
+    await runMarketQuoteSweep();
+  } catch (error) {
+    log.error("market.sweep.uncaught", {
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
 }
 
 /**

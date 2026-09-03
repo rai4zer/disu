@@ -41,7 +41,7 @@ export type PortfolioPosition = {
   dayChangePct: number | null;
   dayChangeAmount: number | null;
   /** Where `currentPrice` came from. */
-  priceSource: "yahoo" | "finnhub" | "placeholder" | "broker" | "unavailable";
+  priceSource: "yahoo" | "yfinance" | "finnhub" | "placeholder" | "broker" | "unavailable";
   /**
    * True when `currentPrice` (and everything derived from it) was not observed
    * from a market feed. See docs/synthetic-data-policy.md.

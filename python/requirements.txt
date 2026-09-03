@@ -1,1 +1,2 @@
 -r requirements-quant.txt
+-r requirements-market.txt

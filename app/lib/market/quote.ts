@@ -18,8 +18,15 @@ export type QuoteSnapshot = {
   /**
    * Which feed the price came from. `placeholder` is the only synthetic one,
    * and it is only ever produced when MARKET_MOCK_FALLBACK_MODE permits it.
+   *
+   * `yahoo` and `yfinance` are the same upstream reached two ways, and they are
+   * kept apart rather than merged because the difference is the whole reason
+   * the second one exists: the hand-rolled client 403s on the Nordic symbols
+   * the Python bridge resolves (docs/market-live-feed.md). Collapsing them
+   * would erase exactly the signal needed to tell "Yahoo is down" from "our
+   * Yahoo client is broken again".
    */
-  source: "yahoo" | "finnhub" | "placeholder";
+  source: "yahoo" | "yfinance" | "finnhub" | "placeholder";
   /**
    * True when `price` was not observed from a market feed. Callers must
    * propagate this to the API layer and the UI must render synthetic values
