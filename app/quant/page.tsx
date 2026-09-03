@@ -5,6 +5,7 @@ import styles from "./page.module.css";
 import Workspace from "@/app/components/workspace";
 import { resolveTickerSymbol } from "@/app/lib/ticker-suggestions";
 import TickerAutocomplete from "@/app/components/ticker-autocomplete";
+import ChartDownload from "@/app/components/chart-download";
 import {
   cancelJob,
   dismissJob,
@@ -986,91 +987,95 @@ export default function QuantPage() {
                     ))}
                   </div>
 
-                  <div className={styles.toolMenuWrap} ref={toolMenuRef}>
-                    <button
-                      type="button"
-                      className={styles.toolMenuButton}
-                      onClick={() => setToolsOpen((open) => !open)}
-                      aria-expanded={toolsOpen}
-                      aria-haspopup="menu"
-                      aria-label={isSv ? "Diagramverktyg" : "Chart tools"}
-                    >
-                      ⚙
-                    </button>
-                    {toolsOpen ? (
-                      <div className={styles.toolMenu} role="menu">
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${chartMode === "sharp" ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => {
-                            setChartMode("sharp");
-                            setToolsOpen(false);
-                          }}
-                        >
-                          {isSv ? "Skarp graf" : "Sharp Graph"}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${chartMode === "smooth" ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => {
-                            setChartMode("smooth");
-                            setToolsOpen(false);
-                          }}
-                        >
-                          {isSv ? "Mjuk graf" : "Smooth Graph"}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${
-                            chartMode === "candlestick" ? styles.toolMenuItemActive : ""
-                          }`}
-                          onClick={() => {
-                            setChartMode("candlestick");
-                            setToolsOpen(false);
-                          }}
-                        >
-                          Candlestick
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${chartMode === "ohlc" ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => {
-                            setChartMode("ohlc");
-                            setToolsOpen(false);
-                          }}
-                        >
-                          OHLC
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${showHighLow ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => setShowHighLow((value) => !value)}
-                        >
-                          {isSv ? "Hög och låg" : "High and Low"}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${showReports ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => setShowReports((value) => !value)}
-                        >
-                          {isSv ? "Rapporter" : "Reports"}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${showDividends ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => setShowDividends((value) => !value)}
-                        >
-                          {isSv ? "Utdelningar" : "Dividends"}
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.toolMenuItem} ${showGrid ? styles.toolMenuItemActive : ""}`}
-                          onClick={() => setShowGrid((value) => !value)}
-                        >
-                          {isSv ? "Rutnät" : "Grid"}
-                        </button>
-                      </div>
-                    ) : null}
+                  <div className={styles.chartActions}>
+                    <ChartDownload symbol={rows[0].ticker} />
+
+                    <div className={styles.toolMenuWrap} ref={toolMenuRef}>
+                      <button
+                        type="button"
+                        className={styles.toolMenuButton}
+                        onClick={() => setToolsOpen((open) => !open)}
+                        aria-expanded={toolsOpen}
+                        aria-haspopup="menu"
+                        aria-label={isSv ? "Diagramverktyg" : "Chart tools"}
+                      >
+                        ⚙
+                      </button>
+                      {toolsOpen ? (
+                        <div className={styles.toolMenu} role="menu">
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${chartMode === "sharp" ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => {
+                              setChartMode("sharp");
+                              setToolsOpen(false);
+                            }}
+                          >
+                            {isSv ? "Skarp graf" : "Sharp Graph"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${chartMode === "smooth" ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => {
+                              setChartMode("smooth");
+                              setToolsOpen(false);
+                            }}
+                          >
+                            {isSv ? "Mjuk graf" : "Smooth Graph"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${
+                              chartMode === "candlestick" ? styles.toolMenuItemActive : ""
+                            }`}
+                            onClick={() => {
+                              setChartMode("candlestick");
+                              setToolsOpen(false);
+                            }}
+                          >
+                            Candlestick
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${chartMode === "ohlc" ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => {
+                              setChartMode("ohlc");
+                              setToolsOpen(false);
+                            }}
+                          >
+                            OHLC
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${showHighLow ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => setShowHighLow((value) => !value)}
+                          >
+                            {isSv ? "Hög och låg" : "High and Low"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${showReports ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => setShowReports((value) => !value)}
+                          >
+                            {isSv ? "Rapporter" : "Reports"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${showDividends ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => setShowDividends((value) => !value)}
+                          >
+                            {isSv ? "Utdelningar" : "Dividends"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.toolMenuItem} ${showGrid ? styles.toolMenuItemActive : ""}`}
+                            onClick={() => setShowGrid((value) => !value)}
+                          >
+                            {isSv ? "Rutnät" : "Grid"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
 

@@ -1,166 +1,164 @@
 "use client";
 
+/**
+ * Market desk.
+ *
+ * This page previously generated every number it displayed. `stableChange()`
+ * and `stablePrice()` hashed a seed against the date to produce a plausible
+ * percentage and a plausible level, so "OMX Helsinki 25 +1.42%" was a hash of
+ * the string "OMXH25" and nothing else — the exact pattern ROADMAP §2.1 removed
+ * from the dashboard, still live here because the synthetic-data test only ever
+ * guarded `app/dashboard/page.tsx`.
+ *
+ * Both functions are gone. Every reading below comes from `/api/market/board`
+ * and `/api/news/feed`, and anything those cannot supply renders "—". A market
+ * we could not read is a market we do not report on.
+ */
+
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import UiState from "@/app/components/ui-state";
 import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
 import styles from "./page.module.css";
 
-type IndexItem = {
+type BoardTile = {
   label: string;
   fullName: string;
-  price: string;
-  value: string;
-  time: string;
+  unit: string | null;
+  price: string | null;
+  changePct: number | null;
+  asOf: string | null;
 };
+
+type BoardGroupKey = "markets" | "commodities" | "crypto" | "fx";
 
 type NewsItem = {
   title: string;
   link: string;
-  source: "FT" | "WSJ" | "NYT" | "Google";
+  source: string;
   publishedAt: string;
 };
 
-type QuoteRow = {
-  label: string;
-  changePct: number;
-  last: number;
-  time: string;
-};
+type Mover = { symbol: string; name: string; price: number; changePct: number };
 
-function stableChange(seed: string): number {
-  const day = new Date().toISOString().slice(0, 10);
-  const source = `${seed}:${day}`;
-  let hash = 0;
-  for (let i = 0; i < source.length; i += 1) {
-    hash = (hash * 33 + source.charCodeAt(i)) >>> 0;
-  }
-  const raw = ((hash % 760) / 100) - 3.8;
-  return Math.round(raw * 100) / 100;
+const REFRESH_MS = 60_000;
+
+function deltaClass(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "dsFlat";
+  return value > 0 ? "dsUp" : value < 0 ? "dsDown" : "dsFlat";
 }
 
-function stablePrice(seed: string, base: number): number {
-  const day = new Date().toISOString().slice(0, 10);
-  const source = `${seed}:${day}`;
-  let hash = 0;
-  for (let i = 0; i < source.length; i += 1) {
-    hash = (hash * 31 + source.charCodeAt(i)) >>> 0;
-  }
-  const drift = ((hash % 1800) - 900) / 1000;
-  return Math.max(0.01, base + drift);
+function formatPct(value: number | null): string {
+  if (value === null || !Number.isFinite(value)) return "—";
+  const sign = value > 0 ? "+" : value < 0 ? "−" : "";
+  return `${sign}${Math.abs(value).toFixed(2)}%`;
 }
 
-function formatPct(value: number): string {
-  const sign = value > 0 ? "+" : "";
-  return `${sign}${value.toFixed(2)}%`;
-}
-
-function formatTime(value: string): string {
+function formatTime(value: string | null): string {
+  if (!value) return "—";
   const parsed = Date.parse(value);
-  if (!Number.isFinite(parsed)) return value;
-  return new Date(parsed).toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", hour12: false });
+  if (!Number.isFinite(parsed)) return "—";
+  return new Date(parsed).toLocaleTimeString("sv-SE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false
+  });
 }
 
-function todayTime(): string {
-  return new Date().toLocaleTimeString("sv-SE", { hour: "2-digit", minute: "2-digit", hour12: false });
+function QuoteTable({
+  title,
+  tiles,
+  loading,
+  isSv
+}: {
+  title: string;
+  tiles: BoardTile[];
+  loading: boolean;
+  isSv: boolean;
+}) {
+  return (
+    <article className={`dsCard ${styles.card}`}>
+      <header className="dsCardHeader">
+        <h2 className="dsCardTitle">{title}</h2>
+      </header>
+      {tiles.length === 0 ? (
+        <p className={styles.empty}>
+          {loading ? (isSv ? "Hämtar…" : "Loading…") : isSv ? "Inga kurser just nu." : "No readings right now."}
+        </p>
+      ) : (
+        <ul className="dsRows">
+          {tiles.map((tile) => (
+            <li key={tile.label}>
+              <div className="dsRow">
+                <span className="dsRowLabel">
+                  <span className="dsRowName" title={tile.fullName}>
+                    {tile.label}
+                  </span>
+                  <span className="dsRowMeta">{tile.unit ?? formatTime(tile.asOf)}</span>
+                </span>
+                <span className="dsRowValue">
+                  <span className="dsNum">{tile.price ?? "—"}</span>
+                  <span className={`dsDelta ${deltaClass(tile.changePct)}`}>{formatPct(tile.changePct)}</span>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
 }
 
-function formatNumber(value: number, digits = 2): string {
-  return value.toLocaleString("sv-SE", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-}
-
-export default function SentimentPage() {
+export default function MarketDeskPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
 
-  const [indices, setIndices] = useState<IndexItem[]>([]);
+  const [groups, setGroups] = useState<Record<BoardGroupKey, BoardTile[]> | null>(null);
+  const [movers, setMovers] = useState<{ gainers: Mover[]; losers: Mover[]; covered: number; universeSize: number } | null>(
+    null
+  );
   const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
+
     const load = async () => {
-      try {
-        const [indicesRes, newsRes] = await Promise.all([
-          fetch("/api/market/indices", { cache: "no-store" }),
-          fetch("/api/news/feed", { cache: "no-store" })
-        ]);
+      const [boardResult, moversResult, newsResult] = await Promise.allSettled([
+        fetch("/api/market/board", { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/market/movers", { cache: "no-store" }).then((r) => r.json()),
+        fetch("/api/news/feed", { cache: "no-store" }).then((r) => r.json())
+      ]);
 
-        const indicesJson = (await indicesRes.json().catch(() => ({}))) as { items?: IndexItem[] };
-        const newsJson = (await newsRes.json().catch(() => ({}))) as { items?: NewsItem[] };
+      if (cancelled) return;
 
-        if (!cancelled) {
-          setIndices(Array.isArray(indicesJson.items) ? indicesJson.items : []);
-          setNews(Array.isArray(newsJson.items) ? newsJson.items.slice(0, 12) : []);
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
+      if (boardResult.status === "fulfilled" && boardResult.value?.groups) {
+        setGroups(boardResult.value.groups);
       }
+      if (moversResult.status === "fulfilled" && moversResult.value?.ok) {
+        setMovers(moversResult.value);
+      }
+      if (newsResult.status === "fulfilled" && Array.isArray(newsResult.value?.items)) {
+        setNews(newsResult.value.items.slice(0, 14) as NewsItem[]);
+      }
+      setLoading(false);
     };
 
     void load();
+    const timer = setInterval(() => void load(), REFRESH_MS);
     return () => {
       cancelled = true;
+      clearInterval(timer);
     };
   }, []);
 
-  const nordic = useMemo<QuoteRow[]>(() => {
-    const now = todayTime();
-    const omx = indices.find((item) => item.label === "OMXS30");
-    return [
-      {
-        label: "OMX Stockholm 30",
-        changePct: omx ? Number(omx.value.replace("%", "")) : stableChange("OMXS30"),
-        last: omx ? Number(omx.price.replace(/,/g, "")) || 3077.21 : 3077.21,
-        time: omx?.time ?? now
-      },
-      { label: "OMX Helsinki 25", changePct: stableChange("OMXH25"), last: stablePrice("OMXH25", 5976.13), time: now },
-      { label: "OMX Copenhagen 25", changePct: stableChange("OMXC25"), last: stablePrice("OMXC25", 1720.09), time: now },
-      { label: "Oslo Børs GI", changePct: stableChange("OSEGI"), last: stablePrice("OSEGI", 1905.71), time: now }
-    ];
-  }, [indices]);
-
-  const world = useMemo<QuoteRow[]>(() => {
-    const now = todayTime();
-    const dji = indices.find((item) => item.label === "DJI");
-    const nasdaq = indices.find((item) => item.label === "NASDAQ");
-    return [
-      {
-        label: "Dow Jones Industrial",
-        changePct: dji ? Number(dji.value.replace("%", "")) : stableChange("DJI"),
-        last: dji ? Number(dji.price.replace(/,/g, "")) || 47716.96 : 47716.96,
-        time: dji?.time ?? now
-      },
-      {
-        label: "Nasdaq Composite",
-        changePct: nasdaq ? Number(nasdaq.value.replace("%", "")) : stableChange("IXIC"),
-        last: nasdaq ? Number(nasdaq.price.replace(/,/g, "")) || 24761.03 : 24761.03,
-        time: nasdaq?.time ?? now
-      },
-      { label: "DAX", changePct: stableChange("DAX"), last: stablePrice("DAX", 23815.75), time: now },
-      { label: "CAC 40", changePct: stableChange("CAC40"), last: stablePrice("CAC40", 9272.06), time: now }
-    ];
-  }, [indices]);
-
-  const commodities = useMemo<QuoteRow[]>(() => {
-    const now = todayTime();
-    return [
-      { label: isSv ? "Guld" : "Gold", changePct: stableChange("XAU"), last: stablePrice("XAU", 5075.3), time: now },
-      { label: isSv ? "Silver" : "Silver", changePct: stableChange("XAG"), last: stablePrice("XAG", 82.01), time: now },
-      { label: isSv ? "Olja" : "Crude Oil", changePct: stableChange("BRENT"), last: stablePrice("BRENT", 84.78), time: now },
-      { label: isSv ? "Koppar" : "Copper", changePct: stableChange("COPPER"), last: stablePrice("COPPER", 13.01), time: now }
-    ];
-  }, [isSv]);
-
-  const currencies = useMemo<QuoteRow[]>(() => {
-    const now = todayTime();
-    return [
-      { label: "USD/SEK", changePct: stableChange("USDSEK"), last: stablePrice("USDSEK", 9.2638), time: now },
-      { label: "EUR/SEK", changePct: stableChange("EURSEK"), last: stablePrice("EURSEK", 10.73), time: now },
-      { label: "NOK/SEK", changePct: stableChange("NOKSEK"), last: stablePrice("NOKSEK", 0.9552), time: now },
-      { label: "EUR/USD", changePct: stableChange("EURUSD"), last: stablePrice("EURUSD", 1.1585), time: now }
-    ];
-  }, []);
+  const moverNote =
+    movers && movers.covered > 0
+      ? isSv
+        ? `Av ${movers.covered} av ${movers.universeSize} bevakade bolag.`
+        : `Of ${movers.covered} of ${movers.universeSize} tracked names.`
+      : null;
 
   return (
     <main className={`${styles.page} appPage`}>
@@ -168,128 +166,94 @@ export default function SentimentPage() {
         title={isSv ? "Marknadsdesk" : "Market desk"}
         subtitle={
           isSv
-            ? "Börsen idag: index, råvaror, valutor och marknadsnyheter i ett samlat läge."
-            : "Market today: indices, commodities, currencies, and market news in one board."
+            ? "Index, råvaror, krypto, valutor och marknadsnyheter i ett samlat läge."
+            : "Indices, commodities, crypto, currencies and market news in one board."
         }
       >
-        <section className={`${styles.hero} appSection`}>
-          <div className={styles.heroHeader}>
-            <h2>{isSv ? "Börsen idag" : "Market now"}</h2>
-            <Link href="/placera" className={styles.heroLink}>
-              {isSv ? "Öppna sentimentanalys" : "Open sentiment analysis"}
-            </Link>
-          </div>
-          <div className={styles.indexPills}>
-            {indices.map((item) => {
-              const change = Number(item.value.replace("%", ""));
-              return (
-                <article key={item.label} className={styles.pill}>
-                  <div>
-                    <p className={styles.pillLabel}>{item.label}</p>
-                    <p className={styles.pillPrice}>{item.price}</p>
-                  </div>
-                  <p className={change >= 0 ? styles.pos : styles.neg}>{item.value}</p>
-                </article>
-              );
-            })}
-          </div>
+        <div className={styles.leadRow}>
+          <Link href="/placera" className="dsChip">
+            {isSv ? "Öppna sentimentanalys" : "Open sentiment analysis"}
+          </Link>
+        </div>
+
+        <section className={`dsRail ${styles.rail}`}>
+          <QuoteTable title={isSv ? "Index" : "Indices"} tiles={groups?.markets ?? []} loading={loading} isSv={isSv} />
+          <QuoteTable
+            title={isSv ? "Råvaror" : "Commodities"}
+            tiles={groups?.commodities ?? []}
+            loading={loading}
+            isSv={isSv}
+          />
+          <QuoteTable title={isSv ? "Krypto" : "Crypto"} tiles={groups?.crypto ?? []} loading={loading} isSv={isSv} />
+          <QuoteTable title={isSv ? "Valutor" : "Currencies"} tiles={groups?.fx ?? []} loading={loading} isSv={isSv} />
         </section>
 
-        <section className={styles.grid}>
-          <article className={`${styles.card} appSection`}>
-            <h3>{isSv ? "Nordiska index" : "Nordic indices"}</h3>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>{isSv ? "Index" : "Index"}</th><th>+/-</th><th>{isSv ? "Senast" : "Last"}</th><th>{isSv ? "Tid" : "Time"}</th></tr>
-              </thead>
-              <tbody>
-                {nordic.map((row) => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td className={row.changePct >= 0 ? styles.pos : styles.neg}>{formatPct(row.changePct)}</td>
-                    <td>{formatNumber(row.last)}</td>
-                    <td>{row.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </article>
-
-          <article className={`${styles.card} appSection`}>
-            <h3>{isSv ? "Världsindex" : "Global indices"}</h3>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>{isSv ? "Index" : "Index"}</th><th>+/-</th><th>{isSv ? "Senast" : "Last"}</th><th>{isSv ? "Tid" : "Time"}</th></tr>
-              </thead>
-              <tbody>
-                {world.map((row) => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td className={row.changePct >= 0 ? styles.pos : styles.neg}>{formatPct(row.changePct)}</td>
-                    <td>{formatNumber(row.last)}</td>
-                    <td>{row.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </article>
-
-          <article className={`${styles.card} appSection`}>
-            <h3>{isSv ? "Råvaror" : "Commodities"}</h3>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>{isSv ? "Råvara" : "Commodity"}</th><th>+/-</th><th>{isSv ? "Senast" : "Last"}</th><th>{isSv ? "Tid" : "Time"}</th></tr>
-              </thead>
-              <tbody>
-                {commodities.map((row) => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td className={row.changePct >= 0 ? styles.pos : styles.neg}>{formatPct(row.changePct)}</td>
-                    <td>{formatNumber(row.last)}</td>
-                    <td>{row.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </article>
-
-          <article className={`${styles.card} appSection`}>
-            <h3>{isSv ? "Valutor" : "Currencies"}</h3>
-            <table className={styles.table}>
-              <thead>
-                <tr><th>{isSv ? "Valuta" : "Pair"}</th><th>+/-</th><th>{isSv ? "Senast" : "Last"}</th><th>{isSv ? "Tid" : "Time"}</th></tr>
-              </thead>
-              <tbody>
-                {currencies.map((row) => (
-                  <tr key={row.label}>
-                    <td>{row.label}</td>
-                    <td className={row.changePct >= 0 ? styles.pos : styles.neg}>{formatPct(row.changePct)}</td>
-                    <td>{formatNumber(row.last, 4)}</td>
-                    <td>{row.time}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </article>
+        <section className={`dsRail ${styles.rail}`}>
+          {(
+            [
+              { key: "gainers" as const, title: isSv ? "Vinnare" : "Gainers", rows: movers?.gainers ?? [] },
+              { key: "losers" as const, title: isSv ? "Förlorare" : "Losers", rows: movers?.losers ?? [] }
+            ]
+          ).map((column) => (
+            <article key={column.key} className={`dsCard ${styles.card}`}>
+              <header className="dsCardHeader">
+                <h2 className="dsCardTitle">{column.title}</h2>
+              </header>
+              {column.rows.length === 0 ? (
+                <p className={styles.empty}>
+                  {loading ? (isSv ? "Hämtar…" : "Loading…") : isSv ? "Inget att visa." : "Nothing to show."}
+                </p>
+              ) : (
+                <ul className="dsRows">
+                  {column.rows.map((row) => (
+                    <li key={row.symbol}>
+                      <div className="dsRow">
+                        <span className="dsRowLabel">
+                          <span className="dsRowName">{row.name}</span>
+                          <span className="dsRowMeta">{row.symbol}</span>
+                        </span>
+                        <span className="dsRowValue">
+                          <span className="dsNum">
+                            {row.price.toLocaleString("en-US", { maximumFractionDigits: 2 })}
+                          </span>
+                          <span className={`dsDelta ${deltaClass(row.changePct)}`}>{formatPct(row.changePct)}</span>
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {moverNote ? <p className={styles.note}>{moverNote}</p> : null}
+            </article>
+          ))}
         </section>
 
-        <section className={`${styles.news} appSection`}>
-          <div className={styles.newsHeader}>
-            <h3>{isSv ? "Nyheter" : "News"}</h3>
-            <span>{loading ? (isSv ? "Laddar..." : "Loading...") : null}</span>
-          </div>
-          <div className={styles.newsList}>
-            {news.length === 0 && !loading ? <p className={styles.muted}>{isSv ? "Inga nyheter just nu." : "No news right now."}</p> : null}
-            {news.map((item) => (
-              <a key={`${item.link}-${item.publishedAt}`} href={item.link} target="_blank" rel="noreferrer" className={styles.newsItem}>
-                <div className={styles.newsMeta}>
-                  <span>{item.source}</span>
-                  <span>{formatTime(item.publishedAt)}</span>
-                </div>
-                <p>{item.title}</p>
-              </a>
-            ))}
-          </div>
+        <section className={`dsCard ${styles.news}`}>
+          <header className="dsCardHeader">
+            <h2 className="dsCardTitle">{isSv ? "Nyheter" : "News"}</h2>
+          </header>
+          {news.length === 0 ? (
+            loading ? (
+              <UiState kind="loading" message={isSv ? "Hämtar nyheter…" : "Loading news…"} />
+            ) : (
+              <p className={styles.empty}>{isSv ? "Inga nyheter just nu." : "No news right now."}</p>
+            )
+          ) : (
+            <ul className={`dsRows ${styles.newsList}`}>
+              {news.map((item) => (
+                <li key={`${item.link}-${item.publishedAt}`}>
+                  <a className={`dsRow ${styles.newsRow}`} href={item.link} target="_blank" rel="noreferrer">
+                    <span className="dsRowLabel">
+                      <span className={styles.newsTitle}>{item.title}</span>
+                      <span className="dsRowMeta">
+                        {item.source} · {formatTime(item.publishedAt)}
+                      </span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </Workspace>
     </main>
