@@ -140,6 +140,33 @@ Ordered by cost to answer. Do not contract anything before all three are answere
 3. **Which Finnhub tier returns `^OMX`?** One support ticket, referencing the exact
    error you already have on record.
 
+## Measured: corporate-event coverage on the current Finnhub key (2026-08-30)
+
+Added when the Calendar tab was built, because it needs *future* dates rather than
+prices and turned out to be a sharper test of the plan than quotes were. Probed
+directly against the live key:
+
+| Endpoint | Result |
+|---|---|
+| `calendar/earnings?symbol=AAPL` | **200.** Confirmed date, fiscal quarter, EPS estimate. |
+| `calendar/earnings?symbol=MSFT` | **200.** |
+| `calendar/earnings` (whole market, no symbol) | **200.** |
+| `calendar/earnings?symbol=VOLV-B.ST` | **403** — "You don't have access to this resource." |
+| `calendar/earnings?symbol=ERIC-B.ST` / `EVO.ST` / `HM-B.ST` | **403**, all of them. |
+| `stock/dividend?symbol=AAPL` | **403**, US included. |
+
+So the shape of the gap is the same one the quote endpoints show (§ above), but it
+bites harder here: the Calendar's entire reason to exist is the Nordic holdings, and
+those are exactly the symbols refused. There is **no AGM feed at all** on any tier
+reviewed, from any provider — those dates come from company IR pages and would need
+scraping or manual curation whichever feed gets licensed.
+
+`app/api/portfolio/calendar/route.ts` reports its own per-symbol coverage to the page
+rather than rendering an empty month, because an empty calendar reads as "nothing is
+scheduled" — a worse falsehood than "we cannot see this yet". Whatever replaces
+Finnhub must be checked against **earnings dates and dividend dates for `.ST`
+symbols**, not just against quotes.
+
 ## Not evaluated
 
 Direct Nasdaq Nordic licensing (has a published European market-data price list, but

@@ -13,6 +13,10 @@ function ok(message) {
   console.log(`[delivery-check] ${message}`);
 }
 
+function warn(message) {
+  console.log(`[delivery-check] WARNING: ${message}`);
+}
+
 const requiredDocs = ['docs/deployment-policy.md', 'docs/runbooks.md', 'docs/synthetic-data-policy.md'];
 for (const file of requiredDocs) {
   if (!existsSync(path.join(process.cwd(), file))) {
@@ -379,6 +383,55 @@ if (strict && (process.env.NODE_ENV ?? '').toLowerCase() === 'production') {
     );
   } else {
     ok('Legal documents name a controller');
+  }
+}
+
+// A time-boxed decision that nobody re-reads is the implicit default it replaced,
+// wearing a nicer hat. `docs/decisions/0001-market-data-source.md` says so in its own
+// words -- "silence is not an extension" -- so the expiry is enforced here rather than
+// entrusted to a calendar reminder that can be dismissed. An ACCEPTED decision past its
+// expiry fails the build. There are exactly two ways past that failure, and both are
+// deliberate acts: satisfy the decision, or write a new expiry into the file.
+const decisionsDir = path.join(process.cwd(), 'docs', 'decisions');
+if (existsSync(decisionsDir)) {
+  const WARN_WITHIN_DAYS = 21;
+  const today = new Date();
+  const todayUtc = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  let accepted = 0;
+  let flagged = 0;
+
+  for (const entry of readdirSync(decisionsDir).filter((name) => name.endsWith('.md')).sort()) {
+    const source = readFileSync(path.join(decisionsDir, entry), 'utf8');
+    if (!/^-\s*\*\*Status:\*\*\s*ACCEPTED/im.test(source)) continue;
+    accepted += 1;
+
+    const expiresLine = /^-\s*\*\*Expires:\*\*\s*(.+)$/im.exec(source);
+    const expiresOn = expiresLine && /(\d{4})-(\d{2})-(\d{2})/.exec(expiresLine[1]);
+    if (!expiresOn) {
+      flagged += 1;
+      fail(
+        `docs/decisions/${entry} is ACCEPTED but names no expiry date. A decision without a ` +
+          'time box is just a default nobody wrote down.'
+      );
+      continue;
+    }
+
+    const expiry = Date.UTC(Number(expiresOn[1]), Number(expiresOn[2]) - 1, Number(expiresOn[3]));
+    const daysLeft = Math.round((expiry - todayUtc) / 86_400_000);
+    if (daysLeft < 0) {
+      flagged += 1;
+      fail(
+        `docs/decisions/${entry} expired on ${expiresOn[0]} (${-daysLeft} day(s) ago). ` +
+          'Satisfy it, or write a new expiry into the file and say why. Silence is not an extension.'
+      );
+    } else if (daysLeft <= WARN_WITHIN_DAYS) {
+      flagged += 1;
+      warn(`docs/decisions/${entry} expires ${expiresOn[0]} — ${daysLeft} day(s) left.`);
+    }
+  }
+
+  if (accepted > 0 && flagged === 0) {
+    ok(`Accepted decision records (${accepted}) are inside their time box`);
   }
 }
 

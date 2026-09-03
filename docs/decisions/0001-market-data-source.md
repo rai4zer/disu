@@ -1,6 +1,6 @@
 # 0001 — Market data source for M0
 
-- **Status:** PROPOSED — needs your sign-off (see [Sign-off](#sign-off))
+- **Status:** ACCEPTED — 2026-08-30 (see [Sign-off](#sign-off))
 - **Date drafted:** 2026-08-27
 - **Closes:** ROADMAP §2.7, and the M0 exit line in §2.8 ("Licensed market-data
   provider contracted **or** an explicit, written, time-boxed decision to launch on
@@ -71,7 +71,7 @@ Any one of these fires the switch immediately, regardless of the expiry date.
 | T2 | Schema change — a Yahoo response parses but yields no usable price, or the parse throws where it previously succeeded | Falls through to placeholder silently | Same gap as T1 |
 | T3 | Any contact from Yahoo/Oath/Verizon Media about the endpoints, or a ToS change naming programmatic access | Human | — |
 | T4 | First external paying user, or public marketing that claims live market data | Human | — |
-| T5 | Expiry date reached | Calendar | Put it in your calendar, not just this file |
+| T5 | Expiry date reached | **`npm run check:delivery` fails the build once the expiry passes, and warns for 21 days before it** — `scripts/check-delivery-readiness.mjs`, added 2026-08-30 | Closed. A calendar reminder can be dismissed; a red build cannot |
 
 ## Required work while on Yahoo (W1–W3)
 
@@ -88,10 +88,12 @@ W1 the tripwires are decorative.
   "Live" / "Delayed" off the `stale` flag. Yahoo data is not contractually live.
   Label it "indicative" or "delayed" and keep the source out of user-facing copy.
   §2.7 already calls for a "delayed 15 min" label; adopt it now rather than at switch.
-- **W3 — Keep the seam honest.** The indices route bypasses `MarketProvider` entirely
-  and reimplements its own chain. That is two places to swap instead of one. Either
-  route indices through the provider interface or note the duplication at the top of
-  both files.
+- **W3 — Keep the seam honest. ✅ DONE 2026-08-28, one day after this was drafted.**
+  The indices route no longer bypasses `MarketProvider`: the interface gained
+  `getIndexQuotes()` / `getIndexQuote()`, upstream reads moved to
+  `app/lib/market/index-quotes.ts`, and `app/api/market/indices/route.ts:206` now calls
+  `provider.getIndexQuotes()`. There is one place to swap, so step 3 of the switch plan
+  below is already gone.
 
 ## Switch plan
 
@@ -105,8 +107,9 @@ When a tripwire fires or the expiry lands:
    the `getMarketProvider()` factory behind an env var — e.g.
    `MARKET_PROVIDER=hybrid|<name>` — so rollback is a config change, and add the new
    key to `.env.example` per `docs/deployment-policy.md`.
-3. **Add the same provider as a branch in the indices route's source chain**, ahead of
-   the Yahoo branches (see W3 — if W3 was done, this step disappears).
+3. ~~Add the same provider as a branch in the indices route's source chain.~~
+   **Not needed — W3 is done.** One registration in `getMarketProvider()` covers indices
+   and single quotes alike.
 4. **Keep Yahoo as the fallback tier**, not the primary. It is a fine degraded mode;
    it is a bad contract.
 5. **Verify** against the symbol set that actually matters: the index list in
@@ -133,12 +136,19 @@ When a tripwire fires or the expiry lands:
 
 ## Sign-off
 
-Fill these in and set the status to ACCEPTED. Unsigned, this document does **not**
-satisfy the §2.8 exit criterion — that line asks for an explicit decision, and an
-undated draft is the same implicit default in nicer clothes.
+- **Decided by:** Anoya Yousef, founder (sole decision-maker; no company entity exists
+  yet — see ROADMAP D7)
+- **Date accepted:** 2026-08-30
+- **Expires:** **2026-11-30**, or the first external paying user, or public marketing of
+  live prices — whichever comes first. Per the time box above, silence is not an
+  extension: past that date either a provider is contracted or a new revision of this
+  file extends the expiry explicitly.
+- **Enforced by:** ✅ `scripts/check-delivery-readiness.mjs` — this file is now parsed by
+  the build. Past 2026-11-30, `npm run check:delivery` (and therefore `npm run ci` and the
+  `prestart` hook) exits 1 until the decision is satisfied or a new expiry is written in
+  deliberately. Verified by running it against a back-dated expiry.
+- **Calendar reminder set:** ☐ optional now, and belt-and-braces rather than the mechanism.
+  `disu-decision-0001-expiry.ics` will add it to any calendar in one double-click.
 
-- **Decided by:** _______________
-- **Date accepted:** _______________
-- **Expires:** _______________  ← suggested: first external user, or 3 months from
-  acceptance, whichever comes first
-- **Calendar reminder set:** ☐
+This closes the ROADMAP §2.8 exit line: an explicit, written, time-boxed decision to
+launch on Yahoo with a documented switch plan.
