@@ -18,9 +18,15 @@
 item here is done, tick it here and write the finding in its § section. M0 is the only open
 gate — 10 of its 16 blocking items are closed (§13).*
 
-**Tree state 2026-09-03:** `typecheck`, `check:delivery` and `test:unit` (256/256) all green.
-The uncommitted body of new pages/modules is committed on `feature/product-surface-rework`
-and off `main`, which stays on the M0 path (§5).
+**Tree state 2026-09-03 (end of day):** `typecheck`, `check:delivery` (11 gates) and
+`test:unit` (278/278) all green, and `next build` compiles — worth stating separately, because
+`npm run ci` has no build step and the two were green-and-broken at the same time earlier today
+(§5). 22 commits on `feature/product-surface-rework`, `main` untouched.
+
+**A day of M0-adjacent work, honestly labelled.** Live market data, instrument pages, search and
+the module-to-tab move are all §2.9 cut-list material — new pages and new modules — and they sit
+on the branch for that reason. What *did* land on the M0 path: the shared quote cache (2.3), the
+W1 counters (2.8), an eleventh delivery gate, and a latent write bug in `supabaseRequest()`.
 
 ### 0 — Broken now
 
@@ -38,8 +44,8 @@ Nothing here moves by writing software. Three are M0 exit criteria.
 | 1.3 | Commit hosting decision (D1: long-lived Node — Fly/Railway/Render, 1 instance) | All of block 3 | §2.5 |
 | 1.4 | Pick alerting sink → `ERROR_REPORT_WEBHOOK_URL` (Discord/Slack now, GlitchTip/Sentry EU later) | Capture and fingerprinting already ship; nothing notifies a human | §2.6 |
 | 1.5 | ~~Sign `docs/decisions/0001`~~ **done 2026-08-30.** Nothing left for you — tripwire T5 was going to be a calendar reminder, and is instead a build guard in `scripts/check-delivery-readiness.mjs`: past 2026-11-30 `check:delivery` exits 1, with a warning for 21 days before | Closed the §2.8 market-data line | §2.7 |
-| 1.6 | Marketstack free key | Runs 2.1 | §2.7 |
-| 1.7 | EODHD B2B quote at ~10k users; Finnhub ticket re: which tier serves `^OMX` | Provider contract (D2) | §2.7 |
+| 1.6 | Marketstack free key | Runs 2.1 — **lower priority since 2026-09-03**: the question it was going to answer (can anything cheap serve `^OMX`?) is answered, see 2.1 | §2.7 |
+| 1.7 | EODHD B2B quote at ~10k users; ~~Finnhub ticket re: which tier serves `^OMX`~~ — the Finnhub half is moot, `^OMX` resolves through yfinance today. The EODHD half stands: this is about a *licensed* feed, which is a different purchase from a working one | Provider contract (D2) | §2.7 |
 | 1.8 | DPAs: Google, Meta, LinkedIn | Consent gate is built; a DPA is a separate obligation | §2.2 |
 
 A vendor goes into `app/lib/legal/subprocessors.ts` and the privacy notice **before** 1.4 points at it.
@@ -48,14 +54,17 @@ A vendor goes into `app/lib/legal/subprocessors.ts` and the privacy notice **bef
 
 | # | Item | Where | § |
 |---|---|---|---|
-| 2.1 | Run `scripts/marketstack-omxs30-test.py` — does the index endpoint return OMXS30, fresh or EOD? May collapse the budget from $229/mo to $10/mo | `docs/market-data-providers.md` | §2.7 |
+| 2.1 | ~~Run `scripts/marketstack-omxs30-test.py`~~ **overtaken 2026-09-03.** The budget question is answered from the other end: yfinance resolves all 52 sweep symbols including `^OMX`, `GC=F`, `SEKUSD=X` and every `.ST` name, at zero cost. Marketstack was being evaluated to buy what we now have. **This does not close D2** — see 2.9 | `docs/market-data-providers.md` | §2.7 |
 | 2.2 | Live market-data smoke test — every market test mocks the network, so nothing catches Yahoo changing its JSON shape | `tests/` | §2.7 |
-| 2.3 | Symbol-level shared cache: one fetch per symbol per interval across all users (~800 distinct symbols) | `app/lib/market/market-provider.ts` | §2.7 |
+| 2.3 | ~~Symbol-level shared cache~~ **done 2026-09-03** — `market_quotes` (0023, applied) plus a background sweep on the job-worker timer. 52 symbols, one spawn every 5 min, shared across every user and surviving a restart. The board and strip read Postgres, so no request pays the ~14s fetch. Not covered: a user's individual holdings, which fall through to the live tiers | `app/lib/market/quote-sweep.ts`, `quote-cache.ts` | §2.7 |
 | 2.4 | Confirm snapshot rows are landing — the free tier auto-pauses and a paused day records nothing | `app/lib/portfolio/snapshots.ts`, runbook 5 | §13 |
 | 2.5 | Migration runner + `schema_migrations` — nothing records what is applied, so a restore can silently roll the schema behind the code | `db/migrations/` | §13 |
 | 2.6 | Uptime + synthetic check: `/api/market/indices` plus one authenticated route | — | §2.6 |
 | 2.7 | Ops dashboard read once daily: WAP, signups, activation, errors, job failure rate, external-API failure rate | — | §2.6 |
-| 2.8 | **W1 — instrument the market source.** Count outcomes per source and alert when the fallback rate crosses T1's threshold. Created by signing decision 0001: without it tripwires T1 and T2 detect nothing. Needs 1.4 for the sink. `recordEvent()` is not the vehicle — it is user-scoped with a closed action union; this wants a process-level counter | `app/api/market/indices/route.ts`, `app/lib/market/market-provider.ts` | 0001 W1 |
+| 2.8 | **W1 — instrument the market source.** *Half done 2026-09-03.* The counter exists: every sweep logs `market.sweep.completed` with requested/resolved/unresolved and a fallback rate, and crosses to `market.sweep.degraded` at a third. So the number to alert on is now recorded. **What is still missing is the alert** — it is a log line, and nothing pages a human. Blocked on 1.4 for the sink, and that is the whole remainder | `app/lib/market/quote-sweep.ts` | 0001 W1 |
+
+| 2.9 | **Re-read decision 0001 against what shipped.** It was signed on the understanding that Yahoo priced equities and indices. It now also prices commodities, FX, crypto and every instrument page's fundamentals, news and analyst data — the same single point of failure carrying several times the load, and the expiry (2026-11-30) did not move | `docs/decisions/0001-market-data-source.md` | 0001 |
+| 2.10 | Split the instrument-detail cache TTL. One hour is chosen for the fastest-moving section (news); financials and analyst estimates are re-fetched hourly for no reason | `app/lib/market/instrument-cache.ts` | — |
 
 ### 3 — Infra / deploy (gated on 1.3)
 
@@ -75,19 +84,29 @@ The friction inventory of §9.8. Six rows are pure code.
 | 4.3 | Reorder the activation ladder — broker connect is shown before manual add | `app/portfolio/page.tsx:747` |
 | 4.4 | Promote manual add out from behind a toggle to primary | `app/portfolio/page.tsx:1054` |
 | 4.5 | Make average cost optional, prompt later | add-position form |
-| 4.6 | Open primers, ticker pages and learn to signed-out visitors | `middleware.ts` matcher |
+| 4.6 | ~~Open ticker pages to signed-out visitors~~ **done 2026-09-03** for instrument pages: `/instrument/*` and `/api/tickers/search` are public, and `/api/instruments` redacts by session rather than returning 401 (`app/lib/market/instrument-visibility.ts`). What a company *is* — description, sector, employees, chart, headlines — is public; valuation, financials and analyst coverage need an account. Enforced before serialisation, since hiding fields in a component still ships them in the JSON. **Still open:** `/learn` is already public, but primers now live as an asset tab behind auth | `middleware.ts` matcher |
 | 4.7 | Logged-out value: public primers + a locally saved portfolio | landing page |
 | 4.8 | Label market data — **regressed 2026-09-03**, the strip's provenance badge was removed and it now reads no `source`/`stale`/`asOf` at all, so nine index levels render with no indication of whether they are current or retained. Note the wording constraint: "delayed 15 min" is contractual language belonging to a licensed feed, so the label cannot name a figure until D2 is signed. Needs a home — tooltip, `aria-label`, or the market page | market strip |
 | 4.9 | Full mobile pass | deferred to M2 |
 
 ### 5 — Housekeeping
 
-- [x] Triage the uncommitted tree *(done 2026-09-03 — 15 commits on
+- [x] Triage the uncommitted tree *(done 2026-09-03 — 16 commits on
       `feature/product-surface-rework`, verified green in an isolated worktree. Shelved rather
       than merged: §2.9 cuts new pages and new modules from M0, and all of it is that.
       `db/migrations/0022_trading_accounts.sql` is committed and still **unapplied**.)*
 - [ ] `tsconfig.tsbuildinfo` is tracked but is a build artifact — gitignore it and untrack it,
       or it conflicts on every branch switch.
+- [ ] **Add `next build` to `npm run ci`.** On 2026-09-03 a client component imported a module
+      that reached `node:fs`, and the build failed with `UnhandledSchemeError` while
+      `npm run ci` stayed green — `tsc --noEmit` cannot see a bundling error, and `ci` is
+      `lint → typecheck → test:unit → test:smoke → check:delivery` with no build in it. So
+      "CI green" and "the app does not build" were true at the same time. An eleventh delivery
+      gate now walks every `"use client"` import graph and fails on any edge reaching
+      `node:*`/`fs`/`child_process`, which catches that specific class in a second — but only a
+      real build catches the class generally. Roughly doubles CI time; the call is yours.
+- [ ] Decide whether the branch merges to `main` or waits for M0. It is 22 commits and growing,
+      and the longer it runs the less "shelved deliberately" it is.
 
 ### Locked
 
@@ -580,6 +599,22 @@ total. That table is the specification a paid tier has to meet (D2).
 
 Shipping a consumer product to 10k users on scraped endpoints will fail in one of three ways:
 rate limiting, silent schema change, or a ToS complaint. All three break the core promise.
+
+**Update 2026-09-03 — the coverage problem is solved; the licensing problem is not, and the
+exposure grew.** `yfinance` maintains Yahoo's crumb/cookie handshake as its whole job, which is
+the part the hand-rolled TypeScript client kept losing. Measured against the live feed, it
+resolves **52 of 52** sweep symbols: US and Nordic equities, `^OMX`, `GC=F`, `SEKUSD=X`,
+`BTC-USD` — including everything Finnhub 403s above. It also supplies the fundamentals, news and
+analyst estimates behind the instrument pages.
+
+Read that carefully, because it is easy to read as good news only. **Nothing about the three
+failure modes changed.** They are the same unofficial endpoints, reached through a library that
+tracks them; a client that keeps working is not a licence. What did change is the blast radius:
+Yahoo now prices commodities, FX and crypto too, and carries four tabs of company data, so the
+single point of failure went from "most of a Swedish portfolio" to "most of the product". The
+budget argument for a paid tier is weaker; the licensing argument is unchanged and the
+concentration argument is stronger. D2 is still open, 0001 still expires 2026-11-30, and queue
+item 2.9 is to re-read that record against what actually shipped.
 
 > **ACCEPTED 2026-08-30:** `docs/decisions/0001-market-data-source.md` — launch M0 on
 > Yahoo deliberately, expiring **2026-11-30** or at the first external paying user,
@@ -1184,7 +1219,7 @@ the user understood exactly what this does, would they thank you?*
 
 | Gate | Focus | Key metric | Target | Actual | Status |
 |---|---|---|---|---|---|
-| **M0** | Foundation hardening | trust incidents | 0 | 0 | 🟡 10/16 — see the queue |
+| **M0** | Foundation hardening | trust incidents | 0 | 0 | 🟡 10/16 — see the queue. 2026-09-03 moved 2.3 (done) and half of 2.8; the six blocking items are unchanged, and four of them are yours, not code |
 | **M1** | Private beta | WAP | 25 | — | ⬜ |
 | **M2** | Public launch | WAP | 300 | — | ⬜ |
 | **M3** | Habit | W4 retention | 25% | — | ⬜ |
