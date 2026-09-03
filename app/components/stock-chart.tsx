@@ -11,6 +11,7 @@ import {
   useState
 } from "react";
 import { useLanguage } from "@/app/i18n/language";
+import ChartDownload, { type DownloadPreset } from "./chart-download";
 import styles from "./stock-chart.module.css";
 
 type Candle = {
@@ -58,6 +59,19 @@ const RANGES: Array<{ key: RangeKey; label: string }> = [
   { key: "5y", label: "5Y" },
   { key: "max", label: "MAX" }
 ];
+
+// The download panel opens on the period closest to what the chart is showing.
+// Intraday ranges have no daily-bar equivalent, so they fall back to a month.
+const DOWNLOAD_PRESETS: Record<RangeKey, DownloadPreset> = {
+  "1d": "1mo",
+  "5d": "1mo",
+  "1mo": "1mo",
+  "6mo": "6mo",
+  ytd: "ytd",
+  "1y": "1y",
+  "5y": "5y",
+  max: "max"
+};
 
 const OVERLAYS = [
   { key: "sma50" as const, period: 50, color: "var(--chart-sma-50)", label: "SMA 50" },
@@ -131,7 +145,6 @@ export default function StockChart({ symbol, name }: { symbol: string; name?: st
   const [range, setRange] = useState<RangeKey>("6mo");
   const [chartStyle, setChartStyle] = useState<"area" | "candle">("area");
   const [overlays, setOverlays] = useState<Record<"sma50" | "sma200", boolean>>({ sma50: false, sma200: false });
-  const [showTable, setShowTable] = useState(false);
   const [payload, setPayload] = useState<HistoryPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -506,9 +519,7 @@ export default function StockChart({ symbol, name }: { symbol: string; name?: st
           })}
         </div>
 
-        <button type="button" className={styles.tableToggle} onClick={() => setShowTable((current) => !current)}>
-          {showTable ? (isSv ? "Dölj tabell" : "Hide table") : isSv ? "Visa tabell" : "Show table"}
-        </button>
+        <ChartDownload symbol={meta?.symbol ?? symbol} defaultPreset={DOWNLOAD_PRESETS[range]} className={styles.download} />
       </div>
 
       {error ? <p className={styles.state}>{error}</p> : null}
@@ -788,44 +799,6 @@ export default function StockChart({ symbol, name }: { symbol: string; name?: st
           <dd>{formatVolume(meta?.volume ?? candles[candles.length - 1]?.volume ?? null)}</dd>
         </div>
       </dl>
-
-      {showTable && geometry ? (
-        <div className={styles.tableWrap}>
-          <table className={styles.table}>
-            <caption className={styles.srOnly}>
-              {isSv ? `Kursdata för ${meta?.symbol ?? symbol}` : `Price data for ${meta?.symbol ?? symbol}`}
-            </caption>
-            <thead>
-              <tr>
-                <th>{isSv ? "Tid" : "Time"}</th>
-                <th>{isSv ? "Öppning" : "Open"}</th>
-                <th>{isSv ? "Högst" : "High"}</th>
-                <th>{isSv ? "Lägst" : "Low"}</th>
-                <th>{isSv ? "Stängning" : "Close"}</th>
-                <th>{isSv ? "Volym" : "Volume"}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {candles
-                .slice(-40)
-                .reverse()
-                .map((candle, index) => (
-                  <tr key={`row-${candle.t}-${index}`}>
-                    <td>{formatFullTime(candle.t)}</td>
-                    <td>{formatPrice(candle.open, geometry.priceDecimals)}</td>
-                    <td>{formatPrice(candle.high, geometry.priceDecimals)}</td>
-                    <td>{formatPrice(candle.low, geometry.priceDecimals)}</td>
-                    <td>{formatPrice(candle.close, geometry.priceDecimals)}</td>
-                    <td>{formatVolume(candle.volume)}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-          <p className={styles.tableNote}>
-            {isSv ? "Visar de 40 senaste datapunkterna." : "Showing the 40 most recent data points."}
-          </p>
-        </div>
-      ) : null}
     </section>
   );
 }

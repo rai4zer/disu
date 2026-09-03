@@ -46,6 +46,11 @@ export type HistoryMeta = {
 };
 
 function num(value: unknown): number | null {
+  // Number(null) is 0, and Yahoo pads gaps with nulls — coercing them would
+  // plot a zero close for a session that never traded.
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
 }
