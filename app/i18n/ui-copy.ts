@@ -19,6 +19,13 @@ export const uiCopy = {
       label: "Switch language",
       shortLabel: "EN"
     },
+    themeToggle: {
+      label: "Theme",
+      hint: "Applies to this browser. Takes effect immediately.",
+      system: "System",
+      light: "Light",
+      dark: "Dark"
+    },
     dashboard: {
       title: "Dashboard",
       subtitle: "Essential overview. Fast path into each workflow."
@@ -78,6 +85,13 @@ export const uiCopy = {
     languageToggle: {
       label: "Byt språk",
       shortLabel: "SV"
+    },
+    themeToggle: {
+      label: "Tema",
+      hint: "Gäller den här webbläsaren. Ändras direkt.",
+      system: "System",
+      light: "Ljust",
+      dark: "Mörkt"
     },
     dashboard: {
       title: "Översikt",

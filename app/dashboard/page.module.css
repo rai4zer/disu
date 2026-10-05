@@ -12,47 +12,6 @@
   padding-bottom: 48px;
 }
 
-/* ------------------------------------------------------------- first run --- */
-
-.firstRun {
-  gap: var(--ds-gap-sm);
-  align-items: flex-start;
-}
-
-.firstRunTitle {
-  margin: 0;
-  font-size: 1.12rem;
-  font-weight: 600;
-  letter-spacing: -0.012em;
-}
-
-.firstRunLead {
-  margin: 0;
-  max-width: 56ch;
-  color: var(--ink-muted);
-  font-size: 0.92rem;
-  line-height: 1.5;
-}
-
-.firstRunActions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ds-gap-md);
-  margin-top: var(--ds-gap-xs);
-}
-
-.firstRunLink {
-  color: var(--accent);
-  font-size: 0.88rem;
-  font-weight: 560;
-  text-decoration: none;
-}
-
-.firstRunLink:hover {
-  text-decoration: underline;
-}
-
 /* A flagged, not-hidden warning that some prices are placeholders. Tinted
    rather than outlined, like every other advisory surface in the app. */
 .syntheticNotice {

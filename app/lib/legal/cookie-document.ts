@@ -111,10 +111,10 @@ export const COOKIE_DOCUMENT: LegalDocument = {
           kind: "p",
           text: {
             en: "You can delete all of it from your browser settings at any time. Nothing breaks permanently — you "
-              + "will be signed out, your language goes back to its default, and we will ask about the "
+              + "will be signed out, your theme and language go back to their defaults, and we will ask about the "
               + "optional cookies again.",
             sv: "Du kan ta bort allt från dina webbläsarinställningar när som helst. Inget går sönder permanent — du "
-              + "loggas ut, språket återgår till sitt standardvärde, och vi frågar om de valfria cookies igen."
+              + "loggas ut, tema och språk återgår till sina standardvärden, och vi frågar om de valfria cookies igen."
           }
         },
         {

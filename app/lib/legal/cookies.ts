@@ -135,6 +135,14 @@ export const STORAGE_ENTRIES: StorageEntry[] = [
     source: "app/api/feature-requests/[requestId]/vote/route.ts"
   },
   {
+    name: "theme",
+    medium: "localStorage",
+    category: "preference",
+    lifetime: { en: "Until you clear your browser data", sv: "Tills du rensar webbläsardata" },
+    purpose: { en: "Remembers light or dark.", sv: "Kommer ihåg ljust eller mörkt." },
+    source: "app/components/theme-toggle.tsx"
+  },
+  {
     name: "app_language",
     medium: "localStorage",
     category: "preference",

@@ -32,6 +32,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useLanguage } from "@/app/i18n/language";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 export type MoverPosition = {
   id: string;
@@ -76,12 +77,11 @@ export default function MoversCard({
 }) {
   const { language } = useLanguage();
   const isSv = language === "sv";
-  const locale = isSv ? "sv-SE" : "en-US";
   const [window, setWindow] = useState<Window>("today");
 
   const money = useMemo(
-    () => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }),
-    [locale, currency]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency, maximumFractionDigits: 0 }),
+    [currency]
   );
 
   const rows = useMemo<Row[]>(() => {

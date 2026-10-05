@@ -110,6 +110,14 @@
 .addPosition {
   display: grid;
   gap: 12px;
+  /* The ticker suggestions drop out of this card and over the two below it.
+     Every .appSection carries a backdrop-filter under the glass theme, which
+     makes each one its own stacking context — so the menu's own z-index cannot
+     lift it past a *later* section, and the importer card was painting over the
+     suggestions. Ranking this section above its siblings is what lets the menu
+     escape; the menu's z-index then orders it within this card. */
+  position: relative;
+  z-index: 2;
 }
 
 .addGrid {

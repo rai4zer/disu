@@ -17,8 +17,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
-import QuantPanel from "./quant-panel";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import SentimentPanel from "./sentiment-panel";
 import PrimerPanel from "./primer-panel";
 import type {
@@ -29,26 +28,31 @@ import type {
 } from "@/app/lib/market/instrument-types";
 import type { GatedSection } from "@/app/lib/market/instrument-visibility";
 import { placeraQuery, toolsFor } from "@/app/lib/market/instrument-tools";
+import type { PrimerRun } from "./use-tool-runs";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
-type Tab = "overview" | "kpi" | "news" | "analysts" | "quant" | "sentiment" | "primers";
+type Tab = "overview" | "kpi" | "news" | "analysts" | "sentiment" | "primers";
 
 /**
  * The analysis tabs, kept apart from the data tabs above.
  *
- * The four data tabs are already-fetched facts; these three *run something* —
- * a Python job that takes tens of seconds and can fail, or a forum fetch. A tab
- * strip that mixed them without a break would make clicking "Quant" feel like
+ * The four data tabs are already-fetched facts; these two *run something* — a
+ * Python job that takes tens of seconds and can fail, or a forum fetch. A tab
+ * strip that mixed them without a break would make clicking "Primer" feel like
  * clicking a broken "News".
+ *
+ * Quant is not among them. Its output is the projection drawn on the chart, so
+ * the tab was a second door onto something already on screen; it is run from
+ * the Analysis card in the rail instead (`analysis-actions.tsx`).
  */
-const TOOL_TABS: Tab[] = ["quant", "sentiment", "primers"];
+const TOOL_TABS: Tab[] = ["sentiment", "primers"];
 
 const TAB_LABELS: Record<Tab, { en: string; sv: string }> = {
   overview: { en: "Overview", sv: "Översikt" },
   kpi: { en: "Key figures", sv: "Nyckeltal" },
   news: { en: "News", sv: "Nyheter" },
   analysts: { en: "Analysts", sv: "Analytiker" },
-  quant: { en: "Quant", sv: "Quant" },
   sentiment: { en: "Sentiment", sv: "Sentiment" },
   primers: { en: "Primer", sv: "Primer" }
 };
@@ -59,15 +63,15 @@ function money(value: number, currency: string | null): string {
   const [scaled, suffix] =
     abs >= 1e12 ? [value / 1e12, "T"] : abs >= 1e9 ? [value / 1e9, "B"] : abs >= 1e6 ? [value / 1e6, "M"] : [value, ""];
   const digits = suffix && Math.abs(scaled) < 100 ? 1 : 0;
-  return `${scaled.toLocaleString("en-GB", { maximumFractionDigits: digits })}${suffix}${currency ? ` ${currency}` : ""}`;
+  return `${scaled.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: digits })}${suffix}${currency ? ` ${currency}` : ""}`;
 }
 
 function count(value: number): string {
-  return value.toLocaleString("en-GB", { maximumFractionDigits: 0 });
+  return value.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 0 });
 }
 
 function ratio(value: number): string {
-  return value.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+  return value.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 2 });
 }
 
 /** The overview blurb is a teaser, not the filing. */
@@ -411,17 +415,20 @@ function Analysts({ analysts, currency, sv }: { analysts: InstrumentAnalysts; cu
 
 export default function InstrumentTabs({
   detail,
-  sv
+  sv,
+  primer
 }: {
   detail: InstrumentDetail & { gated?: GatedSection[] };
   sv: boolean;
+  /** Owned by the page, because the rail and this tab read the same run. */
+  primer: PrimerRun;
 }) {
   const router = useRouter();
   const params = useSearchParams();
 
   // Data tabs come from what the payload holds; tool tabs from what each tool
   // can reach. Both are derived rather than fixed, so an index shows two tabs
-  // and a US equity six — and no instrument ever shows seven, because primers
+  // and a US equity five — and no instrument ever shows six, because primers
   // (SEC) and sentiment (Placera) are mutually exclusive by geography.
   const tools = useMemo(() => toolsFor(detail.symbol, detail.profile), [detail.symbol, detail.profile]);
 
@@ -441,6 +448,15 @@ export default function InstrumentTabs({
   const [chosen, setChosen] = useState<Tab | null>(null);
   const picked = chosen ?? requested;
   const current = picked && available.includes(picked) ? picked : available[0];
+
+  // The rail's Primer button switches tabs by writing the URL, so a change to
+  // `?tab=` that this component did not make still has to win. `select` sets
+  // both, so a click is unaffected — this only catches navigation from outside.
+  useEffect(() => {
+    if (requested) {
+      setChosen(requested);
+    }
+  }, [requested]);
 
   const select = useCallback(
     (tab: Tab) => {
@@ -494,14 +510,13 @@ export default function InstrumentTabs({
       {current === "analysts" && detail.analysts ? (
         <Analysts analysts={detail.analysts} currency={detail.profile.currency} sv={sv} />
       ) : null}
-      {current === "quant" ? <QuantPanel symbol={detail.symbol} sv={sv} /> : null}
       {current === "sentiment" ? (
         // Placera resolves a company by name, not by ticker, and not by the
         // *legal* name Yahoo reports — "AB Volvo (publ)" 404s where "Volvo"
         // resolves, measured against the live endpoint.
         <SentimentPanel companyQuery={placeraQuery(detail.profile.name ?? detail.symbol)} sv={sv} />
       ) : null}
-      {current === "primers" ? <PrimerPanel symbol={detail.symbol} sv={sv} /> : null}
+      {current === "primers" ? <PrimerPanel run={primer} sv={sv} /> : null}
     </>
   );
 }

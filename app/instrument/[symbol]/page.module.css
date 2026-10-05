@@ -7,13 +7,71 @@
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-gap-lg);
+  gap: var(--ds-gap-md);
+}
+
+/* The chart and everything under it read better in a measured column than
+   stretched across a wide monitor, and the space that frees on the right is
+   where the trade ticket lives. `minmax(0, …)` on the reading column is load
+   bearing: without it the chart's own SVG width becomes the column's
+   min-content and the grid stops shrinking. */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 272px;
+  /* Row one is the chart and the ticket, and it stretches so the ticket ends on
+     the chart's bottom edge. Row two is the rest of each column, back to its
+     own height. */
+  align-items: stretch;
+  column-gap: var(--ds-gap-md);
+  row-gap: var(--ds-gap-sm);
+  /* Capped on the whole row rather than on the reading column, so the cap does
+     not open a gutter between the chart and the ticket on a wide monitor. Past
+     this the fact grid and the news list get harder to scan, not easier. */
+  max-width: 1240px;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ds-gap-sm);
+  min-width: 0;
+}
+
+/* The cards in both columns carry the global `.appSection`/`.appPanel` classes,
+   which give every card a top margin so stacked sections breathe. On the first
+   card of a column that margin has nothing above it to separate from — it just
+   pushed the chart 24px below the trade ticket beside it, and opened a gap under
+   the header. Zeroed here so the two columns start on the same line. The glass
+   theme restates the margin at `html.glass-enabled .appSection`, hence the extra
+   class needed to outrank it. */
+.layout > .chartCell > :global(.appSection):first-child,
+.layout > .chartCell > :global(.appPanel):first-child,
+.layout > .ticketCell > :global(.appSection):first-child,
+.layout > .ticketCell > :global(.appPanel):first-child {
+  margin-top: 0;
+}
+
+/* The two cards of row one. Each cell is stretched by the grid; the flex child
+   inside takes the cell's full height, which is what carries the stretch down
+   to the ticket's own border. The chart keeps its natural height — it is the
+   card that sets the row — and only fills a taller row on the rare occasion the
+   ticket is the longer of the two. */
+.chartCell,
+.ticketCell {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chartCell > *,
+.ticketCell > * {
+  flex: 1 1 auto;
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-gap-sm);
+  gap: 6px;
 }
 
 .crumbs {
@@ -37,23 +95,16 @@
 .badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
 }
 
 .badge {
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: var(--ds-radius-pill, 999px);
   background: var(--ds-surface-sunken);
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 500;
   color: var(--ink-muted);
-}
-
-.chartCard {
-  border-radius: var(--ds-radius-md, 18px);
-  background: var(--ds-surface-raised);
-  box-shadow: var(--ds-shadow-card);
-  padding: var(--ds-gap-md);
 }
 
 /* --- tabs --------------------------------------------------------------- */
@@ -71,12 +122,12 @@
 
 .tab {
   flex: 0 0 auto;
-  padding: 10px 18px;
+  padding: 7px 13px;
   border: 0;
   border-radius: var(--ds-radius-sm, 12px);
   background: transparent;
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink-muted);
   cursor: pointer;
 }
@@ -100,41 +151,42 @@
 .panel {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-gap-lg);
-  border-radius: var(--ds-radius-md, 18px);
+  gap: var(--ds-gap-md);
+  border-radius: 14px;
   background: var(--ds-surface-raised);
   box-shadow: var(--ds-shadow-card);
-  padding: var(--ds-gap-lg);
+  padding: var(--ds-gap-md);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-gap-md);
+  gap: var(--ds-gap-sm);
 }
 
 .section h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
 
 .summary {
   margin: 0;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.55;
   color: var(--ink-soft);
   text-wrap: pretty;
 }
 
 .expand {
   align-self: flex-start;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 0;
   border-radius: var(--ds-radius-pill, 999px);
   background: var(--ds-surface-sunken);
   font: inherit;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--ink);
   cursor: pointer;
@@ -149,8 +201,8 @@
 
 .facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 2px var(--ds-gap-xl);
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0 var(--ds-gap-lg);
   margin: 0;
 }
 
@@ -158,8 +210,8 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: 12px;
-  padding: 9px 0;
+  gap: 10px;
+  padding: 6px 0;
 }
 
 .fact + .fact {
@@ -167,13 +219,13 @@
 }
 
 .fact dt {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ink-muted);
 }
 
 .fact dd {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink);
   text-align: right;
@@ -188,25 +240,25 @@
 .chart {
   display: flex;
   flex-direction: column;
-  gap: var(--ds-gap-md);
+  gap: var(--ds-gap-sm);
 }
 
 .chartPlot {
   display: flex;
   align-items: flex-end;
-  gap: var(--ds-gap-md);
-  min-height: 200px;
+  gap: var(--ds-gap-sm);
+  min-height: 152px;
   overflow-x: auto;
-  padding-top: 8px;
+  padding-top: 6px;
 }
 
 .chartGroup {
   display: flex;
   flex: 1 1 0;
-  min-width: 56px;
+  min-width: 44px;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .chartBars {
@@ -215,7 +267,7 @@
   justify-content: center;
   gap: 3px;
   width: 100%;
-  height: 176px;
+  height: 132px;
 }
 
 /* A bar is only drawn for a value that exists. A period missing a series has no
@@ -235,7 +287,7 @@
 .legend {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ds-gap-md);
+  gap: var(--ds-gap-sm);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -281,8 +333,8 @@
 .newsItem {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 14px 0;
+  gap: 4px;
+  padding: 9px 0;
 }
 
 .newsItem + .newsItem {
@@ -292,8 +344,8 @@
 .newsMeta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 11.5px;
   color: var(--ink-muted);
 }
 
@@ -302,8 +354,8 @@
 }
 
 .newsTitle {
-  font-size: 15px;
-  line-height: 1.45;
+  font-size: 13.5px;
+  line-height: 1.4;
   color: var(--ink);
   text-decoration: none;
 }
@@ -324,7 +376,7 @@ a.newsTitle:hover {
 .recs {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -332,10 +384,10 @@ a.newsTitle:hover {
 
 .recs li {
   display: grid;
-  grid-template-columns: 110px 1fr 40px;
+  grid-template-columns: 96px 1fr 36px;
   align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 12.5px;
 }
 
 .recLabel {
@@ -410,8 +462,8 @@ a.newsTitle:hover {
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: var(--ds-gap-md);
-  padding: var(--ds-gap-md);
+  gap: var(--ds-gap-sm);
+  padding: var(--ds-gap-sm) var(--ds-gap-md);
   border-radius: var(--ds-radius-sm);
   background: var(--ds-surface-sunken);
 }
@@ -419,8 +471,8 @@ a.newsTitle:hover {
 .gateText {
   margin: 0;
   max-width: 52ch;
-  font-size: 13px;
-  line-height: 1.55;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--ink-soft);
 }
 
@@ -469,15 +521,15 @@ a.newsTitle:hover {
 }
 
 .toolHead h2 {
-  margin: 0 0 4px;
-  font-size: 15px;
+  margin: 0 0 3px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
 
 .runButton {
   flex: 0 0 auto;
-  padding: 9px 20px;
+  padding: 7px 16px;
   border: 0;
   border-radius: var(--ds-radius-pill);
   background: var(--cta-bg);
@@ -524,10 +576,10 @@ a.newsTitle:hover {
 
 .horizon {
   display: grid;
-  grid-template-columns: 56px 1fr 82px;
+  grid-template-columns: 50px 1fr 74px;
   align-items: center;
-  gap: 12px;
-  font-size: 13px;
+  gap: 10px;
+  font-size: 12.5px;
 }
 
 .horizonLabel {
@@ -536,7 +588,7 @@ a.newsTitle:hover {
 
 .horizonTrack {
   position: relative;
-  height: 14px;
+  height: 12px;
   border-radius: var(--ds-radius-pill);
   background: var(--ds-surface-sunken);
 }
@@ -589,12 +641,12 @@ a.newsTitle:hover {
 .table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .table th,
 .table td {
-  padding: 9px 12px;
+  padding: 6px 10px;
   text-align: right;
   white-space: nowrap;
 }
@@ -625,7 +677,7 @@ a.newsTitle:hover {
 
 .sentimentScore {
   margin: 0 0 2px;
-  font-size: 22px;
+  font-size: 19px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -668,19 +720,41 @@ a.newsTitle:hover {
 .primerText {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  max-width: 72ch;
+  gap: 10px;
+  max-width: 70ch;
 }
 
 .primerText p {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.6;
   color: var(--ink-soft);
 }
 
 @media (max-width: 640px) {
   .horizon {
     grid-template-columns: 44px 1fr 70px;
+  }
+}
+
+/* The rail needs about 270px plus a readable reading column to be worth having.
+   Below that the ticket drops under the tabs instead of squeezing the chart. */
+@media (max-width: 1060px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* One column, so the source order would drop the ticket between the chart and
+     the tabs. Ordered back to where it reads: chart, tabs, ticket. */
+  .chartCell {
+    order: 1;
+  }
+
+  .main {
+    order: 2;
+  }
+
+  .ticketCell {
+    order: 3;
   }
 }

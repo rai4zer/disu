@@ -22,6 +22,7 @@ import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
 import PortfolioTabs from "../portfolio-tabs";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 type Position = {
   id: string;
@@ -53,7 +54,6 @@ type SortKey = "value" | "symbol" | "day" | "return";
 export default function PositionsPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
-  const locale = isSv ? "sv-SE" : "en-US";
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
@@ -89,14 +89,14 @@ export default function PositionsPage() {
   const totalValue = totals?.total ?? null;
 
   const money = useMemo(
-    () => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }),
-    [locale, currency]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency, maximumFractionDigits: 0 }),
+    [currency]
   );
 
   const formatIn = useCallback(
     (value: number, rowCurrency: string) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency: rowCurrency, maximumFractionDigits: 2 }).format(value),
-    [locale]
+      new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency: rowCurrency, maximumFractionDigits: 2 }).format(value),
+    []
   );
 
   /** Return against cost, per row, in the row's own currency. */
@@ -227,7 +227,7 @@ export default function PositionsPage() {
                             {position.broker ? ` · ${position.broker}` : ""}
                           </span>
                         </td>
-                        <td className={styles.numeric}>{position.quantity.toLocaleString(locale)}</td>
+                        <td className={styles.numeric}>{position.quantity.toLocaleString(NUMBER_LOCALE)}</td>
                         <td className={styles.numeric}>
                           {position.synthetic === true ? (
                             <span className="dsDelta dsFlat">{isSv ? "platshållare" : "placeholder"}</span>

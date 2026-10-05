@@ -1,0 +1,185 @@
+/**
+ * The exchange map.
+ *
+ * Everything here is either geometry (the fixed stage the hand-placed callouts
+ * depend on) or the map's own ink. The card, the header and the delta pills come
+ * from design-system.css — nothing below redraws a panel or a signed change.
+ */
+
+.card {
+  gap: var(--ds-gap-md);
+}
+
+/* ------------------------------------------------------------ the stage --- */
+
+/**
+ * No panel, no tint, no padding — the map is its own surface. All this does is
+ * let a viewport narrower than the stage scroll rather than clip it, which it
+ * has to because the stage cannot reflow: the callout positions are hand-placed
+ * into the free ocean around each cluster, and free ocean is a fixed number of
+ * pixels wide.
+ */
+.viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* The scrollbar is the only affordance saying "there is more map"; leave it. */
+  scrollbar-width: thin;
+}
+
+/**
+ * Sized so the card clears a laptop screen without scrolling. The ratio is the
+ * projection's own — 940 x 440 map units — because squashing it to save height
+ * would undo the point of an equal-area projection and draw Africa short. The
+ * height came down by shrinking the whole map, not by flattening it.
+ */
+.stage {
+  position: relative;
+  width: 820px;
+  height: 384px;
+  margin: 0 auto;
+}
+
+.map {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------------------------------------------------------------- ink ----- */
+
+.graticule {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 9%, transparent);
+  stroke-width: 0.35;
+}
+
+.land {
+  fill: color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.borders {
+  fill: none;
+  stroke: color-mix(in srgb, var(--ink) 26%, transparent);
+  stroke-width: 0.4;
+  stroke-linejoin: round;
+}
+
+.leader {
+  stroke: color-mix(in srgb, var(--ink) 34%, transparent);
+  /* In map units: ~0.9px once the stage scales it. Thinner than this and the
+     line connecting a callout to its pin stops being visible at all. */
+  stroke-width: 0.7;
+}
+
+.leader[data-active="true"] {
+  stroke: var(--accent);
+  stroke-width: 1.1;
+}
+
+.pinHalo {
+  fill: color-mix(in srgb, var(--ink-muted) 22%, transparent);
+}
+
+.pin {
+  fill: var(--ink-muted);
+  stroke: var(--surface);
+  stroke-width: 0.7;
+}
+
+[data-direction="up"] .pinHalo {
+  fill: color-mix(in srgb, var(--success) 30%, transparent);
+}
+
+[data-direction="up"] .pin {
+  fill: var(--success);
+}
+
+[data-direction="down"] .pinHalo {
+  fill: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+[data-direction="down"] .pin {
+  fill: var(--danger);
+}
+
+[data-active="true"] .pinHalo {
+  fill: color-mix(in srgb, var(--accent) 34%, transparent);
+}
+
+/* ------------------------------------------------------------- callouts --- */
+
+.chips {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* The boxes take pointer events; the map underneath does not need them. */
+  pointer-events: none;
+}
+
+/**
+ * One callout: abbreviation on top, level and day change beneath. Opaque so it
+ * hides the leader line running under it, which is what makes the line read as
+ * "from the box to the pin" rather than "through the box".
+ */
+.chip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0 6px;
+  width: 120px;
+  box-sizing: border-box;
+  padding: 3px 5px;
+  border-radius: var(--ds-radius-xs);
+  background: var(--surface-elevated-strong);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent), var(--ds-shadow-card);
+  pointer-events: auto;
+  transition: box-shadow var(--ds-fast) var(--ds-ease);
+}
+
+.chip:hover {
+  box-shadow: 0 0 0 1px var(--accent), var(--ds-shadow-lift);
+}
+
+.chip[data-direction="up"] {
+  border-left: 2px solid var(--success);
+}
+
+.chip[data-direction="down"] {
+  border-left: 2px solid var(--danger);
+}
+
+.chip[data-direction="flat"] {
+  border-left: 2px solid color-mix(in srgb, var(--ink) 22%, transparent);
+}
+
+.chipCode {
+  grid-column: 1 / -1;
+  font-size: 0.63rem;
+  font-weight: 640;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipPrice {
+  font-size: 0.65rem;
+  font-weight: 560;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Tighter than the default pill: it is sharing 120px with a price. */
+.chipDelta {
+  font-size: 0.62rem;
+  padding: 1px 3px;
+}

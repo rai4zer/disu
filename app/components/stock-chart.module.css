@@ -3,6 +3,10 @@
   --chart-price: #3f7df0;
   --chart-sma-50: #c9821a;
   --chart-sma-200: #9b6ae0;
+  /* The projection reads as a fourth series and has to separate from all three
+     under CVD as well as by hue — it is teal against blue, amber and violet,
+     and it is the only dashed line in the plot. */
+  --chart-projection: #17916f;
 
   margin-top: 12px;
   border: 1px solid var(--border);
@@ -380,6 +384,12 @@
   color: var(--ink-soft);
 }
 
+/* `display: flex` beats the `hidden` attribute, so the table view needs this
+   to actually hide the legend. */
+.legend[hidden] {
+  display: none;
+}
+
 .legendItem {
   display: inline-flex;
   align-items: center;
@@ -468,4 +478,239 @@
   .skeleton {
     animation: none;
   }
+}
+
+/* --- dense variant ------------------------------------------------------- */
+
+/* Used by the instrument page, where the chart shares the row with the trade
+   ticket. Chrome only: nothing here touches the plot geometry, which is driven
+   by the measured width in stock-chart.tsx. */
+
+.dense {
+  margin-top: 0;
+  border-radius: 14px;
+  padding: 12px;
+  gap: 8px;
+}
+
+.dense .head {
+  gap: 10px;
+}
+
+.dense .eyebrow {
+  display: none;
+}
+
+.dense .title {
+  font-size: 0.95rem;
+}
+
+.dense .quote {
+  margin-top: 2px;
+}
+
+.dense .quote strong {
+  font-size: 1.28rem;
+}
+
+.dense .exchange {
+  display: none;
+}
+
+.dense .rangeTab {
+  padding: 4px 9px;
+  font-size: 0.74rem;
+}
+
+.dense .toggle {
+  padding: 4px 10px;
+  font-size: 0.74rem;
+}
+
+.dense .legend {
+  gap: 10px;
+  font-size: 0.73rem;
+}
+
+.dense .stats {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 10px;
+  padding-top: 8px;
+}
+
+.dense .stats dt {
+  font-size: 0.68rem;
+}
+
+.dense .stats dd {
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .dense .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* --- projection ----------------------------------------------------------
+ *
+ * Everything past the last candle. Dashed line, hollow-ish fill and a seam at
+ * "today": three signals that this half of the plot did not happen. Colour
+ * alone would not survive a greyscale print, and this is the one part of the
+ * chart where mistaking a model for a price actually costs money. */
+
+.projectionSplit {
+  stroke: color-mix(in srgb, var(--ink) 26%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.projectionLabel {
+  fill: var(--chart-projection);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.projectionArea {
+  fill: color-mix(in srgb, var(--chart-projection) 12%, transparent);
+}
+
+/* Today's close, carried across the projection. It is the band's other edge,
+   so the shaded area reads as the move rather than as a block of colour. */
+.projectionToday {
+  stroke: color-mix(in srgb, var(--chart-projection) 45%, transparent);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.projectionLine {
+  fill: none;
+  stroke: var(--chart-projection);
+  stroke-width: 2;
+  stroke-linecap: butt;
+  stroke-linejoin: round;
+  stroke-dasharray: 4 3;
+}
+
+.projectionDot {
+  fill: var(--chart-projection);
+  stroke: var(--surface-elevated-strong);
+  stroke-width: 1.5;
+}
+
+.projectionTick {
+  fill: var(--chart-projection);
+  opacity: 0.75;
+}
+
+.projectionReadoutBox {
+  fill: var(--chart-projection);
+}
+
+/* The hovered day is modelled, so its card is keyed to the dashed line rather
+   than to the price colour. */
+.tooltipProjection {
+  border-color: color-mix(in srgb, var(--chart-projection) 55%, var(--border-strong));
+}
+
+.tooltipModelled {
+  margin: 6px 0 0;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--chart-projection);
+}
+
+.projectionValue {
+  fill: var(--chart-projection);
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.projectionAxisLabel {
+  fill: var(--chart-projection);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.swatchProjection {
+  width: 12px;
+  height: 0;
+  display: inline-block;
+  border-top: 2px dashed var(--chart-projection);
+}
+
+.projectionNote {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* --- the same projection, as figures ------------------------------------- */
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.projectionTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tableCaption {
+  caption-side: top;
+  text-align: left;
+  padding: 2px 0 10px;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.projectionTable th,
+.projectionTable td {
+  padding: 7px 10px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.projectionTable thead th {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.projectionTable th:first-child,
+.projectionTable td:first-child {
+  text-align: left;
+}
+
+.projectionTable tbody th {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.projectionTable tbody tr + tr th,
+.projectionTable tbody tr + tr td {
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+/* Colour only — `.up`/`.down` carry a flex display for the header readout, and
+   a flex td stops being a table cell. */
+.gain {
+  color: var(--success-ink);
+  font-weight: 600;
+}
+
+.loss {
+  color: var(--danger-ink);
+  font-weight: 600;
 }

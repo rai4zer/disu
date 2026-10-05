@@ -1,0 +1,168 @@
+/* The analysis block at the foot of the trade ticket.
+ *
+ * No card of its own any more: the ticket is the card, and this is its last
+ * group. It carries no surface, no radius and no padding — the ticket's 14px
+ * gives it all three — so the only chrome here is the rule that separates the
+ * buttons from the order form above them. */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heading {
+  margin: 0;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink-muted);
+}
+
+/* The two tools sit side by side rather than stacked: they are peers, and a
+   column of two made the second one read as a footnote to the first. Each grows
+   to fill the row, so a non-US instrument — where Primer has no filings to read
+   and the button is not rendered — gets one full-width tile instead of a lonely
+   half. */
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 1 1 0;
+  min-width: 0;
+  border: 1px solid var(--ds-border, var(--border));
+  border-radius: 12px;
+  background: transparent;
+  padding: 9px 10px;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.action:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  background: color-mix(in srgb, var(--ink) 4%, transparent);
+}
+
+.action:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.action:disabled {
+  cursor: progress;
+  opacity: 0.72;
+}
+
+/* --- logos ---------------------------------------------------------------
+ *
+ * Two marks rather than two glyphs from an icon set: they carry what each tool
+ * actually does. Quant is a price line whose last leg is dashed — the
+ * projection it draws on the chart. Primer is a filing with its text read down
+ * to a shorter last line. Stroke colour comes from the tile so the mark tints
+ * with it, and the dashed leg stays dashed in forced-colors. */
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.logo svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.logoQuant {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.logoPrimer {
+  background: color-mix(in srgb, var(--chart-sma-200, #9b6ae0) 16%, transparent);
+  color: color-mix(in srgb, var(--chart-sma-200, #9b6ae0) 88%, var(--ink));
+}
+
+.markStroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.markDashed {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 3 2.6;
+}
+
+.markDot {
+  fill: currentColor;
+  opacity: 0.9;
+}
+
+.markAxis {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  opacity: 0.4;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spinner {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--ink) 18%, transparent);
+  border-top-color: var(--accent);
+  animation: spin 720ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2400ms;
+  }
+}
+
+.error {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--danger-ink);
+}

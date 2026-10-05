@@ -12,6 +12,7 @@ import TickerAutocomplete from "@/app/components/ticker-autocomplete";
 // From the leaf module, not market-provider: this is a client component, and
 // market-provider reaches the quote cache and therefore the database.
 import { inferCurrencyFromTicker } from "@/app/lib/market/ticker-currency";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 type ProviderInfo = {
   id: BrokerProvider;
@@ -145,7 +146,7 @@ type EditDraft = {
 const CSV_IMPORT_ENDPOINTS = new Set<string>(["avanza"]);
 
 function formatMoney(value: number, currency: string): string {
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(NUMBER_LOCALE, {
     style: "currency",
     currency,
     maximumFractionDigits: 2
@@ -809,7 +810,7 @@ export default function PortfolioPage() {
             <p className={styles.kpiLabel}>{isSv ? "Positioner" : "Positions"}</p>
             <p className={styles.kpiValue}>{positions.length}</p>
             <p className={styles.kpiMeta}>
-              {totalQuantity.toLocaleString("sv-SE")} {isSv ? "aktier" : "shares"}
+              {totalQuantity.toLocaleString(NUMBER_LOCALE)} {isSv ? "aktier" : "shares"}
             </p>
           </article>
           <article className={styles.kpiCard}>
@@ -1208,7 +1209,7 @@ export default function PortfolioPage() {
                     onChange={(event) => setEditDraft((current) => (current ? { ...current, shares: event.target.value } : current))}
                   />
                 ) : (
-                  row.shares.toLocaleString("sv-SE")
+                  row.shares.toLocaleString(NUMBER_LOCALE)
                 )}
               </span>
               <span>

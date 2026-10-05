@@ -8,11 +8,13 @@ import StockChart from "@/app/components/stock-chart";
 import UiState from "@/app/components/ui-state";
 import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
+import ExchangeMap from "./exchange-map";
 import MarketCards from "./market-cards";
 import MoversCard from "./movers-card";
 import ShortcutsCard from "./shortcuts-card";
 import ValueCard from "./value-card";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 type Position = {
   id: string;
@@ -54,7 +56,6 @@ type Totals = {
 export default function DashboardPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
-  const locale = isSv ? "sv-SE" : "en-US";
   const router = useRouter();
 
   const [positions, setPositions] = useState<Position[]>([]);
@@ -69,8 +70,8 @@ export default function DashboardPage() {
     const portfolioResponse = await fetch("/api/portfolio/positions", { cache: "no-store" });
     // A dead session answers 401 with no positions, which is indistinguishable
     // from "you own nothing" once it reaches the render — and showing someone
-    // "add your first holding" when they in fact have holdings is worse than
-    // sending them back to sign in.
+    // an empty portfolio when they in fact have holdings is worse than sending
+    // them back to sign in.
     if (portfolioResponse.status === 401) {
       router.replace("/auth/login?next=/dashboard");
       return;
@@ -108,7 +109,7 @@ export default function DashboardPage() {
       })
       .finally(() => {
         if (cancelled) return;
-        // Held until the first response lands: the first-run card and the KPI
+        // Held until the first response lands: the loading state and the KPI
         // panels are opposite answers to "what do you own", and flashing one
         // before the other is worse than a moment of nothing.
         setLoading(false);
@@ -122,24 +123,24 @@ export default function DashboardPage() {
   const displayCurrency = totals?.displayCurrency ?? "SEK";
 
   const money = useMemo(
-    () => new Intl.NumberFormat(locale, { style: "currency", currency: displayCurrency, maximumFractionDigits: 0 }),
-    [locale, displayCurrency]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency: displayCurrency, maximumFractionDigits: 0 }),
+    [displayCurrency]
   );
 
   const formatIn = useCallback(
     (value: number, currency: string) =>
-      new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 2 }).format(value),
-    [locale]
+      new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency, maximumFractionDigits: 2 }).format(value),
+    []
   );
 
   const percentFormat = useMemo(
-    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    [locale]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    []
   );
 
   const shareFormat = useMemo(
-    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
-    [locale]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { minimumFractionDigits: 1, maximumFractionDigits: 1 }),
+    []
   );
 
   const percent = useCallback(
@@ -191,24 +192,11 @@ export default function DashboardPage() {
       <Workspace title={isSv ? "Översikt" : "Dashboard"}>
         {loading ? <UiState kind="loading" message={isSv ? "Läser in din översikt..." : "Loading your dashboard..."} /> : null}
 
-        {!loading && !hasPositions ? (
-          <section className={`dsCard ${styles.firstRun}`} aria-label={isSv ? "Kom igång" : "Get started"}>
-            <h2 className={styles.firstRunTitle}>{isSv ? "Lägg till ditt första innehav" : "Add your first holding"}</h2>
-            <p className={styles.firstRunLead}>
-              {isSv
-                ? "Sök på bolaget och ange hur många aktier du har. Det tar tio sekunder — inköpspris är valfritt och kan fyllas i senare."
-                : "Search for the company and enter how many shares you hold. It takes ten seconds — average cost is optional and can wait."}
-            </p>
-            <div className={styles.firstRunActions}>
-              <Link className="appButton" href="/portfolio#add-holding">
-                {isSv ? "Lägg till innehav" : "Add a holding"}
-              </Link>
-              <Link className={styles.firstRunLink} href="/portfolio#import-holdings">
-                {isSv ? "Importera en fil eller koppla din bank" : "Import a file or connect your bank"}
-              </Link>
-            </div>
-          </section>
-        ) : null}
+        {/* The exchange map sits where the "add your first holding" card used
+            to: it is the one panel on the page that is worth looking at whether
+            you own anything or not, so it renders for everyone rather than only
+            for an empty account. */}
+        <ExchangeMap />
 
         {hasPositions ? (
           <>
@@ -275,7 +263,7 @@ export default function DashboardPage() {
                           <span className="dsRowName">{position.symbol}</span>
                           <span className="dsRowMeta">
                             {position.name === position.symbol ? "" : `${position.name} · `}
-                            {position.quantity.toLocaleString(locale)} {isSv ? "st" : "sh"}
+                            {position.quantity.toLocaleString(NUMBER_LOCALE)} {isSv ? "st" : "sh"}
                             {share === null ? "" : ` · ${shareFormat.format(share)}%`}
                           </span>
                         </span>
@@ -320,7 +308,7 @@ export default function DashboardPage() {
                     <h2 className={styles.detailTitle}>{selected.symbol}</h2>
                     <p className={styles.detailSub}>
                       {selected.name === selected.symbol ? null : `${selected.name} · `}
-                      {selected.quantity.toLocaleString(locale)} {isSv ? "aktier" : "shares"}
+                      {selected.quantity.toLocaleString(NUMBER_LOCALE)} {isSv ? "aktier" : "shares"}
                       {selected.accountType ? ` · ${selected.accountType}` : ""}
                     </p>
                   </div>

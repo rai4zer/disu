@@ -1,0 +1,19 @@
+/* The segment itself comes from .dsSegmented / .dsSegment in design-system.css,
+   so this file only styles the glyph that sits ahead of each label — the same
+   arrangement as the flag in the language picker. */
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 6px;
+}
+
+.icon {
+  width: 13px;
+  height: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

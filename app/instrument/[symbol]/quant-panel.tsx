@@ -18,64 +18,19 @@
  * dismissible and the wording never turns a number into advice.
  */
 
-import { useCallback, useState } from "react";
-import { pollJobResultWithProgress } from "@/app/lib/jobs/client";
+import { useState } from "react";
+import type { QuantRun } from "./use-tool-runs";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
-type QuantRow = {
-  date: string;
-  ticker: string;
-  horizon: number;
-  adj_close: number;
-  pred_return: number;
-  p_up: number;
-  implied_price: number;
-};
-
-type QuantResult = { ok?: boolean; rows?: QuantRow[]; error?: string };
-
-type Stage = "idle" | "queued" | "running" | "done" | "failed";
-
-export default function QuantPanel({ symbol, sv }: { symbol: string; sv: boolean }) {
-  const [stage, setStage] = useState<Stage>("idle");
-  const [rows, setRows] = useState<QuantRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * The run itself lives in the page (`use-tool-runs.ts`), not here: the rail
+ * beside the chart starts the same job and the chart draws its projection, so
+ * this panel reads a run rather than owning one.
+ */
+export default function QuantPanel({ run: quant, sv }: { run: QuantRun; sv: boolean }) {
+  const { stage, rows, error, busy, run } = quant;
   const [detail, setDetail] = useState(false);
-
-  const run = useCallback(async () => {
-    setStage("queued");
-    setError(null);
-    setRows([]);
-    try {
-      const response = await fetch("/api/quant/infer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: symbol, retrain: false })
-      });
-      const queued = (await response.json()) as { ok?: boolean; jobId?: string; error?: string };
-      if (!response.ok || !queued.jobId) {
-        throw new Error(queued.error ?? `Quant enqueue failed (${response.status}).`);
-      }
-
-      const result = await pollJobResultWithProgress<QuantResult>(queued.jobId, {
-        onProgress: (job) => setStage(job.status === "running" ? "running" : "queued")
-      });
-
-      const received = Array.isArray(result?.rows) ? result.rows : [];
-      if (received.length === 0) {
-        // A run that produced no rows is not a run that produced zeros. Saying
-        // "no projection" is the honest outcome.
-        throw new Error(result?.error ?? (sv ? "Ingen projektion kunde beräknas." : "No projection could be computed."));
-      }
-      setRows([...received].sort((a, b) => a.horizon - b.horizon));
-      setStage("done");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-      setStage("failed");
-    }
-  }, [symbol, sv]);
-
-  const busy = stage === "queued" || stage === "running";
 
   // Every horizon shares one scale so the strip is comparable across rows —
   // a bar twice as long means twice the projected move, not a longer horizon.
@@ -92,7 +47,7 @@ export default function QuantPanel({ symbol, sv }: { symbol: string; sv: boolean
               : "Modelled outcome per horizon, computed from historical prices."}
           </p>
         </div>
-        <button type="button" className={styles.runButton} onClick={() => void run()} disabled={busy}>
+        <button type="button" className={styles.runButton} onClick={run} disabled={busy}>
           {busy
             ? sv
               ? "Kör…"
@@ -178,8 +133,8 @@ export default function QuantPanel({ symbol, sv }: { symbol: string; sv: boolean
                         {Math.abs(row.pred_return * 100).toFixed(2)}%
                       </td>
                       <td>{(row.p_up * 100).toFixed(1)}%</td>
-                      <td>{row.implied_price.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
-                      <td>{row.adj_close.toLocaleString("en-GB", { maximumFractionDigits: 2 })}</td>
+                      <td>{row.implied_price.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 2 })}</td>
+                      <td>{row.adj_close.toLocaleString(NUMBER_LOCALE, { maximumFractionDigits: 2 })}</td>
                     </tr>
                   ))}
                 </tbody>

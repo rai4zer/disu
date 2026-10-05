@@ -11,11 +11,12 @@
   max-height: min(220px, 48vh);
   overflow-y: auto;
   border-radius: 12px;
-  border: 1px solid color-mix(in srgb, var(--border-strong) 46%, transparent);
-  background: color-mix(in srgb, var(--surface-elevated-strong) 24%, transparent);
-  backdrop-filter: blur(18px) saturate(115%);
-  -webkit-backdrop-filter: blur(18px) saturate(115%);
-  box-shadow: 0 14px 36px -30px rgba(0, 0, 0, 0.38);
+  /* Opaque, like every other overlay: this list opens over the form behind it,
+     and a translucent one put the field labels through the suggestions. The
+     shadow is what separates it from the page now, not the blur. */
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated-strong);
+  box-shadow: var(--ds-shadow-lift);
 }
 
 .menuDown {
@@ -48,7 +49,7 @@
 
 .item:hover,
 .itemActive {
-  background: color-mix(in srgb, var(--surface-elevated) 32%, transparent);
+  background: var(--ds-surface-hover);
 }
 
 .symbol {

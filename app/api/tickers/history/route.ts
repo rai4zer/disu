@@ -6,6 +6,8 @@ export const dynamic = "force-dynamic";
 
 const TIMEOUT_MS = 8000;
 
+const CACHE_HEADERS = { "Cache-Control": "private, max-age=60, stale-while-revalidate=300" };
+
 // Yahoo rejects mismatched range/interval pairs, so each range owns its granularity:
 // intraday ranges get minute bars, multi-year ranges get weekly/monthly ones.
 const RANGES = {
@@ -60,6 +62,46 @@ function str(value: unknown): string | null {
   return text.length > 0 ? text : null;
 }
 
+// Price history is the same for every viewer, and the upstream round trip is
+// the whole cost of the request. Holding parsed responses in memory for as long
+// as they stay true (a minute for intraday bars, five for daily ones) means the
+// second person to open a symbol — and the same person switching back to a
+// range — is served without touching Yahoo. Per-instance and deliberately
+// bounded; this is a latency cache, not a store.
+type CachedHistory = { body: Record<string, unknown>; at: number };
+
+const HISTORY_CACHE = new Map<string, CachedHistory>();
+const HISTORY_CACHE_MAX = 400;
+const INTRADAY_TTL_MS = 60_000;
+const DAILY_TTL_MS = 5 * 60_000;
+
+function readCache(key: string, intraday: boolean): Record<string, unknown> | null {
+  const hit = HISTORY_CACHE.get(key);
+  if (!hit) {
+    return null;
+  }
+  if (Date.now() - hit.at > (intraday ? INTRADAY_TTL_MS : DAILY_TTL_MS)) {
+    HISTORY_CACHE.delete(key);
+    return null;
+  }
+  // Re-inserting keeps the most recently read keys at the tail, so the eviction
+  // below drops the coldest entry rather than the oldest one.
+  HISTORY_CACHE.delete(key);
+  HISTORY_CACHE.set(key, hit);
+  return hit.body;
+}
+
+function writeCache(key: string, body: Record<string, unknown>): void {
+  HISTORY_CACHE.set(key, { body, at: Date.now() });
+  while (HISTORY_CACHE.size > HISTORY_CACHE_MAX) {
+    const coldest = HISTORY_CACHE.keys().next();
+    if (coldest.done) {
+      break;
+    }
+    HISTORY_CACHE.delete(coldest.value);
+  }
+}
+
 async function fetchChart(symbol: string, range: string, interval: string): Promise<unknown> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -98,6 +140,12 @@ export async function GET(request: NextRequest) {
     ? (requested as HistoryRange)
     : "6mo";
   const { interval, intraday } = RANGES[range];
+
+  const cacheKey = `${symbol}|${range}`;
+  const cached = readCache(cacheKey, intraday);
+  if (cached) {
+    return NextResponse.json(cached, { headers: CACHE_HEADERS });
+  }
 
   let json: unknown;
   try {
@@ -163,8 +211,8 @@ export async function GET(request: NextRequest) {
     volume: num(rawMeta.regularMarketVolume)
   };
 
-  return NextResponse.json(
-    { ok: true, symbol, range, interval, intraday, meta, candles },
-    { headers: { "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=300" } }
-  );
+  const body = { ok: true, symbol, range, interval, intraday, meta, candles };
+  writeCache(cacheKey, body);
+
+  return NextResponse.json(body, { headers: CACHE_HEADERS });
 }

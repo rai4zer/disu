@@ -18,59 +18,16 @@
  * left to assume a human wrote it.
  */
 
-import { useCallback, useState } from "react";
-import { pollJobResultWithProgress } from "@/app/lib/jobs/client";
+import type { PrimerRun } from "./use-tool-runs";
 import styles from "./page.module.css";
 
-type PrimerResult = {
-  ok?: boolean;
-  ticker?: string;
-  form?: string | null;
-  filing_date?: string | null;
-  primer_text?: string;
-  pdf_path?: string;
-  cached?: boolean;
-  error?: string;
-};
-
-type Stage = "idle" | "queued" | "running" | "done" | "failed";
-
-export default function PrimerPanel({ symbol, sv }: { symbol: string; sv: boolean }) {
-  const [stage, setStage] = useState<Stage>("idle");
-  const [result, setResult] = useState<PrimerResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const run = useCallback(async () => {
-    setStage("queued");
-    setError(null);
-    setResult(null);
-    try {
-      const response = await fetch("/api/filings-primers/run", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ticker: symbol })
-      });
-      const queued = (await response.json()) as { ok?: boolean; jobId?: string; error?: string };
-      if (!response.ok || !queued.jobId) {
-        throw new Error(queued.error ?? `Primer enqueue failed (${response.status}).`);
-      }
-
-      const payload = await pollJobResultWithProgress<PrimerResult>(queued.jobId, {
-        onProgress: (job) => setStage(job.status === "running" ? "running" : "queued")
-      });
-
-      if (!payload?.primer_text) {
-        throw new Error(payload?.error ?? (sv ? "Ingen primer kunde genereras." : "No primer could be generated."));
-      }
-      setResult(payload);
-      setStage("done");
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : String(caught));
-      setStage("failed");
-    }
-  }, [symbol, sv]);
-
-  const busy = stage === "queued" || stage === "running";
+/**
+ * The run lives in the page (`use-tool-runs.ts`), so the rail's Primer button
+ * and this panel are the same job: pressing the button in the rail opens this
+ * tab with the run already under way.
+ */
+export default function PrimerPanel({ run: primer, sv }: { run: PrimerRun; sv: boolean }) {
+  const { stage, result, error, busy, run } = primer;
 
   return (
     <div className={styles.panel}>
@@ -83,7 +40,7 @@ export default function PrimerPanel({ symbol, sv }: { symbol: string; sv: boolea
               : "The latest SEC filing, in plain language."}
           </p>
         </div>
-        <button type="button" className={styles.runButton} onClick={() => void run()} disabled={busy}>
+        <button type="button" className={styles.runButton} onClick={run} disabled={busy}>
           {busy
             ? sv
               ? "Kör…"

@@ -28,6 +28,7 @@ import { useMemo } from "react";
 import type { PortfolioHistoryPoint } from "@/app/components/portfolio-chart";
 import { useLanguage } from "@/app/i18n/language";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 const DAY_MS = 86_400_000;
 /** Matches the full chart: a longer hole than this is not drawn across. */
@@ -84,8 +85,8 @@ export default function ValueCard({
   const locale = isSv ? "sv-SE" : "en-US";
 
   const money = useMemo(
-    () => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }),
-    [locale, currency]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency, maximumFractionDigits: 0 }),
+    [currency]
   );
 
   const move = useMemo(() => yearMove(points), [points]);

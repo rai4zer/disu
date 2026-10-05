@@ -1,0 +1,181 @@
+#!/usr/bin/env node
+/**
+ * Regenerates app/lib/geo/world-map-paths.ts from Natural Earth 110m.
+ *
+ * Run with `node scripts/generate-world-map.mjs`. Needs network access: it
+ * pulls the two source geojson files straight from the Natural Earth vector
+ * repository rather than committing 1 MB of geojson we would never read again.
+ *
+ * Natural Earth is public domain (https://www.naturalearthdata.com/about/terms-of-use/).
+ *
+ * The output is committed, so a build never depends on this script or on the
+ * network. It exists so the map can be re-cut — a finer simplification
+ * tolerance, a different projection — without anyone reverse-engineering path
+ * data by hand.
+ */
+
+import { writeFileSync } from "node:fs";
+
+const SOURCES = {
+  land: "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_land.geojson",
+  countries:
+    "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson"
+};
+
+/**
+ * Simplification tolerance, in output units (the map is 1000 wide). Land is
+ * cut finer than borders because its silhouette is what the eye checks; an
+ * internal border being a pixel off is invisible, and borders are by far the
+ * bigger half of the file.
+ */
+const TOLERANCE = { land: 0.7, borders: 1.4 };
+
+// Equal Earth (Šavrič, Patterson & Jenny, 2018).
+const A1 = 1.340264;
+const A2 = -0.081106;
+const A3 = 0.000893;
+const A4 = 0.003796;
+const SQRT3_2 = Math.sqrt(3) / 2;
+
+function equalEarth(lon, lat) {
+  const l = (lon * Math.PI) / 180;
+  const p = (lat * Math.PI) / 180;
+  const t = Math.asin(SQRT3_2 * Math.sin(p));
+  const t2 = t * t;
+  const t6 = t2 * t2 * t2;
+  const t8 = t6 * t2;
+  const x = (2 * Math.sqrt(3) * l * Math.cos(t)) / (3 * (9 * A4 * t8 + 7 * A3 * t6 + 3 * A2 * t2 + A1));
+  const y = A4 * t8 * t + A3 * t6 * t + A2 * t2 * t + A1 * t;
+  return [x, y];
+}
+
+const WIDTH = 1000;
+const SCALE = WIDTH / (2 * equalEarth(180, 0)[0]);
+const HEIGHT = Number((2 * equalEarth(0, 90)[1] * SCALE).toFixed(2));
+
+function toSvg(lon, lat) {
+  const [x, y] = equalEarth(lon, lat);
+  return [x * SCALE + WIDTH / 2, HEIGHT / 2 - y * SCALE];
+}
+
+/** Ramer-Douglas-Peucker, run on projected points so the tolerance is in output pixels. */
+function simplify(points, tolerance) {
+  if (points.length < 3) return points;
+  const keep = new Uint8Array(points.length);
+  keep[0] = 1;
+  keep[points.length - 1] = 1;
+  const stack = [[0, points.length - 1]];
+  while (stack.length > 0) {
+    const [a, b] = stack.pop();
+    const [ax, ay] = points[a];
+    const [bx, by] = points[b];
+    const dx = bx - ax;
+    const dy = by - ay;
+    const len2 = dx * dx + dy * dy;
+    let farthest = -1;
+    let best = 0;
+    for (let i = a + 1; i < b; i += 1) {
+      const [px, py] = points[i];
+      let distance;
+      if (len2 === 0) {
+        distance = Math.hypot(px - ax, py - ay);
+      } else {
+        const raw = ((px - ax) * dx + (py - ay) * dy) / len2;
+        const t = raw < 0 ? 0 : raw > 1 ? 1 : raw;
+        distance = Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+      }
+      if (distance > best) {
+        best = distance;
+        farthest = i;
+      }
+    }
+    if (best > tolerance && farthest > 0) {
+      keep[farthest] = 1;
+      stack.push([a, farthest], [farthest, b]);
+    }
+  }
+  return points.filter((_, index) => keep[index] === 1);
+}
+
+const round = (value) => {
+  const v = Math.round(value * 10) / 10;
+  return String(Number.isInteger(v) ? v : v.toFixed(1));
+};
+
+function ringToPath(ring, tolerance) {
+  let points = ring.map(([lon, lat]) => toSvg(lon, lat));
+  points = points.filter(
+    (point, index) =>
+      index === 0 ||
+      Math.abs(point[0] - points[index - 1][0]) > 0.01 ||
+      Math.abs(point[1] - points[index - 1][1]) > 0.01
+  );
+  points = simplify(points, tolerance);
+  if (points.length < 3) return "";
+  return `M${points.map(([x, y]) => `${round(x)} ${round(y)}`).join("L")}Z`;
+}
+
+async function collect(url, tolerance) {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`${url} answered ${response.status}`);
+  }
+  const geojson = await response.json();
+  const paths = [];
+  for (const feature of geojson.features ?? []) {
+    const geometry = feature.geometry;
+    if (!geometry) continue;
+    const polygons =
+      geometry.type === "Polygon"
+        ? [geometry.coordinates]
+        : geometry.type === "MultiPolygon"
+          ? geometry.coordinates
+          : [];
+    for (const polygon of polygons) {
+      for (const ring of polygon) {
+        const d = ringToPath(ring, tolerance);
+        if (d) paths.push(d);
+      }
+    }
+  }
+  return paths.join("");
+}
+
+const [land, borders] = await Promise.all([
+  collect(SOURCES.land, TOLERANCE.land),
+  collect(SOURCES.countries, TOLERANCE.borders)
+]);
+
+const file = `/**
+ * The world, as SVG path data in an Equal Earth projection.
+ *
+ * GENERATED by scripts/generate-world-map.mjs from Natural Earth 110m
+ * (public domain). Do not hand-edit — re-run the generator instead.
+ *
+ * Equal Earth rather than the usual web-map Mercator because this map is read
+ * as a picture of where the world's markets are, and Mercator would draw
+ * Greenland bigger than Africa. Equal Earth is equal-area: every landmass
+ * takes the share of the page it takes of the planet.
+ *
+ * Two paths rather than one per country: nothing here is per-country
+ * interactive, so 177 separate paths would be 177 DOM nodes to no purpose.
+ * \`LAND_PATH\` fills, \`BORDERS_PATH\` strokes the outlines over it.
+ */
+
+export const MAP_WIDTH = ${WIDTH};
+export const MAP_HEIGHT = ${HEIGHT};
+
+/** Filled landmasses. */
+export const LAND_PATH =
+  "${land}";
+
+/** Country outlines. Includes coastlines, which sit on LAND_PATH's edge. */
+export const BORDERS_PATH =
+  "${borders}";
+`;
+
+const out = new URL("../app/lib/geo/world-map-paths.ts", import.meta.url);
+writeFileSync(out, file);
+process.stdout.write(
+  `world-map-paths.ts written: land ${land.length}B, borders ${borders.length}B, viewBox ${WIDTH}x${HEIGHT}\n`
+);

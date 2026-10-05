@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useMemo, useState } from "react";
 import styles from "./compound-calculator.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 type CalculatorCopy = {
   title: string;
@@ -57,7 +58,7 @@ function buildSeries(start: number, monthly: number, ratePct: number, years: num
 }
 
 function formatMoney(value: number): string {
-  return new Intl.NumberFormat("sv-SE", {
+  return new Intl.NumberFormat(NUMBER_LOCALE, {
     style: "currency",
     currency: "SEK",
     maximumFractionDigits: 0
@@ -70,7 +71,7 @@ type SliderRowProps = {
   value: number;
   valueText: string;
   bounds: { min: number; max: number; step: number };
-  /** Money fields get grouped digits ("100 000"); plain fields keep a number input. */
+  /** Money fields get grouped digits ("100,000"); plain fields keep a number input. */
   money?: boolean;
   onChange: (next: number) => void;
 };
@@ -89,7 +90,7 @@ function SliderRow({ label, unit, value, valueText, bounds, money, onChange }: S
               type="text"
               inputMode="numeric"
               className={`${styles.numberInput} ${styles.numberInputWide}`}
-              value={new Intl.NumberFormat("sv-SE").format(value)}
+              value={new Intl.NumberFormat(NUMBER_LOCALE).format(value)}
               aria-label={label}
               onChange={(event) => {
                 const digits = event.target.value.replace(/\D/g, "");

@@ -65,6 +65,50 @@ html {
   overscroll-behavior-x: none;
 }
 
+/* The dark palette is a token swap and nothing else: every rule in
+   design-system.css and the module stylesheets reads these vars, so the two
+   themes stay one design rather than two that drift apart. The `-ink` variants
+   stop being darkened here — on a dark surface the raw status hues already
+   clear 3:1, and darkening them again would sink them into the background. */
+html[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ink: #f3f7ff;
+  --ink-soft: #ccd6e8;
+  --ink-muted: #97a4be;
+  --muted: var(--ink-muted);
+
+  --accent: #6ca6ff;
+  --accent-soft: #1c3154;
+  --accent-hover: #82b4ff;
+  --navy: var(--accent);
+
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --panel-border: rgba(255, 255, 255, 0.08);
+
+  --surface: #0a101c;
+  --surface-soft: #0e1524;
+  --surface-elevated: #121b2d;
+  --surface-elevated-strong: #16203a;
+
+  --danger: #ff6767;
+  --danger-ink: #ff8585;
+  --success: #4ac784;
+  --success-ink: #4ac784;
+  --warning: #ffc25c;
+  --warning-ink: #ffc25c;
+  --info: var(--accent);
+  --info-ink: #8fbaff;
+  --neutral-ink: var(--ink-muted);
+
+  --shadow-soft: 0 24px 64px rgba(0, 0, 0, 0.45);
+  --shadow-cta: 0 10px 24px rgba(77, 141, 255, 0.28);
+  --cta-bg: var(--accent);
+  --cta-bg-hover: var(--accent-hover);
+  --cta-text: #ffffff;
+}
+
 * {
   box-sizing: border-box;
 }

@@ -33,8 +33,8 @@ const CATEGORY_COPY: Record<Exclude<ConsentCategory, "necessary">, { en: string;
 
 const CATEGORY_DESCRIPTION: Record<Exclude<ConsentCategory, "necessary">, { en: string; sv: string }> = {
   preference: {
-    en: "Remembers your language and where you were in each module.",
-    sv: "Kommer ihåg ditt språk och var du var i varje modul."
+    en: "Remembers your theme, language, and where you were in each module.",
+    sv: "Kommer ihåg ditt tema, språk och var du var i varje modul."
   },
   analytics: {
     en: "Lets us see which pages people use and where they get stuck, so we can fix it.",

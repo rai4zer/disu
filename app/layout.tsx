@@ -40,14 +40,18 @@ export default async function RootLayout({
   return (
     <html lang="en" className={GLASS_ENABLED ? "glass-enabled" : undefined}>
       <head>
-        {/* Sets <html lang> before paint so the document reports the stored
-            language rather than flipping once LanguageProvider hydrates.
-            There is no theme to restore — the app is light-mode only — so the
-            keys the old toggle wrote are dropped here instead, otherwise
-            browsers keep a preference the cookie inventory no longer lists. */}
+        {/* Sets <html lang> and data-theme before paint, so the document
+            reports the stored language and theme rather than flipping once the
+            providers hydrate. The theme half has to run here and not in
+            ThemeToggle's effect: a dark-mode user would otherwise get a full
+            white paint on every navigation before React caught up.
+
+            "system" is stored as the absence of a stored theme, so that a user
+            who never expressed a preference tracks the OS both ways rather
+            than being frozen at whatever it said the first time they visited. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var ls=window.localStorage;ls.removeItem("theme");ls.removeItem("placera-theme");var l=ls.getItem("app_language")||ls.getItem("home_language");if(l==="en"||l==="sv"){document.documentElement.lang=l;}}catch(e){}})();`
+            __html: `(function(){try{var ls=window.localStorage;var t=ls.getItem("theme")||ls.getItem("placera-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}document.documentElement.setAttribute("data-theme",t);var l=ls.getItem("app_language")||ls.getItem("home_language");if(l==="en"||l==="sv"){document.documentElement.lang=l;}}catch(e){}})();`
           }}
         />
       </head>

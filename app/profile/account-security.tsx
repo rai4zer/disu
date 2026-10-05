@@ -11,6 +11,7 @@ import {
   passwordPolicyMessage,
   type PasswordRejectionCode
 } from "@/app/lib/auth/password-policy";
+import ThemeToggle from "@/app/components/theme-toggle";
 import styles from "./page.module.css";
 
 type Props = {
@@ -280,6 +281,23 @@ export default function AccountSecurity({ googleEnabled }: Props) {
                 </button>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* Next to Language because it is the same kind of setting: a browser
+            preference, not an account one. It came back out of the market strip
+            with the language picker — see app/components/theme-toggle.tsx. */}
+        <section className={`${styles.card} appSection`}>
+          <div className={styles.sectionHead}>
+            <h2>{isSv ? "Tema" : "Theme"}</h2>
+            <p>
+              {isSv
+                ? "Gäller den här webbläsaren. \"System\" följer ditt operativsystem."
+                : "Applies to this browser. \"System\" follows your operating system."}
+            </p>
+          </div>
+          <div className={styles.actions}>
+            <ThemeToggle />
           </div>
         </section>
 

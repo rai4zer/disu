@@ -13,6 +13,21 @@ html.glass-enabled {
   --glass-button-border: rgba(20, 28, 45, 0.06);
 }
 
+/* The light glass is a white veil over --surface. Over a near-black surface a
+   white veil turns panels into flat grey, so dark glass tints *down* instead
+   and leans on a deeper shadow for separation. */
+html.glass-enabled[data-theme="dark"] {
+  --glass-border: 1px solid var(--panel-border);
+  --glass-panel-bg: rgba(20, 24, 36, 0.18);
+  --glass-panel-bg-strong: rgba(255, 255, 255, 0.08);
+  --glass-surface-soft: rgba(24, 28, 40, 0.26);
+  --glass-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 64px rgba(0, 0, 0, 0.38);
+  --glass-button-bg: rgba(255, 255, 255, 0.08);
+  --glass-button-bg-hover: rgba(255, 255, 255, 0.14);
+  --glass-button-text: var(--ink);
+  --glass-button-border: rgba(255, 255, 255, 0.1);
+}
+
 html.glass-enabled body {
   font-family: var(--font-sans);
   background: transparent;
@@ -138,6 +153,17 @@ html.glass-enabled [class*="app-shell_navItem"]:hover {
   background: var(--glass-surface-soft);
 }
 
+html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"] {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+html.glass-enabled[data-theme="dark"] [class*="app-shell_navItem"]:hover {
+  border-color: var(--glass-button-border);
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Active nav reads as a solid accent pill, as in riddermarkOS. */
 html.glass-enabled [class*="app-shell_navItemActive"] {
   border-color: transparent;
@@ -159,11 +185,26 @@ html.glass-enabled [class*="top-nav_item"]:hover {
   background: var(--glass-surface-soft);
 }
 
-html.glass-enabled [class*="top-nav_panel"] {
+/* Menus are the one surface glass is wrong for.
+   A veil works on the fixed chrome because what shows through is the page the
+   bar belongs to — the layering reads as depth. A dropdown opens *over*
+   arbitrary content it has nothing to do with, so the same veil puts body copy
+   behind menu labels and both become hard to read. It is also the surface where
+   legibility matters most: a menu is read once, quickly, and dismissed.
+
+   So overlays keep the glass border and shadow and drop the transparency. The
+   background is the module's own opaque --surface-elevated-strong; only the
+   frame comes from here. */
+/* The trailing "__" pins this to `.panel` itself. Without it the substring also
+   matches panelGroup, panelTitle and panelItem, and every row in the menu got
+   the panel's own border and shadow — which is what made the items read as a
+   stack of separate cards rather than a list. */
+html.glass-enabled [class*="top-nav_panel__"] {
   border: var(--glass-border);
-  background: var(--glass-panel-bg-strong);
-  backdrop-filter: blur(16px) saturate(130%);
-  -webkit-backdrop-filter: blur(16px) saturate(130%);
+  background: var(--surface-elevated-strong);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 html.glass-enabled [class*="app-footer_footer"],
@@ -174,35 +215,35 @@ html.glass-enabled [class*="app-footer_disclaimer"] {
   -webkit-backdrop-filter: blur(12px) saturate(125%);
 }
 
-html.glass-enabled [class*="app-footer_disclaimer"] {
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.72);
 }
 
-html.glass-enabled [class*="app-footer_disclaimer"] h2,
-html.glass-enabled [class*="app-footer_disclaimer"] p,
-html.glass-enabled [class*="app-footer_disclaimer"] li {
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] h2,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] p,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_disclaimer"] li {
   color: var(--ink-soft);
 }
 
-html.glass-enabled [class*="app-footer_footer"] {
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_footer"] {
   color: var(--ink);
   background: rgba(255, 255, 255, 0.66);
 }
 
-html.glass-enabled [class*="app-footer_columns"] h3,
-html.glass-enabled [class*="app-footer_columns"] a,
-html.glass-enabled [class*="app-footer_columns"] span,
-html.glass-enabled [class*="app-footer_legal"] a,
-html.glass-enabled [class*="app-footer_legal"] span,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] h3,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] a,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_columns"] span,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] a,
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] span,
 /* The consent-withdrawal control is a button, not a link, and must not be
    quieter than the links beside it — a faded "Cookie settings" is the asymmetry
    that makes the consent unreliable (GDPR Art. 7(3)). */
-html.glass-enabled [class*="app-footer_legalButton"] {
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legalButton"] {
   color: var(--ink-soft);
 }
 
-html.glass-enabled [class*="app-footer_legal"] {
+html.glass-enabled:not([data-theme="dark"]) [class*="app-footer_legal"] {
   border-top-color: var(--border-strong);
 }
 

@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useLanguage } from "@/app/i18n/language";
 import styles from "./portfolio-chart.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 export type PortfolioHistoryPoint = {
   date: string;
@@ -95,22 +96,22 @@ export default function PortfolioChart({
 
   const money = useMemo(
     () =>
-      new Intl.NumberFormat(locale, {
+      new Intl.NumberFormat(NUMBER_LOCALE, {
         style: "currency",
         currency,
         maximumFractionDigits: 0
       }),
-    [locale, currency]
+    [currency]
   );
 
   const axisMoney = useMemo(
-    () => new Intl.NumberFormat(locale, { notation: "compact", maximumFractionDigits: 1 }),
-    [locale]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { notation: "compact", maximumFractionDigits: 1 }),
+    []
   );
 
   const percentFormat = useMemo(
-    () => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    [locale]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    []
   );
 
   const dayLabel = useCallback(

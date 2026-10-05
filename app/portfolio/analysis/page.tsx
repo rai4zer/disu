@@ -42,6 +42,7 @@ import Workspace from "@/app/components/workspace";
 import { useLanguage } from "@/app/i18n/language";
 import PortfolioTabs from "../portfolio-tabs";
 import styles from "./page.module.css";
+import { NUMBER_LOCALE } from "@/app/lib/format/number";
 
 type Position = {
   id: string;
@@ -96,7 +97,6 @@ function venueOf(symbol: string, isSv: boolean): string | null {
 export default function AnalysisPage() {
   const { language } = useLanguage();
   const isSv = language === "sv";
-  const locale = isSv ? "sv-SE" : "en-US";
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [totals, setTotals] = useState<Totals | null>(null);
@@ -130,8 +130,8 @@ export default function AnalysisPage() {
   const currency = totals?.displayCurrency ?? "SEK";
 
   const money = useMemo(
-    () => new Intl.NumberFormat(locale, { style: "currency", currency, maximumFractionDigits: 0 }),
-    [locale, currency]
+    () => new Intl.NumberFormat(NUMBER_LOCALE, { style: "currency", currency, maximumFractionDigits: 0 }),
+    [currency]
   );
 
   /** The rate a row was valued at, read back off the row. */
