@@ -64,3 +64,7 @@ pnpm-lock.yaml
 yarn.lock
 .next/
 .next-build/
+.vercel
+
+.next/
+.next-build/
