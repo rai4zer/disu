@@ -31,13 +31,15 @@ export function ensureRuntimeEnv(): void {
     throw new Error("SUPABASE_URL must be a valid absolute URL.");
   }
 
-  const quantBin = required("QUANT_PYTHON_BIN");
-  const primerBin = required("PRIMER_PYTHON_BIN");
-
-  for (const [name, bin] of [
-    ["QUANT_PYTHON_BIN", quantBin],
-    ["PRIMER_PYTHON_BIN", primerBin]
-  ] as const) {
+  // The Python bins only matter to the job executors, which fall back to
+  // `python3` when unset. Serverless hosts (Vercel) have no venv to point at,
+  // so a missing bin must not take down every page render; a bin that is set
+  // but wrong is still a misconfiguration and fails fast.
+  for (const name of ["QUANT_PYTHON_BIN", "PRIMER_PYTHON_BIN"] as const) {
+    const bin = process.env[name]?.trim();
+    if (!bin) {
+      continue;
+    }
     try {
       accessSync(bin, constants.F_OK);
     } catch {

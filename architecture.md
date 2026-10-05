@@ -158,7 +158,7 @@ Run as `check:delivery` in CI and as `check:delivery:strict` in `prestart` — a
 9. *(strict, production)* Any `PENDING` field in `controller.ts`.
 
 ## Environment
-**Required**: `DISU_SESSION_SECRET`, `BROKER_TOKEN_ENCRYPTION_KEY`, `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_KEY`), `QUANT_PYTHON_BIN`, `PRIMER_PYTHON_BIN`.
+**Required**: `DISU_SESSION_SECRET`, `BROKER_TOKEN_ENCRYPTION_KEY`, `SUPABASE_URL` (or `NEXT_PUBLIC_SUPABASE_URL`), `SUPABASE_SERVICE_ROLE_KEY` (or `SUPABASE_KEY`). `QUANT_PYTHON_BIN` / `PRIMER_PYTHON_BIN` are optional (executors fall back to `python3`) but validated when set.
 
 **Fail-closed switches**: `QUANT_MOCK_FALLBACK_MODE`, `PRIMER_MOCK_FALLBACK_MODE`, `MARKET_MOCK_FALLBACK_MODE`, `PRIMER_LLM_PROVIDER_ALLOW_OVERRIDE`.
 
