@@ -58,3 +58,11 @@ test("ensureRuntimeEnv rejects non-executable python bin on POSIX", { skip: proc
 
   await rm(dir, { recursive: true, force: true });
 });
+
+test("ensureRuntimeEnv accepts unset python bins", () => {
+  setBaseEnv();
+  delete process.env.QUANT_PYTHON_BIN;
+  delete process.env.PRIMER_PYTHON_BIN;
+  resetRuntimeEnvValidationForTests();
+  assert.doesNotThrow(() => ensureRuntimeEnv());
+});
